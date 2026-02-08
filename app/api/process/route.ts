@@ -1,40 +1,33 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
-import { ProcessingResult } from "@/lib/types";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `You are Fjord, a product management AI. You analyze meeting transcripts from product discovery calls and extract structured, actionable output.
+const SYSTEM_PROMPT = `You are Fjord, a product management AI. You analyze meeting transcripts and extract structured problems.
 
 Your job:
 1. Read the transcript carefully.
 2. Identify distinct PROBLEMS — real user pain points discussed in the call. Not feature requests, not vague complaints. Concrete problems with evidence.
-3. For each problem, create exactly ONE PATCH — a specific, opinionated solution. Be decisive. Don't hedge.
-4. For each patch, break it into TICKETS — concrete work items a dev team could pick up. Each ticket should read like a well-written JIRA ticket.
-5. Extract direct QUOTES from the transcript that support each problem. Include the speaker name and approximate timestamp if available.
+3. Extract direct QUOTES from the transcript that support each problem. Include the speaker name and approximate timestamp if available.
+4. Infer a meeting title, date, and participant info from context.
 
 Guidelines:
-- Be opinionated. Pick the best solution, don't offer alternatives.
-- Tickets should be specific enough to implement. Include acceptance criteria.
-- Assign realistic priorities: High = blocking/critical UX issue, Med = important but not blocking, Low = nice to have.
-- Use ticket IDs in the format FJD-101, FJD-102, etc.
-- If the transcript mentions participant names and roles, capture them.
-- Meeting title should reflect the main topic discussed.
+- Ignore small talk, greetings, pleasantries, scheduling logistics, and off-topic conversation. Only extract substantive product or user experience problems.
+- A problem must be backed by specific evidence — a user describing friction, confusion, failure, or workaround. Passing mentions or hypotheticals don't count.
+- Focus only on problems. Do NOT generate solutions or tickets yet.
+- Each problem should be a distinct pain point, not a duplicate or sub-issue of another.
+- Quotes should be near-exact from the transcript. Only quote statements that directly describe a pain point or its impact — never quote greetings, filler, or agreement statements.
+- Typically 2-5 problems per transcript. Don't force more than exist. If the transcript is mostly small talk with only 1 real problem, return 1.
 
-Respond with ONLY valid JSON matching this exact structure (no markdown, no code fences):
+Respond with ONLY valid JSON (no markdown, no code fences, no commentary):
 
 {
-  "meetingTitle": "string — descriptive title like 'Discovery call — Onboarding confusion'",
+  "meetingTitle": "string — e.g. 'Discovery call — Onboarding confusion'",
   "date": "string — date if mentioned, otherwise 'Today'",
-  "participants": "string — e.g. 'Kate (PM), 30-min customer call'",
-  "summary": {
-    "problemCount": number,
-    "quoteCount": number,
-    "ticketCount": number
-  },
+  "participants": "string — e.g. 'Kate (PM), Sarah (Customer) — 30-min call'",
   "problems": [
     {
-      "label": "PROBLEM 1",
+      "id": "problem-1",
       "title": "string — concise problem title",
       "description": "string — 1-2 sentence description of the pain point",
       "quotes": [
@@ -43,32 +36,25 @@ Respond with ONLY valid JSON matching this exact structure (no markdown, no code
           "speaker": "string — who said it",
           "timestamp": "string — e.g. '4:12' or 'early in call'"
         }
-      ],
-      "patch": {
-        "label": "PATCH 1",
-        "title": "string — concise solution title",
-        "description": "string — 1-2 sentence description of the approach"
-      },
-      "tickets": [
-        {
-          "id": "FJD-101",
-          "title": "string — actionable ticket title",
-          "priority": "High | Med | Low",
-          "problemStatement": "string — paragraph explaining the problem context, why it matters, what users experience",
-          "description": "string — paragraph explaining what to build or change",
-          "acceptanceCriteria": ["string — specific, testable criteria"],
-          "quotes": [
-            {
-              "text": "string — supporting quote",
-              "speaker": "string",
-              "timestamp": "string"
-            }
-          ]
-        }
       ]
     }
   ]
 }`;
+
+function extractJSON(text: string): string {
+  let cleaned = text.trim();
+  // Strip code fences
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  }
+  // Find the JSON object if there's surrounding text
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start !== -1 && end !== -1 && end > start) {
+    cleaned = cleaned.slice(start, end + 1);
+  }
+  return cleaned;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,8 +68,8 @@ export async function POST(request: NextRequest) {
     }
 
     const message = await client.messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 4096,
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 8192,
       messages: [
         {
           role: "user",
@@ -93,6 +79,14 @@ export async function POST(request: NextRequest) {
       system: SYSTEM_PROMPT,
     });
 
+    if (message.stop_reason === "max_tokens") {
+      console.error("Response truncated — hit max_tokens limit");
+      return NextResponse.json(
+        { error: "AI response was truncated. Try a shorter transcript." },
+        { status: 500 }
+      );
+    }
+
     const content = message.content[0];
     if (content.type !== "text") {
       return NextResponse.json(
@@ -101,13 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Strip markdown code fences if Claude wraps the JSON
-    let text = content.text.trim();
-    if (text.startsWith("```")) {
-      text = text.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
-    }
-
-    const result: ProcessingResult = JSON.parse(text);
+    const result = JSON.parse(extractJSON(content.text));
 
     return NextResponse.json(result);
   } catch (error) {

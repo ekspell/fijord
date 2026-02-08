@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useCallback, useEffect, useRef } from "react";
 import Results from "./results";
-import { ProcessingResult } from "@/lib/types";
+import { ProblemsResult } from "@/lib/types";
 
 type Step = {
   title: string;
@@ -14,7 +14,7 @@ type Step = {
 const INITIAL_STEPS: Step[] = [
   { title: "Reading transcript", detail: "Parsing input...", status: "active" },
   { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
-  { title: "Generating patches", detail: "Creating solutions...", status: "pending" },
+  { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
   { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
 ];
 
@@ -81,9 +81,9 @@ export default function NewMeeting() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [result, setResult] = useState<ProblemsResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("Tickets");
+  const [activeTab, setActiveTab] = useState("Discovery");
   const startTime = useRef<number>(0);
 
   const { steps } = useProcessingSimulation(isProcessing);
@@ -121,7 +121,7 @@ export default function NewMeeting() {
         throw new Error(data.error || "Processing failed");
       }
 
-      const data: ProcessingResult = await res.json();
+      const data: ProblemsResult = await res.json();
       setResult(data);
       setIsProcessing(false);
     } catch (err) {
@@ -131,8 +131,8 @@ export default function NewMeeting() {
   };
 
   const tabs = [
-    { label: "Inputs", badge: null },
-    { label: "Tickets", badge: null },
+    { label: "Discovery", badge: null },
+    { label: "Scope", badge: null },
     { label: "Roadmap", badge: null },
     { label: "Brief", badge: "NEW" },
   ];
@@ -144,6 +144,7 @@ export default function NewMeeting() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         data={result}
+        transcript={transcript}
         processingTime={elapsed}
       />
     );
@@ -198,7 +199,7 @@ export default function NewMeeting() {
               Analyzing your transcript...
             </h1>
             <p className="mb-12 text-[15px] leading-relaxed text-muted">
-              Extracting problems, generating patches, and writing
+              Extracting problems, generating solutions, and writing
               tickets. This usually takes 10&ndash;20 seconds.
             </p>
 

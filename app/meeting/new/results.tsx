@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ProcessingResult } from "@/lib/types";
+import { ProblemsResult, ExtractedProblem, solutionResult, WorkItem, TicketDetail, TicketContext } from "@/lib/types";
+import TicketDetailView from "./ticket-detail";
 
 const PRIORITY_STYLES: Record<string, string> = {
   High: "bg-amber-100 text-amber-700",
@@ -13,23 +14,108 @@ export default function Results({
   activeTab,
   setActiveTab,
   data,
+  transcript,
   processingTime,
 }: {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  data: ProcessingResult;
+  data: ProblemsResult;
+  transcript: string;
   processingTime: string;
 }) {
   const [selectedProblem, setSelectedProblem] = useState<number | null>(null);
+  const [solutionResults, setsolutionResults] = useState<Record<number, solutionResult>>({});
+  const [loadingsolution, setLoadingsolution] = useState<number | null>(null);
+  const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
+  const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
 
   const tabs = [
-    { label: "Inputs", badge: null },
-    { label: "Tickets", badge: null },
+    { label: "Discovery", badge: null },
+    { label: "Scope", badge: null },
     { label: "Roadmap", badge: null },
     { label: "Brief", badge: "NEW" },
   ];
 
   const selected = selectedProblem !== null ? data.problems[selectedProblem] : null;
+  const currentsolution = selectedProblem !== null ? solutionResults[selectedProblem] : null;
+
+  const handleSelectProblem = async (index: number) => {
+    setSelectedProblem(index);
+
+    // Already loaded
+    if (solutionResults[index]) return;
+
+    setLoadingsolution(index);
+    try {
+      const res = await fetch("/api/generate-solution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript,
+          problem: data.problems[index],
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate solution");
+
+      const result: solutionResult = await res.json();
+      setsolutionResults((prev) => ({ ...prev, [index]: result }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingsolution(null);
+    }
+  };
+
+  const handleWorkItemClick = async (item: WorkItem) => {
+    if (!selected || selectedProblem === null || !currentsolution) return;
+
+    setLoadingTicket(item.id);
+    try {
+      const res = await fetch("/api/generate-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript,
+          problem: selected,
+          solution: currentsolution.solution,
+          workItem: item,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate ticket");
+
+      const ticket: TicketDetail = await res.json();
+      setTicketContext({
+        ticket,
+        problem: selected,
+        problemIndex: selectedProblem,
+        solution: currentsolution.solution,
+        meetingTitle: data.meetingTitle,
+        meetingDate: data.date,
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingTicket(null);
+    }
+  };
+
+  const totalTickets = Object.values(solutionResults).reduce(
+    (sum, pr) => sum + pr.workItems.length,
+    0
+  );
+
+  if (ticketContext) {
+    return (
+      <TicketDetailView
+        context={ticketContext}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onBack={() => setTicketContext(null)}
+      />
+    );
+  }
 
   return (
     <div className="-m-8 flex min-h-screen flex-col">
@@ -67,10 +153,10 @@ export default function Results({
           </div>
           <div>
             <p className="text-sm font-semibold text-white">
-              {data.summary.problemCount} problems found, backed by {data.summary.quoteCount} quotes &rarr; {data.summary.ticketCount} tickets ready
+              {data.problems.length} problems found &mdash; select one to generate solutions
             </p>
             <p className="mt-0.5 text-sm text-white/70">
-              Processed in {processingTime} seconds &middot; A PM would typically spend 45&ndash;60 min on this
+              Processed in {processingTime} seconds
             </p>
           </div>
         </div>
@@ -102,16 +188,17 @@ export default function Results({
             <div className="flex flex-col gap-3">
               {data.problems.map((problem, i) => (
                 <button
-                  key={problem.label}
-                  onClick={() => setSelectedProblem(i)}
+                  key={problem.id}
+                  onClick={() => handleSelectProblem(i)}
+                  style={selectedProblem !== i ? { borderColor: '#E8E6E1' } : {}}
                   className={`rounded-xl border p-5 text-left transition-colors ${
                     selectedProblem === i
                       ? "border-amber-400 bg-amber-50/30 shadow-sm"
-                      : "border-border hover:border-amber-200"
+                      : "hover:border-amber-200"
                   }`}
                 >
                   <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">
-                    {problem.label}
+                    Problem {i + 1}
                   </p>
                   <h3 className="mt-2 text-sm font-semibold text-foreground">
                     {problem.title}
@@ -136,9 +223,9 @@ export default function Results({
             <h2 className="text-xs font-semibold uppercase tracking-wider text-foreground">
               Solutions
             </h2>
-            {selected ? (
+            {currentsolution ? (
               <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted">
-                {selected.tickets.length} tickets
+                {currentsolution.workItems.length} work items
               </span>
             ) : (
               <span className="text-xs text-muted">&mdash;</span>
@@ -154,49 +241,61 @@ export default function Results({
                 Select a problem to see its solution
               </p>
             </div>
-          ) : (
+          ) : loadingsolution === selectedProblem ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card px-12 py-32 text-center">
+              <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent" />
+              <p className="text-sm text-muted">
+                Generating solution &amp; work items...
+              </p>
+            </div>
+          ) : currentsolution ? (
             <div className="flex flex-col gap-3">
-              {/* Patch card */}
-              <div className="rounded-xl border border-amber-400 bg-card p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">
-                  {selected.patch.label}
+              {/* solution card */}
+              <div className="rounded-xl border p-5 shadow-sm" style={{ borderColor: '#2C5F2D', backgroundColor: '#EEF4EE' }}>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#2C5F2D' }}>
+                  solution
                 </p>
                 <h3 className="mt-2 text-sm font-semibold text-foreground">
-                  {selected.patch.title}
+                  {currentsolution.solution.title}
                 </h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted">
-                  {selected.patch.description}
+                  {currentsolution.solution.description}
                 </p>
               </div>
 
-              {/* Ticket cards */}
-              {selected.tickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="rounded-xl border border-border bg-card p-5"
+              {/* Work item cards */}
+              {currentsolution.workItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleWorkItemClick(item)}
+                  disabled={loadingTicket !== null}
+                  className="rounded-xl border border-border bg-card p-5 text-left transition-colors hover:border-accent/30 disabled:opacity-60"
                 >
                   <div className="mb-2 flex items-center gap-2">
                     <span className="text-xs font-medium text-muted">
-                      {ticket.id}
+                      {item.id}
                     </span>
                     <span
                       className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                        PRIORITY_STYLES[ticket.priority] || ""
+                        PRIORITY_STYLES[item.priority] || ""
                       }`}
                     >
-                      {ticket.priority}
+                      {item.priority}
                     </span>
                   </div>
                   <h4 className="text-sm font-semibold text-foreground">
-                    {ticket.title}
+                    {item.title}
                   </h4>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">
-                    {ticket.description}
-                  </p>
-                </div>
+                  {loadingTicket === item.id && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-accent" />
+                      <span className="text-xs text-muted">Generating ticket...</span>
+                    </div>
+                  )}
+                </button>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -204,8 +303,10 @@ export default function Results({
       <div className="fixed bottom-0 left-56 right-0 border-t border-border bg-card px-8 py-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted">
-            <span className="font-semibold text-foreground">{data.summary.ticketCount} tickets</span>{" "}
-            ready to add to your roadmap. You can edit, merge, or discard before saving.
+            <span className="font-semibold text-foreground">{data.problems.length} problems</span> found
+            {totalTickets > 0 && (
+              <> &middot; <span className="font-semibold text-foreground">{totalTickets} work items</span> generated</>
+            )}
           </p>
           <div className="flex items-center gap-3">
             <button className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background">

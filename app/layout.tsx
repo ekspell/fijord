@@ -11,7 +11,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Fjord",
-  description: "Extract problems, patches, and tickets from meeting transcripts",
+  description: "Extract problems, solutions, and tickets from meeting transcripts",
 };
 
 export default function RootLayout({
