@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Results from "./results";
+import { ProcessingResult } from "@/lib/types";
 
 type Step = {
   title: string;
@@ -11,58 +12,42 @@ type Step = {
 };
 
 const INITIAL_STEPS: Step[] = [
-  { title: "Reading transcripts", detail: "Parsing input...", status: "active" },
-  { title: "Detecting problems", detail: "Finding recurring pain points...", status: "pending" },
-  { title: "Generating patches", detail: "Solutions for each problem", status: "pending" },
-  { title: "Writing tickets", detail: "Ready to export", status: "pending" },
+  { title: "Reading transcript", detail: "Parsing input...", status: "active" },
+  { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
+  { title: "Generating patches", detail: "Creating solutions...", status: "pending" },
+  { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
 ];
 
-function useProcessingSimulation(isProcessing: boolean, onComplete: () => void) {
+function useProcessingSimulation(isProcessing: boolean) {
   const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
-  const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
     if (!isProcessing) {
       setSteps(INITIAL_STEPS);
-      setCurrentStep(0);
       return;
     }
-
-    const details: string[][] = [
-      ["Parsing input...", "3 calls · 12,847 words"],
-      ["Finding recurring pain points...", "Found 6 problems"],
-      ["Drafting solutions...", "6 patches generated"],
-      ["Structuring work items...", "Ready to export"],
-    ];
 
     const advanceStep = (step: number) => {
       setSteps((prev) =>
         prev.map((s, i) => {
-          if (i < step) return { ...s, status: "done", detail: details[i][1] };
-          if (i === step) return { ...s, status: "active", detail: details[i][0] };
+          if (i < step) return { ...s, status: "done" };
+          if (i === step) return { ...s, status: "active" };
           return { ...s, status: "pending" };
         })
       );
-      setCurrentStep(step);
     };
 
     advanceStep(0);
     const timers = [
-      setTimeout(() => advanceStep(1), 2000),
-      setTimeout(() => advanceStep(2), 5000),
-      setTimeout(() => advanceStep(3), 8000),
-      setTimeout(() => {
-        setSteps((prev) =>
-          prev.map((s, i) => ({ ...s, status: "done", detail: details[i][1] }))
-        );
-      }, 10000),
-      setTimeout(() => onComplete(), 11500),
+      setTimeout(() => advanceStep(1), 3000),
+      setTimeout(() => advanceStep(2), 7000),
+      setTimeout(() => advanceStep(3), 11000),
     ];
 
     return () => timers.forEach(clearTimeout);
-  }, [isProcessing, onComplete]);
+  }, [isProcessing]);
 
-  return { steps, currentStep };
+  return { steps };
 }
 
 const CheckIcon = () => (
@@ -90,22 +75,18 @@ const ClipboardIcon = () => (
   </svg>
 );
 
-const DocIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
-    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
-
 const STEP_ICONS = [SearchIcon, SearchIcon, BoltIcon, ClipboardIcon];
 
 export default function NewMeeting() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showResults, setShowResults] = useState(false);
+  const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("Tickets");
-  const handleComplete = useCallback(() => setShowResults(true), []);
-  const { steps } = useProcessingSimulation(isProcessing, handleComplete);
+  const startTime = useRef<number>(0);
+
+  const { steps } = useProcessingSimulation(isProcessing);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -122,9 +103,31 @@ export default function NewMeeting() {
     setIsDragOver(false);
   }, []);
 
-  const handleProcess = () => {
+  const handleProcess = async () => {
     if (!transcript.trim()) return;
     setIsProcessing(true);
+    setError(null);
+    startTime.current = Date.now();
+
+    try {
+      const res = await fetch("/api/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Processing failed");
+      }
+
+      const data: ProcessingResult = await res.json();
+      setResult(data);
+      setIsProcessing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setIsProcessing(false);
+    }
   };
 
   const tabs = [
@@ -134,8 +137,16 @@ export default function NewMeeting() {
     { label: "Brief", badge: "NEW" },
   ];
 
-  if (showResults) {
-    return <Results activeTab={activeTab} setActiveTab={setActiveTab} />;
+  if (result) {
+    const elapsed = ((Date.now() - startTime.current) / 1000).toFixed(1);
+    return (
+      <Results
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        data={result}
+        processingTime={elapsed}
+      />
+    );
   }
 
   if (isProcessing) {
@@ -184,32 +195,12 @@ export default function NewMeeting() {
             </div>
 
             <h1 className="mb-3 text-2xl font-medium text-foreground">
-              Analyzing your calls...
+              Analyzing your transcript...
             </h1>
             <p className="mb-12 text-[15px] leading-relaxed text-muted">
-              We&apos;re extracting problems, generating solutions, and writing
-              tickets. This usually takes 10&ndash;30 seconds.
+              Extracting problems, generating patches, and writing
+              tickets. This usually takes 10&ndash;20 seconds.
             </p>
-
-            {/* File chips */}
-            <p className="mb-3 text-xs uppercase tracking-wide text-muted/70">
-              Processing 3 transcripts
-            </p>
-            <div className="mb-6 flex flex-wrap justify-center gap-2">
-              {[
-                "Onboarding call — Feb 4",
-                "Pricing feedback — Jan 28",
-                "Churn exit call — Jan 15",
-              ].map((file) => (
-                <div
-                  key={file}
-                  className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[13px]"
-                >
-                  <DocIcon />
-                  {file}
-                </div>
-              ))}
-            </div>
 
             {/* Steps */}
             <div className="rounded-xl border border-border bg-card p-6 text-left">
@@ -283,6 +274,11 @@ export default function NewMeeting() {
       <div className="mt-8 flex flex-col items-center">
         {/* Paste transcript */}
         <div className="w-full">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
           <textarea
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}

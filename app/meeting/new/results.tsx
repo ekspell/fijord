@@ -1,100 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
-type Ticket = {
-  id: string;
-  priority: "High" | "Med" | "Low";
-  status: string;
-  title: string;
-  description: string;
-};
-
-type Problem = {
-  label: string;
-  title: string;
-  description: string;
-  quotes: number;
-  badge?: string;
-  patch: {
-    label: string;
-    title: string;
-    description: string;
-  };
-  tickets: Ticket[];
-};
-
-const PROBLEMS: Problem[] = [
-  {
-    label: "PROBLEM 1",
-    title: "Users give conflicting feedback about admin vs member roles during onboarding",
-    description:
-      "Some users report that the difference between admin and member roles is unclear and want more explanation before choosing. Others say the roles fe...",
-    quotes: 22,
-    badge: "Conflicting problems",
-    patch: {
-      label: "PATCH 1",
-      title: "Add a clear first-action CTA on the empty dashboard",
-      description:
-        "Replace the blank post-signup screen with a clear primary action and an onboarding checklist so users aren't lost.",
-    },
-    tickets: [
-      {
-        id: "FJD-101",
-        priority: "High",
-        status: "In progress",
-        title: "Add role descriptions to invite flow",
-        description:
-          "Show a plain-language description under each role option explaining the difference between Admin and Member.",
-      },
-      {
-        id: "FJD-107",
-        priority: "Med",
-        status: "To do",
-        title: "Add role comparison tooltip",
-        description:
-          "Show a side-by-side comparison of Admin vs Member permissions on hover.",
-      },
-    ],
-  },
-  {
-    label: "PROBLEM 2",
-    title: "First screen after signup doesn't clearly show the next step",
-    description:
-      "Users land on an empty dashboard with no guidance. They don't know what action to take first.",
-    quotes: 2,
-    patch: {
-      label: "PATCH 2",
-      title: "Add setup progress tracking for invited users",
-      description:
-        "Show admins a dashboard of invited users and their setup completion status, with the ability to send nudge reminders.",
-    },
-    tickets: [
-      {
-        id: "FJD-112",
-        priority: "Med",
-        status: "To do",
-        title: "Build invite status dashboard",
-        description:
-          "Create a view showing all pending invites with completion percentage and last activity date.",
-      },
-    ],
-  },
-  {
-    label: "PROBLEM 3",
-    title: "Invited teammates don't complete setup",
-    description:
-      "People receive invites but drop off before finishing their account setup. There's no visibility into who's stuck.",
-    quotes: 2,
-    patch: {
-      label: "PATCH 3",
-      title: "Simplify role selection with clear descriptions",
-      description:
-        "Add inline explanations and a comparison table for each role during the invite flow.",
-    },
-    tickets: [],
-  },
-];
+import { ProcessingResult } from "@/lib/types";
 
 const PRIORITY_STYLES: Record<string, string> = {
   High: "bg-amber-100 text-amber-700",
@@ -105,9 +12,13 @@ const PRIORITY_STYLES: Record<string, string> = {
 export default function Results({
   activeTab,
   setActiveTab,
+  data,
+  processingTime,
 }: {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  data: ProcessingResult;
+  processingTime: string;
 }) {
   const [selectedProblem, setSelectedProblem] = useState<number | null>(null);
 
@@ -118,7 +29,7 @@ export default function Results({
     { label: "Brief", badge: "NEW" },
   ];
 
-  const selected = selectedProblem !== null ? PROBLEMS[selectedProblem] : null;
+  const selected = selectedProblem !== null ? data.problems[selectedProblem] : null;
 
   return (
     <div className="-m-8 flex min-h-screen flex-col">
@@ -156,10 +67,10 @@ export default function Results({
           </div>
           <div>
             <p className="text-sm font-semibold text-white">
-              3 problems found, backed by 6 quotes &rarr; 3 tickets ready
+              {data.summary.problemCount} problems found, backed by {data.summary.quoteCount} quotes &rarr; {data.summary.ticketCount} tickets ready
             </p>
             <p className="mt-0.5 text-sm text-white/70">
-              Processed in 2.8 seconds &middot; A PM would typically spend 45&ndash;60 min on this
+              Processed in {processingTime} seconds &middot; A PM would typically spend 45&ndash;60 min on this
             </p>
           </div>
         </div>
@@ -168,10 +79,10 @@ export default function Results({
       {/* Title */}
       <div className="px-8 pt-8 pb-6">
         <h1 className="text-xl font-semibold text-foreground">
-          Discovery call &mdash; Onboarding confusion
+          {data.meetingTitle}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Feb 4, 2026 &middot; Kate (PM), 30-min customer call
+          {data.date} &middot; {data.participants}
         </p>
       </div>
 
@@ -185,11 +96,11 @@ export default function Results({
                 Problems
               </h2>
               <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted">
-                {PROBLEMS.length} found
+                {data.problems.length} found
               </span>
             </div>
             <div className="flex flex-col gap-3">
-              {PROBLEMS.map((problem, i) => (
+              {data.problems.map((problem, i) => (
                 <button
                   key={problem.label}
                   onClick={() => setSelectedProblem(i)}
@@ -210,13 +121,8 @@ export default function Results({
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     <span className="text-xs font-medium text-amber-600">
-                      &darr; {problem.quotes} supporting quotes
+                      &darr; {problem.quotes.length} supporting quotes
                     </span>
-                    {problem.badge && (
-                      <span className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                        {problem.badge}
-                      </span>
-                    )}
                   </div>
                 </button>
               ))}
@@ -232,7 +138,7 @@ export default function Results({
             </h2>
             {selected ? (
               <span className="rounded-full border border-border px-2.5 py-0.5 text-xs text-muted">
-                {selected.tickets.length + 1} tickets
+                {selected.tickets.length} tickets
               </span>
             ) : (
               <span className="text-xs text-muted">&mdash;</span>
@@ -280,9 +186,6 @@ export default function Results({
                     >
                       {ticket.priority}
                     </span>
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-muted">
-                      {ticket.status}
-                    </span>
                   </div>
                   <h4 className="text-sm font-semibold text-foreground">
                     {ticket.title}
@@ -301,7 +204,7 @@ export default function Results({
       <div className="fixed bottom-0 left-56 right-0 border-t border-border bg-card px-8 py-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted">
-            <span className="font-semibold text-foreground">3 tickets</span>{" "}
+            <span className="font-semibold text-foreground">{data.summary.ticketCount} tickets</span>{" "}
             ready to add to your roadmap. You can edit, merge, or discard before saving.
           </p>
           <div className="flex items-center gap-3">
