@@ -1,10 +1,111 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import Results from "./results";
+
+type Step = {
+  title: string;
+  detail: string;
+  status: "done" | "active" | "pending";
+};
+
+const INITIAL_STEPS: Step[] = [
+  { title: "Reading transcripts", detail: "Parsing input...", status: "active" },
+  { title: "Detecting problems", detail: "Finding recurring pain points...", status: "pending" },
+  { title: "Generating patches", detail: "Solutions for each problem", status: "pending" },
+  { title: "Writing tickets", detail: "Ready to export", status: "pending" },
+];
+
+function useProcessingSimulation(isProcessing: boolean, onComplete: () => void) {
+  const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    if (!isProcessing) {
+      setSteps(INITIAL_STEPS);
+      setCurrentStep(0);
+      return;
+    }
+
+    const details: string[][] = [
+      ["Parsing input...", "3 calls · 12,847 words"],
+      ["Finding recurring pain points...", "Found 6 problems"],
+      ["Drafting solutions...", "6 patches generated"],
+      ["Structuring work items...", "Ready to export"],
+    ];
+
+    const advanceStep = (step: number) => {
+      setSteps((prev) =>
+        prev.map((s, i) => {
+          if (i < step) return { ...s, status: "done", detail: details[i][1] };
+          if (i === step) return { ...s, status: "active", detail: details[i][0] };
+          return { ...s, status: "pending" };
+        })
+      );
+      setCurrentStep(step);
+    };
+
+    advanceStep(0);
+    const timers = [
+      setTimeout(() => advanceStep(1), 2000),
+      setTimeout(() => advanceStep(2), 5000),
+      setTimeout(() => advanceStep(3), 8000),
+      setTimeout(() => {
+        setSteps((prev) =>
+          prev.map((s, i) => ({ ...s, status: "done", detail: details[i][1] }))
+        );
+      }, 10000),
+      setTimeout(() => onComplete(), 11500),
+    ];
+
+    return () => timers.forEach(clearTimeout);
+  }, [isProcessing, onComplete]);
+
+  return { steps, currentStep };
+}
+
+const CheckIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
+const BoltIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+  </svg>
+);
+
+const ClipboardIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+);
+
+const DocIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+);
+
+const STEP_ICONS = [SearchIcon, SearchIcon, BoltIcon, ClipboardIcon];
 
 export default function NewMeeting() {
   const [isDragOver, setIsDragOver] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [activeTab, setActiveTab] = useState("Tickets");
+  const handleComplete = useCallback(() => setShowResults(true), []);
+  const { steps } = useProcessingSimulation(isProcessing, handleComplete);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -19,8 +120,144 @@ export default function NewMeeting() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    // TODO: handle file upload
   }, []);
+
+  const handleProcess = () => {
+    if (!transcript.trim()) return;
+    setIsProcessing(true);
+  };
+
+  const tabs = [
+    { label: "Inputs", badge: null },
+    { label: "Tickets", badge: null },
+    { label: "Roadmap", badge: null },
+    { label: "Brief", badge: "NEW" },
+  ];
+
+  if (showResults) {
+    return <Results activeTab={activeTab} setActiveTab={setActiveTab} />;
+  }
+
+  if (isProcessing) {
+    return (
+      <div className="-m-8 flex min-h-screen flex-col">
+        {/* Tab bar */}
+        <header className="flex justify-center py-6">
+          <nav className="flex gap-1.5 rounded-xl border border-border bg-card p-1.5">
+            {tabs.map((tab) => (
+              <button
+                key={tab.label}
+                onClick={() => setActiveTab(tab.label)}
+                className={`rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
+                  activeTab === tab.label
+                    ? "bg-background text-foreground"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+                {tab.badge && (
+                  <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </header>
+
+        {/* Processing content */}
+        <main className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
+          <div className="w-full max-w-md text-center">
+            {/* Spinner */}
+            <div className="relative mx-auto mb-8 h-20 w-20">
+              <div className="h-20 w-20 animate-spin rounded-full border-[3px] border-border border-t-accent" />
+              <svg
+                className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-accent"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+
+            <h1 className="mb-3 text-2xl font-medium text-foreground">
+              Analyzing your calls...
+            </h1>
+            <p className="mb-12 text-[15px] leading-relaxed text-muted">
+              We&apos;re extracting problems, generating solutions, and writing
+              tickets. This usually takes 10&ndash;30 seconds.
+            </p>
+
+            {/* File chips */}
+            <p className="mb-3 text-xs uppercase tracking-wide text-muted/70">
+              Processing 3 transcripts
+            </p>
+            <div className="mb-6 flex flex-wrap justify-center gap-2">
+              {[
+                "Onboarding call — Feb 4",
+                "Pricing feedback — Jan 28",
+                "Churn exit call — Jan 15",
+              ].map((file) => (
+                <div
+                  key={file}
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-[13px]"
+                >
+                  <DocIcon />
+                  {file}
+                </div>
+              ))}
+            </div>
+
+            {/* Steps */}
+            <div className="rounded-xl border border-border bg-card p-6 text-left">
+              {steps.map((step, i) => {
+                const Icon = STEP_ICONS[i];
+                return (
+                  <div
+                    key={step.title}
+                    className={`flex items-start gap-4 py-3 ${
+                      i < steps.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    <div
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                        step.status === "done"
+                          ? "bg-accent text-white"
+                          : step.status === "active"
+                            ? "animate-pulse bg-accent/15 text-accent"
+                            : "bg-border text-muted/70"
+                      }`}
+                    >
+                      {step.status === "done" ? <CheckIcon /> : <Icon />}
+                    </div>
+                    <div>
+                      <p
+                        className={`text-sm font-medium ${
+                          step.status === "pending" ? "text-muted/70" : "text-foreground"
+                        }`}
+                      >
+                        {step.title}
+                      </p>
+                      <p
+                        className={`text-[13px] ${
+                          step.status === "pending" ? "text-muted/50" : "text-muted"
+                        }`}
+                      >
+                        {step.detail}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -44,6 +281,30 @@ export default function NewMeeting() {
       </div>
 
       <div className="mt-8 flex flex-col items-center">
+        {/* Paste transcript */}
+        <div className="w-full">
+          <textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder="Paste a meeting transcript here..."
+            className="h-40 w-full resize-none rounded-xl border border-border bg-card p-4 text-sm text-foreground placeholder:text-muted/60 focus:border-accent/40 focus:outline-none"
+          />
+          <button
+            onClick={handleProcess}
+            disabled={!transcript.trim()}
+            className="mt-3 w-full rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Process transcript
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="my-6 flex w-full items-center gap-4">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
         {/* Record button */}
         <button className="flex items-center gap-2.5 rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-foreground/90">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
