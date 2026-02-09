@@ -1,53 +1,15 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import Results from "./results";
-import { ProblemsResult } from "@/lib/types";
+import { useNav } from "./nav-context";
+import { ProblemsResult, solutionResult } from "@/lib/types";
 
 type Step = {
   title: string;
   detail: string;
   status: "done" | "active" | "pending";
 };
-
-const INITIAL_STEPS: Step[] = [
-  { title: "Reading transcript", detail: "Parsing input...", status: "active" },
-  { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
-  { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
-  { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
-];
-
-function useProcessingSimulation(isProcessing: boolean) {
-  const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
-
-  useEffect(() => {
-    if (!isProcessing) {
-      setSteps(INITIAL_STEPS);
-      return;
-    }
-
-    const advanceStep = (step: number) => {
-      setSteps((prev) =>
-        prev.map((s, i) => {
-          if (i < step) return { ...s, status: "done" };
-          if (i === step) return { ...s, status: "active" };
-          return { ...s, status: "pending" };
-        })
-      );
-    };
-
-    advanceStep(0);
-    const timers = [
-      setTimeout(() => advanceStep(1), 3000),
-      setTimeout(() => advanceStep(2), 7000),
-      setTimeout(() => advanceStep(3), 11000),
-    ];
-
-    return () => timers.forEach(clearTimeout);
-  }, [isProcessing]);
-
-  return { steps };
-}
 
 const CheckIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -81,10 +43,28 @@ export default function Discovery() {
   const [transcript, setTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<ProblemsResult | null>(null);
+  const [solutions, setSolutions] = useState<solutionResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [processingTime, setProcessingTime] = useState("0");
   const startTime = useRef<number>(0);
+  const { setActiveTab } = useNav();
 
-  const { steps } = useProcessingSimulation(isProcessing);
+  const [steps, setSteps] = useState<Step[]>([
+    { title: "Reading transcript", detail: "Parsing input...", status: "pending" },
+    { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
+    { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
+    { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
+  ]);
+
+  const updateStep = (index: number, status: Step["status"], detail?: string) => {
+    setSteps((prev) =>
+      prev.map((s, i) => {
+        if (i < index) return { ...s, status: "done" };
+        if (i === index) return { ...s, status, detail: detail || s.detail };
+        return s;
+      })
+    );
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -108,6 +88,9 @@ export default function Discovery() {
     startTime.current = Date.now();
 
     try {
+      // Step 1: Read transcript + detect problems
+      updateStep(0, "active", "Parsing input...");
+
       const res = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,22 +102,56 @@ export default function Discovery() {
         throw new Error(data.error || "Processing failed");
       }
 
-      const data: ProblemsResult = await res.json();
-      setResult(data);
+      const problemsData: ProblemsResult = await res.json();
+      setResult(problemsData);
+
+      // Step 2: Problems detected
+      updateStep(1, "active", `Found ${problemsData.problems.length} problems`);
+
+      // Step 3: Generate solutions for all problems in parallel
+      updateStep(2, "active", `Generating for ${problemsData.problems.length} problems...`);
+
+      const solutionPromises = problemsData.problems.map((problem) =>
+        fetch("/api/generate-solution", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transcript, problem }),
+        }).then(async (r) => {
+          if (!r.ok) throw new Error("Failed to generate solution");
+          return r.json() as Promise<solutionResult>;
+        })
+      );
+
+      const solutionResults = await Promise.all(solutionPromises);
+      setSolutions(solutionResults);
+
+      // Step 4: Done
+      const totalTickets = solutionResults.reduce((sum, s) => sum + s.workItems.length, 0);
+      updateStep(3, "done", `${totalTickets} tickets created`);
+
+      const elapsed = ((Date.now() - startTime.current) / 1000).toFixed(1);
+      setProcessingTime(elapsed);
+      setActiveTab("Scope");
       setIsProcessing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setIsProcessing(false);
+      setSteps([
+        { title: "Reading transcript", detail: "Parsing input...", status: "pending" },
+        { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
+        { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
+        { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
+      ]);
     }
   };
 
-  if (result) {
-    const elapsed = ((Date.now() - startTime.current) / 1000).toFixed(1);
+  if (result && !isProcessing) {
     return (
       <Results
         data={result}
+        solutions={solutions}
         transcript={transcript}
-        processingTime={elapsed}
+        processingTime={processingTime}
       />
     );
   }
