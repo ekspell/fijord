@@ -5,7 +5,7 @@ import { useNav } from "../nav-context";
 const tabs = ["Discovery", "Scope", "Roadmap"];
 
 export default function TopNav() {
-  const { activeTab } = useNav();
+  const { activeTab, setActiveTab, result } = useNav();
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-background/85 px-8 backdrop-blur-md" style={{ height: 56 }}>
@@ -21,18 +21,26 @@ export default function TopNav() {
 
       {/* Tabs */}
       <nav className="flex gap-1 rounded-xl border border-border bg-card p-1">
-        {tabs.map((tab) => (
-          <div
-            key={tab}
-            className={`rounded-lg px-5 py-2 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted"
-            }`}
-          >
-            {tab}
-          </div>
-        ))}
+        {tabs.map((tab) => {
+          const needsData = tab === "Scope" || tab === "Roadmap";
+          const disabled = needsData && !result;
+          return (
+            <button
+              key={tab}
+              onClick={() => !disabled && setActiveTab(tab)}
+              disabled={disabled}
+              className={`rounded-lg px-5 py-2 text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? "bg-background text-foreground shadow-sm"
+                  : disabled
+                    ? "cursor-not-allowed text-muted/40"
+                    : "cursor-pointer text-muted hover:text-foreground"
+              }`}
+            >
+              {tab}
+            </button>
+          );
+        })}
       </nav>
 
       {/* Avatar */}

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import Results from "./results";
+import Roadmap from "./roadmap";
 import { useNav } from "./nav-context";
 import { ProblemsResult, solutionResult } from "@/lib/types";
 
@@ -40,14 +41,21 @@ const STEP_ICONS = [SearchIcon, SearchIcon, BoltIcon, ClipboardIcon];
 
 export default function Discovery() {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [transcript, setTranscript] = useState("");
+  const [localTranscript, setLocalTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<ProblemsResult | null>(null);
-  const [solutions, setSolutions] = useState<solutionResult[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [processingTime, setProcessingTime] = useState("0");
   const startTime = useRef<number>(0);
-  const { setActiveTab } = useNav();
+
+  const {
+    activeTab,
+    setActiveTab,
+    result,
+    setResult,
+    solutions,
+    setSolutions,
+    setTranscript,
+    setProcessingTime,
+  } = useNav();
 
   const [steps, setSteps] = useState<Step[]>([
     { title: "Reading transcript", detail: "Parsing input...", status: "pending" },
@@ -82,19 +90,18 @@ export default function Discovery() {
   }, []);
 
   const handleProcess = async () => {
-    if (!transcript.trim()) return;
+    if (!localTranscript.trim()) return;
     setIsProcessing(true);
     setError(null);
     startTime.current = Date.now();
 
     try {
-      // Step 1: Read transcript + detect problems
       updateStep(0, "active", "Parsing input...");
 
       const res = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript }),
+        body: JSON.stringify({ transcript: localTranscript }),
       });
 
       if (!res.ok) {
@@ -103,19 +110,15 @@ export default function Discovery() {
       }
 
       const problemsData: ProblemsResult = await res.json();
-      setResult(problemsData);
 
-      // Step 2: Problems detected
       updateStep(1, "active", `Found ${problemsData.problems.length} problems`);
-
-      // Step 3: Generate solutions for all problems in parallel
       updateStep(2, "active", `Generating for ${problemsData.problems.length} problems...`);
 
       const solutionPromises = problemsData.problems.map((problem) =>
         fetch("/api/generate-solution", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript, problem }),
+          body: JSON.stringify({ transcript: localTranscript, problem }),
         }).then(async (r) => {
           if (!r.ok) throw new Error("Failed to generate solution");
           return r.json() as Promise<solutionResult>;
@@ -123,13 +126,16 @@ export default function Discovery() {
       );
 
       const solutionResults = await Promise.all(solutionPromises);
-      setSolutions(solutionResults);
 
-      // Step 4: Done
       const totalTickets = solutionResults.reduce((sum, s) => sum + s.workItems.length, 0);
       updateStep(3, "done", `${totalTickets} tickets created`);
 
       const elapsed = ((Date.now() - startTime.current) / 1000).toFixed(1);
+
+      // Store in shared context
+      setResult(problemsData);
+      setSolutions(solutionResults);
+      setTranscript(localTranscript);
       setProcessingTime(elapsed);
       setActiveTab("Scope");
       setIsProcessing(false);
@@ -145,15 +151,13 @@ export default function Discovery() {
     }
   };
 
-  if (result && !isProcessing) {
-    return (
-      <Results
-        data={result}
-        solutions={solutions}
-        transcript={transcript}
-        processingTime={processingTime}
-      />
-    );
+  // Tab-based rendering
+  if (activeTab === "Scope" && result) {
+    return <Results />;
+  }
+
+  if (activeTab === "Roadmap" && result) {
+    return <Roadmap />;
   }
 
   if (isProcessing) {
@@ -243,7 +247,6 @@ export default function Discovery() {
       </div>
 
       <div className="mt-8 flex flex-col items-center">
-        {/* Paste transcript */}
         <div className="w-full">
           {error && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -251,28 +254,26 @@ export default function Discovery() {
             </div>
           )}
           <textarea
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
+            value={localTranscript}
+            onChange={(e) => setLocalTranscript(e.target.value)}
             placeholder="Paste a meeting transcript here..."
             className="h-40 w-full resize-none rounded-xl border border-border bg-card p-4 text-sm text-foreground placeholder:text-muted/60 focus:border-accent/40 focus:outline-none"
           />
           <button
             onClick={handleProcess}
-            disabled={!transcript.trim()}
+            disabled={!localTranscript.trim()}
             className="mt-3 w-full rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Process transcript
           </button>
         </div>
 
-        {/* Divider */}
         <div className="my-6 flex w-full items-center gap-4">
           <div className="h-px flex-1 bg-border" />
           <span className="text-xs text-muted">or</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Record button */}
         <button className="flex items-center gap-2.5 rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-foreground/90">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="8" cy="8" r="4" fill="#EF4444" />
@@ -281,14 +282,12 @@ export default function Discovery() {
           Record using Granola
         </button>
 
-        {/* Divider */}
         <div className="my-6 flex w-full items-center gap-4">
           <div className="h-px flex-1 bg-border" />
           <span className="text-xs text-muted">or</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Drop zone */}
         <label
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}

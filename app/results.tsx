@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ProblemsResult, solutionResult, WorkItem, TicketDetail, TicketContext, Quote } from "@/lib/types";
+import { useNav } from "./nav-context";
+import { solutionResult, WorkItem, TicketDetail, TicketContext, Quote } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
@@ -36,7 +37,7 @@ function EvidenceCard({ quote }: { quote: Quote }) {
   );
 }
 
-function ProblemCard({ problem, index }: { problem: ProblemsResult["problems"][0]; index: number }) {
+function ProblemCard({ problem, index }: { problem: { title: string; description: string; quotes: Quote[] }; index: number }) {
   return (
     <div
       className="mb-2 rounded-lg border p-3.5"
@@ -100,24 +101,15 @@ function TicketCard({
   );
 }
 
-export default function Results({
-  data,
-  solutions,
-  transcript,
-  processingTime,
-}: {
-  data: ProblemsResult;
-  solutions: solutionResult[];
-  transcript: string;
-  processingTime: string;
-}) {
+export default function Results() {
+  const { result: data, solutions, transcript, processingTime, setActiveTab } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
 
-  // Collect all quotes from all problems
+  if (!data) return null;
+
   const allQuotes = data.problems.flatMap((p) => p.quotes);
 
-  // Collect all tickets with their parent problem info
   const allTickets: { item: WorkItem; problemIndex: number; problemLabel: string; solution: solutionResult }[] = [];
   solutions.forEach((sol, i) => {
     sol.workItems.forEach((item) => {
@@ -272,7 +264,10 @@ export default function Results({
           <button className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background">
             View transcript
           </button>
-          <button className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90">
+          <button
+            onClick={() => setActiveTab("Roadmap")}
+            className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+          >
             Save to roadmap &rarr;
           </button>
         </div>
