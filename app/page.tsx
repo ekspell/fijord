@@ -1,250 +1,302 @@
-import Link from "next/link";
+"use client";
 
-export default function Home() {
+import { useState, useCallback, useEffect, useRef } from "react";
+import Results from "./results";
+import { ProblemsResult } from "@/lib/types";
+
+type Step = {
+  title: string;
+  detail: string;
+  status: "done" | "active" | "pending";
+};
+
+const INITIAL_STEPS: Step[] = [
+  { title: "Reading transcript", detail: "Parsing input...", status: "active" },
+  { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
+  { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
+  { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
+];
+
+function useProcessingSimulation(isProcessing: boolean) {
+  const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
+
+  useEffect(() => {
+    if (!isProcessing) {
+      setSteps(INITIAL_STEPS);
+      return;
+    }
+
+    const advanceStep = (step: number) => {
+      setSteps((prev) =>
+        prev.map((s, i) => {
+          if (i < step) return { ...s, status: "done" };
+          if (i === step) return { ...s, status: "active" };
+          return { ...s, status: "pending" };
+        })
+      );
+    };
+
+    advanceStep(0);
+    const timers = [
+      setTimeout(() => advanceStep(1), 3000),
+      setTimeout(() => advanceStep(2), 7000),
+      setTimeout(() => advanceStep(3), 11000),
+    ];
+
+    return () => timers.forEach(clearTimeout);
+  }, [isProcessing]);
+
+  return { steps };
+}
+
+const CheckIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
+const BoltIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+  </svg>
+);
+
+const ClipboardIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+);
+
+const STEP_ICONS = [SearchIcon, SearchIcon, BoltIcon, ClipboardIcon];
+
+export default function Discovery() {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [result, setResult] = useState<ProblemsResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const startTime = useRef<number>(0);
+
+  const { steps } = useProcessingSimulation(isProcessing);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleProcess = async () => {
+    if (!transcript.trim()) return;
+    setIsProcessing(true);
+    setError(null);
+    startTime.current = Date.now();
+
+    try {
+      const res = await fetch("/api/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Processing failed");
+      }
+
+      const data: ProblemsResult = await res.json();
+      setResult(data);
+      setIsProcessing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setIsProcessing(false);
+    }
+  };
+
+  if (result) {
+    const elapsed = ((Date.now() - startTime.current) / 1000).toFixed(1);
+    return (
+      <Results
+        data={result}
+        transcript={transcript}
+        processingTime={elapsed}
+      />
+    );
+  }
+
+  if (isProcessing) {
+    return (
+      <div className="flex min-h-[80vh] flex-col">
+        <main className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
+          <div className="w-full max-w-md text-center">
+            <div className="relative mx-auto mb-8 h-20 w-20">
+              <div className="h-20 w-20 animate-spin rounded-full border-[3px] border-border border-t-accent" />
+              <svg
+                className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-accent"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+
+            <h1 className="mb-3 text-2xl font-medium text-foreground">
+              Analyzing your transcript...
+            </h1>
+            <p className="mb-12 text-[15px] leading-relaxed text-muted">
+              Extracting problems, generating solutions, and writing
+              tickets. This usually takes 10&ndash;20 seconds.
+            </p>
+
+            <div className="rounded-xl border border-border bg-card p-6 text-left">
+              {steps.map((step, i) => {
+                const Icon = STEP_ICONS[i];
+                return (
+                  <div
+                    key={step.title}
+                    className={`flex items-start gap-4 py-3 ${
+                      i < steps.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    <div
+                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                        step.status === "done"
+                          ? "bg-accent text-white"
+                          : step.status === "active"
+                            ? "animate-pulse bg-accent/15 text-accent"
+                            : "bg-border text-muted/70"
+                      }`}
+                    >
+                      {step.status === "done" ? <CheckIcon /> : <Icon />}
+                    </div>
+                    <div>
+                      <p
+                        className={`text-sm font-medium ${
+                          step.status === "pending" ? "text-muted/70" : "text-foreground"
+                        }`}
+                      >
+                        {step.title}
+                      </p>
+                      <p
+                        className={`text-[13px] ${
+                          step.status === "pending" ? "text-muted/50" : "text-muted"
+                        }`}
+                      >
+                        {step.detail}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="mb-8">
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-2">
         <h1 className="text-2xl font-semibold text-foreground">
-          Good morning, Kate
+          Process a product conversation
         </h1>
-        <p className="mt-1 text-sm text-muted">
-          Here&apos;s what&apos;s happening across your discovery calls.
+        <p className="mt-2 text-sm text-muted">
+          Record a meeting or upload a transcript to extract issues, evidence,
+          and suggested work.
         </p>
       </div>
 
-      {/* Action cards */}
-      <div className="mb-10 grid grid-cols-2 gap-4">
-        <Link
-          href="/meeting/new"
-          className="group flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4 transition-colors hover:border-accent/30"
-        >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E8E6E1]/60">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V18C4 18.5304 4.21071 19.0391 4.58579 19.4142C4.96086 19.7893 5.46957 20 6 20H16C16.5304 20 17.0391 19.7893 17.4142 19.4142C17.7893 19.0391 18 18.5304 18 18V7L13 2Z" stroke="#8C8C8C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M13 2V7H18" stroke="#8C8C8C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">New meeting</p>
-            <p className="text-xs text-muted">Paste a transcript or begin recording</p>
-          </div>
-        </Link>
+      <div className="mt-8 flex flex-col items-center">
+        {/* Paste transcript */}
+        <div className="w-full">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          <textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder="Paste a meeting transcript here..."
+            className="h-40 w-full resize-none rounded-xl border border-border bg-card p-4 text-sm text-foreground placeholder:text-muted/60 focus:border-accent/40 focus:outline-none"
+          />
+          <button
+            onClick={handleProcess}
+            disabled={!transcript.trim()}
+            className="mt-3 w-full rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Process transcript
+          </button>
+        </div>
 
-        <button className="group flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4 text-left transition-colors hover:border-accent/30">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EDE9F6]">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="3" y="10" width="16" height="2" rx="1" fill="#4A90D9"/>
-              <path d="M7 10L11 6L15 10" stroke="#E74C3C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M11 6V2" stroke="#E74C3C" strokeWidth="1.8" strokeLinecap="round"/>
-              <path d="M3 12L3 16C3 17.1046 3.89543 18 5 18H17C18.1046 18 19 17.1046 19 16V12" stroke="#4A90D9" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">Upload documents</p>
-            <p className="text-xs text-muted">Upload artifacts to extract evidence</p>
-          </div>
+        {/* Divider */}
+        <div className="my-6 flex w-full items-center gap-4">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted">or</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+
+        {/* Record button */}
+        <button className="flex items-center gap-2.5 rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-foreground/90">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="8" cy="8" r="4" fill="#EF4444" />
+            <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+          Record using Granola
         </button>
-      </div>
 
-      {/* Emerging patterns */}
-      <div className="mb-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Emerging patterns</h2>
-          <Link href="/patterns" className="text-sm font-medium text-accent hover:text-accent-light">
-            View all
-          </Link>
+        {/* Divider */}
+        <div className="my-6 flex w-full items-center gap-4">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-xs text-muted">or</span>
+          <div className="h-px flex-1 bg-border" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          {([
-            {
-              title: "Users lose context switching tabs",
-              calls: 5,
-              totalCalls: 6,
-              quotes: 14,
-              color: "#3D5A3D",
-              tags: ["navigation", "tabs", "context"],
-              progress: 83,
-            },
-            {
-              title: "Onboarding flow too long",
-              calls: 5,
-              totalCalls: 6,
-              quotes: 14,
-              color: "#2856C3",
-              tags: ["roles", "empty-state", "invite-flow"],
-              progress: 83,
-            },
-            {
-              title: "Search results not relevant",
-              calls: 5,
-              totalCalls: 6,
-              quotes: 14,
-              color: "#C49A20",
-              tags: ["roles", "empty-state", "invite-flow"],
-              progress: 83,
-              suggestion: "Recurring pattern \u2014 consider creating a project",
-            },
-            {
-              title: "Mobile nav is confusing",
-              calls: 3,
-              totalCalls: 6,
-              quotes: 8,
-              color: "#7C3AED",
-              tags: ["mobile", "hamburger", "gestures"],
-              progress: 50,
-            },
-          ] as const).map((pattern) => (
-            <div
-              key={pattern.title}
-              className="rounded-xl border border-border bg-card p-5"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="mt-0.5 h-3 w-3 shrink-0 rounded-full"
-                    style={{ backgroundColor: pattern.color }}
-                  />
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {pattern.title}
-                  </h3>
-                </div>
-                <span
-                  className="shrink-0 rounded-md border px-2.5 py-0.5 text-xs font-medium"
-                  style={{
-                    color: pattern.color,
-                    borderColor: `${pattern.color}33`,
-                    backgroundColor: `${pattern.color}0D`,
-                  }}
-                >
-                  Project
-                </span>
-              </div>
 
-              <p className="mt-1.5 pl-5 text-xs text-muted">
-                Mentioned in {pattern.calls} of {pattern.totalCalls} calls &middot; {pattern.quotes} quotes
-              </p>
-
-              <div className="mt-3 ml-5 h-1.5 w-full overflow-hidden rounded-full bg-border">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${pattern.progress}%`,
-                    backgroundColor: pattern.color,
-                  }}
-                />
-              </div>
-
-              <div className="mt-3 flex gap-2 pl-5">
-                {pattern.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-md bg-background px-2.5 py-1 text-xs text-muted"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-
-              {"suggestion" in pattern && pattern.suggestion && (
-                <p className="mt-3 pl-5 text-xs font-medium text-amber-600">
-                  &#x26A1; {pattern.suggestion}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Epics */}
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Epics</h2>
-          <Link href="/epics" className="text-sm font-medium text-accent hover:text-accent-light">
-            View all
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {([
-            {
-              title: "Onboarding confusion",
-              description: "Users report unclear steps during initial setup and role assignment.",
-              owner: "Lauren Baker",
-              duration: 74,
-              status: "On track",
-              color: "#3D5A3D",
-            },
-            {
-              title: "Search relevance",
-              description: "Search results don't surface the most relevant content for common queries.",
-              owner: "Lauren Baker",
-              duration: 45,
-              status: "On track",
-              color: "#2856C3",
-            },
-            {
-              title: "Context switching",
-              description: "Users lose context when navigating between tabs and workspaces.",
-              owner: "Lauren Baker",
-              duration: 30,
-              status: "On track",
-              color: "#3D5A3D",
-            },
-            {
-              title: "Mobile navigation",
-              description: "Hamburger menu and gesture navigation confuse new mobile users.",
-              owner: "Lauren Baker",
-              duration: 12,
-              status: "On track",
-              color: "#7C3AED",
-            },
-          ] as const).map((epic) => (
-            <div
-              key={epic.title}
-              className="rounded-xl border border-border bg-card p-5"
-            >
-              <div className="flex items-start justify-between">
-                <h3 className="text-sm font-semibold text-foreground">
-                  {epic.title}
-                </h3>
-                <span
-                  className="flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-0.5 text-xs font-medium"
-                  style={{
-                    color: epic.color,
-                    borderColor: `${epic.color}33`,
-                    backgroundColor: `${epic.color}0D`,
-                  }}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: epic.color }}
-                  />
-                  {epic.status}
-                </span>
-              </div>
-
-              <p className="mt-2 text-sm leading-relaxed text-muted">
-                {epic.description}
-              </p>
-
-              <div className="mt-4 flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 overflow-hidden rounded-full bg-border">
-                    <svg viewBox="0 0 24 24" fill="none" className="h-full w-full text-muted">
-                      <circle cx="12" cy="8" r="4" fill="currentColor" opacity="0.5"/>
-                      <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" fill="currentColor" opacity="0.3"/>
-                    </svg>
-                  </div>
-                  <span className="text-xs font-medium text-foreground">
-                    {epic.owner}
-                  </span>
-                </div>
-                <span className="rounded-md bg-background px-2.5 py-1 text-xs text-muted">
-                  Duration: {epic.duration} days
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Drop zone */}
+        <label
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-colors ${
+            isDragOver
+              ? "border-accent bg-accent/5"
+              : "border-accent/40 hover:border-accent hover:bg-accent/5"
+          }`}
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.5 12.5V15.8333C17.5 16.2754 17.3244 16.6993 17.0118 17.0118C16.6993 17.3244 16.2754 17.5 15.8333 17.5H4.16667C3.72464 17.5 3.30072 17.3244 2.98816 17.0118C2.67559 16.6993 2.5 16.2754 2.5 15.8333V12.5" stroke="#3D5A3D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M14.1667 6.66667L10 2.5L5.83334 6.66667" stroke="#3D5A3D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M10 2.5V12.5" stroke="#3D5A3D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <p className="mt-3 text-sm font-medium text-foreground">
+            Drop a transcript or document here
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Supports .txt, .md, .pdf, .docx
+          </p>
+          <input type="file" className="hidden" accept=".txt,.md,.pdf,.docx" />
+        </label>
       </div>
     </div>
   );

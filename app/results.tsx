@@ -11,14 +11,10 @@ const PRIORITY_STYLES: Record<string, string> = {
 };
 
 export default function Results({
-  activeTab,
-  setActiveTab,
   data,
   transcript,
   processingTime,
 }: {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
   data: ProblemsResult;
   transcript: string;
   processingTime: string;
@@ -28,13 +24,6 @@ export default function Results({
   const [loadingsolution, setLoadingsolution] = useState<number | null>(null);
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
-
-  const tabs = [
-    { label: "Discovery", badge: null },
-    { label: "Scope", badge: null },
-    { label: "Roadmap", badge: null },
-    { label: "Brief", badge: "NEW" },
-  ];
 
   const selected = selectedProblem !== null ? data.problems[selectedProblem] : null;
   const currentsolution = selectedProblem !== null ? solutionResults[selectedProblem] : null;
@@ -110,41 +99,15 @@ export default function Results({
     return (
       <TicketDetailView
         context={ticketContext}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
         onBack={() => setTicketContext(null)}
       />
     );
   }
 
   return (
-    <div className="-m-8 flex min-h-screen flex-col">
-      {/* Tab bar */}
-      <header className="flex justify-center py-6">
-        <nav className="flex gap-1.5 rounded-xl border border-border bg-card p-1.5">
-          {tabs.map((tab) => (
-            <button
-              key={tab.label}
-              onClick={() => setActiveTab(tab.label)}
-              className={`rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
-                activeTab === tab.label
-                  ? "bg-background text-foreground"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-              {tab.badge && (
-                <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </header>
-
+    <div className="flex min-h-screen flex-col">
       {/* Success banner */}
-      <div className="mx-8 rounded-xl bg-accent p-5">
+      <div className="rounded-xl bg-accent p-5">
         <div className="flex items-start gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -173,7 +136,7 @@ export default function Results({
       </div>
 
       {/* Problems / Solutions split */}
-      <div className="flex flex-1 gap-6 px-8 pb-24">
+      <div className="flex flex-1 gap-6 pb-24">
         {/* Problems column */}
         <div className="w-1/2">
           <div className="rounded-xl border border-border bg-card p-5">
@@ -300,7 +263,7 @@ export default function Results({
       </div>
 
       {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-56 right-0 border-t border-border bg-card px-8 py-4">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card px-8 py-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted">
             <span className="font-semibold text-foreground">{data.problems.length} problems</span> found

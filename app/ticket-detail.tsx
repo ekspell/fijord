@@ -8,31 +8,14 @@ const PRIORITY_STYLES: Record<string, string> = {
   Low: "bg-gray-100 text-gray-600",
 };
 
-const PRIORITY_DOT: Record<string, string> = {
-  High: "bg-red-500",
-  Med: "bg-yellow-500",
-  Low: "bg-gray-400",
-};
-
 export default function TicketDetailView({
   context,
-  activeTab,
-  setActiveTab,
   onBack,
 }: {
   context: TicketContext;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
   onBack: () => void;
 }) {
   const { ticket, problem, problemIndex, meetingTitle, meetingDate } = context;
-
-  const tabs = [
-    { label: "Discovery", badge: null },
-    { label: "Scope", badge: null },
-    { label: "Roadmap", badge: null },
-    { label: "Brief", badge: "NEW" },
-  ];
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "short",
@@ -41,33 +24,9 @@ export default function TicketDetailView({
   });
 
   return (
-    <div className="-m-8 flex min-h-screen flex-col">
-      {/* Tab bar */}
-      <header className="flex justify-center py-6">
-        <nav className="flex gap-1.5 rounded-xl border border-border bg-card p-1.5">
-          {tabs.map((tab) => (
-            <button
-              key={tab.label}
-              onClick={() => setActiveTab(tab.label)}
-              className={`rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
-                tab.label === "Scope"
-                  ? "bg-background text-foreground"
-                  : "text-muted hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-              {tab.badge && (
-                <span className="ml-1.5 rounded bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </header>
-
+    <div className="flex min-h-screen flex-col">
       {/* Breadcrumb */}
-      <div className="px-8 pb-2">
+      <div className="pb-2">
         <nav className="flex items-center gap-2 text-sm text-muted">
           <button onClick={onBack} className="hover:text-foreground">
             Scope
@@ -78,7 +37,7 @@ export default function TicketDetailView({
       </div>
 
       {/* Sub-breadcrumb */}
-      <div className="px-8 pb-6">
+      <div className="pb-6">
         <nav className="flex items-center gap-2 text-sm">
           <span className="text-muted">{meetingTitle}</span>
           <span className="text-muted/50">&rsaquo;</span>
@@ -87,7 +46,7 @@ export default function TicketDetailView({
       </div>
 
       {/* Two-column layout */}
-      <div className="flex gap-6 px-8 pb-24">
+      <div className="flex gap-6 pb-24">
         {/* Main content card */}
         <div className="w-2/3">
           <div className="rounded-xl border border-border bg-card p-8">

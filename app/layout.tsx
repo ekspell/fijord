@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
-import Sidebar from "./components/sidebar";
+import TopNav from "./components/top-nav";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -22,12 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${dmSans.variable} antialiased`}>
-        <div className="flex h-screen">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-8">
-            {children}
-          </main>
-        </div>
+        <TopNav />
+        <main className="overflow-y-auto px-8 pt-4 pb-8">
+          {children}
+        </main>
       </body>
     </html>
   );
