@@ -93,6 +93,7 @@ function TicketCard({
   problemTitle,
   problemColor,
   loading,
+  failed,
   selected,
   onToggle,
   onClick,
@@ -101,6 +102,7 @@ function TicketCard({
   problemTitle: string;
   problemColor: string;
   loading: boolean;
+  failed: boolean;
   selected: boolean;
   onToggle: () => void;
   onClick: () => void;
@@ -146,13 +148,22 @@ function TicketCard({
             <span className="text-[11px] text-muted">Generating ticket...</span>
           </div>
         )}
+        {failed && !loading && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+            <span className="text-[11px] text-red-700">Failed to load — click to retry</span>
+          </div>
+        )}
       </button>
     </div>
   );
 }
 
 export default function Results() {
-  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap } = useNav();
+  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
@@ -160,6 +171,7 @@ export default function Results() {
   const [drawerQuote, setDrawerQuote] = useState<Quote | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [generatedDetails, setGeneratedDetails] = useState<Map<string, TicketDetail>>(new Map());
+  const [failedTicket, setFailedTicket] = useState<string | null>(null);
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -242,6 +254,7 @@ export default function Results() {
     }
 
     setLoadingTicket(ticket.item.id);
+    setFailedTicket(null);
     try {
       const res = await fetch("/api/generate-ticket", {
         method: "POST",
@@ -269,6 +282,7 @@ export default function Results() {
       });
     } catch (err) {
       console.error(err);
+      setFailedTicket(ticket.item.id);
     } finally {
       setLoadingTicket(null);
     }
@@ -315,7 +329,16 @@ export default function Results() {
       {/* Title + pills */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-normal text-foreground">
+          <h1
+            className="text-foreground"
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '48px',
+              letterSpacing: '-4px',
+              lineHeight: '74.4px',
+              fontWeight: 300,
+            }}
+          >
             {data.meetingTitle}
           </h1>
           <p className="mt-1.5 text-[13px] text-muted">
@@ -425,6 +448,7 @@ export default function Results() {
                   problemTitle={ticket.problemTitle}
                   problemColor={ticket.problemColor}
                   loading={loadingTicket === ticket.item.id}
+                  failed={failedTicket === ticket.item.id}
                   selected={selectedTickets.has(ticket.item.id)}
                   onToggle={() => toggleTicket(ticket.item.id)}
                   onClick={() => handleTicketClick(ticket)}
@@ -453,7 +477,7 @@ export default function Results() {
           </button>
           <button
             disabled={selectedTickets.size === 0}
-            onClick={() => {}}
+            onClick={() => showToast("Linear integration — coming soon")}
             className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-sm font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg width="16" height="16" viewBox="0 0 100 100" fill="currentColor">
@@ -463,7 +487,7 @@ export default function Results() {
           </button>
           <button
             disabled={selectedTickets.size === 0}
-            onClick={() => {}}
+            onClick={() => showToast("Jira integration — coming soon")}
             className="flex items-center gap-2 rounded-lg border border-[#0052CC]/20 bg-[#0052CC]/5 px-4 py-2 text-sm font-medium text-[#0052CC] transition-colors hover:bg-[#0052CC]/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

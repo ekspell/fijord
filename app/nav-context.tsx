@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
 
 export type RoadmapTicket = {
@@ -61,6 +61,8 @@ type NavContextType = {
   setRoadmap: (items: RoadmapTicket[]) => void;
   addToRoadmap: (items: RoadmapTicket[]) => void;
   updateRoadmapTicket: (id: string, updates: Partial<RoadmapTicket>) => void;
+  toast: string | null;
+  showToast: (msg: string) => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -78,6 +80,8 @@ const NavContext = createContext<NavContextType>({
   setRoadmap: () => {},
   addToRoadmap: () => {},
   updateRoadmapTicket: () => {},
+  toast: null,
+  showToast: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -87,6 +91,14 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [transcript, setTranscript] = useState("");
   const [processingTime, setProcessingTime] = useState("0");
   const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = useCallback((msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = setTimeout(() => setToast(null), 2500);
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -134,9 +146,24 @@ export function NavProvider({ children }: { children: ReactNode }) {
         setRoadmap,
         addToRoadmap,
         updateRoadmapTicket,
+        toast,
+        showToast,
       }}
     >
       {children}
+
+      {/* Global toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 animate-[fadeInUp_0.2s_ease-out]">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground shadow-lg">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4M12 8h.01" />
+            </svg>
+            {toast}
+          </div>
+        </div>
+      )}
     </NavContext.Provider>
   );
 }

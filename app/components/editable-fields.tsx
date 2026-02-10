@@ -16,12 +16,14 @@ export function EditableText({
   className = "",
   placeholder = "Click to edit...",
   as: Tag = "span",
+  style,
 }: {
   value: string;
   onChange: (val: string) => void;
   className?: string;
   placeholder?: string;
   as?: "h1" | "h2" | "h3" | "p" | "span";
+  style?: React.CSSProperties;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -74,6 +76,7 @@ export function EditableText({
     <Tag
       onClick={() => setEditing(true)}
       className={`group cursor-pointer rounded px-1 py-0.5 transition-colors hover:bg-[#F5F4F1] ${className}`}
+      style={style}
     >
       {value || <span className="italic text-muted">{placeholder}</span>}
       <svg

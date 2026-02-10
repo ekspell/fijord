@@ -36,11 +36,13 @@ function ColHeader({ label, dotColor, count }: { label: string; dotColor: string
 function TicketCard({
   ticket,
   loading,
+  failed,
   onDragStart,
   onClick,
 }: {
   ticket: RoadmapTicket;
   loading: boolean;
+  failed: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
 }) {
@@ -75,6 +77,15 @@ function TicketCard({
         <div className="mt-2 flex items-center gap-2">
           <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-accent" />
           <span className="text-[11px] text-muted">Generating ticket...</span>
+        </div>
+      )}
+      {failed && !loading && (
+        <div className="mt-2 flex items-center gap-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4M12 16h.01" />
+          </svg>
+          <span className="text-[11px] text-red-700">Failed to load — click to retry</span>
         </div>
       )}
     </div>
@@ -120,10 +131,11 @@ function roadmapToContext(ticket: RoadmapTicket): TicketContext {
 }
 
 export default function Roadmap() {
-  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab, transcript } = useNav();
+  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab, transcript, showToast } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<RoadmapTicket | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
+  const [failedTicket, setFailedTicket] = useState<string | null>(null);
   const draggedId = useRef<string | null>(null);
 
   const columns = COLUMN_META.map((meta) => ({
@@ -174,6 +186,7 @@ export default function Roadmap() {
 
     // Generate detail via API
     setLoadingTicket(ticket.id);
+    setFailedTicket(null);
     try {
       const res = await fetch("/api/generate-ticket", {
         method: "POST",
@@ -211,8 +224,7 @@ export default function Roadmap() {
       setSelectedTicket({ ...ticket, ...updates });
     } catch (err) {
       console.error(err);
-      // Open with whatever data exists
-      setSelectedTicket(ticket);
+      setFailedTicket(ticket.id);
     } finally {
       setLoadingTicket(null);
     }
@@ -250,7 +262,18 @@ export default function Roadmap() {
     return (
       <div className="mx-auto max-w-[1100px]">
         <div className="mb-8">
-          <h1 className="text-[32px] font-normal text-foreground">Roadmap</h1>
+          <h1
+            className="text-foreground"
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '48px',
+              letterSpacing: '-4px',
+              lineHeight: '74.4px',
+              fontWeight: 300,
+            }}
+          >
+            Roadmap
+          </h1>
           <p className="mt-1 text-sm text-muted">
             Process a transcript and save tickets to see them here.
           </p>
@@ -273,13 +296,27 @@ export default function Roadmap() {
       {/* Header */}
       <div className="mb-8 flex items-end justify-between">
         <div>
-          <h1 className="text-[32px] font-normal text-foreground">Roadmap</h1>
+          <h1
+            className="text-foreground"
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '48px',
+              letterSpacing: '-4px',
+              lineHeight: '74.4px',
+              fontWeight: 300,
+            }}
+          >
+            Roadmap
+          </h1>
           <p className="mt-1 text-sm text-muted">
             Drag tickets between columns to reprioritize.
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="rounded-lg border border-border bg-card px-4 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-background">
+          <button
+            onClick={() => showToast("Linear export — coming soon")}
+            className="rounded-lg border border-border bg-card px-4 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
+          >
             Export to Linear
           </button>
           <button
@@ -311,6 +348,7 @@ export default function Roadmap() {
                 key={ticket.id}
                 ticket={ticket}
                 loading={loadingTicket === ticket.id}
+                failed={failedTicket === ticket.id}
                 onDragStart={handleDragStart}
                 onClick={() => handleTicketClick(ticket)}
               />

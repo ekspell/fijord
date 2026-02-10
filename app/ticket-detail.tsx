@@ -89,8 +89,15 @@ export default function TicketDetailView({
               <EditableText
                 value={ticket.title}
                 onChange={(val) => onUpdate?.({ title: val })}
-                className="text-[32px] font-normal text-foreground"
+                className="text-foreground"
                 as="h1"
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '48px',
+                  letterSpacing: '-4px',
+                  lineHeight: '74.4px',
+                  fontWeight: 300,
+                }}
               />
             </div>
 
