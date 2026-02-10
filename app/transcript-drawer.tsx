@@ -229,7 +229,7 @@ export default function TranscriptDrawer({
                     </p>
                   )}
                   <p className={`text-[13px] leading-relaxed ${
-                    isHighlighted ? "font-medium text-foreground" : "text-foreground/80"
+                    isHighlighted ? "italic font-medium text-foreground" : "text-foreground/80"
                   }`}>
                     {line.text}
                   </p>

@@ -44,14 +44,29 @@ export function EditableText({
 
   if (editing) {
     return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={handleKey}
-        className={`w-full rounded border border-accent/30 bg-transparent px-1 py-0.5 outline-none focus:ring-1 focus:ring-accent/20 ${className}`}
-      />
+      <div>
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKey}
+          className={`w-full rounded border border-accent/30 bg-transparent px-1 py-0.5 outline-none focus:ring-1 focus:ring-accent/20 ${className}`}
+        />
+        <div className="mt-2 flex gap-2">
+          <button
+            onMouseDown={(e) => { e.preventDefault(); commit(); }}
+            className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent/90"
+          >
+            Save
+          </button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); setDraft(value); setEditing(false); }}
+            className="rounded-md border border-border px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-background hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -127,15 +142,30 @@ export function EditableTextarea({
 
   if (editing) {
     return (
-      <textarea
-        ref={textareaRef}
-        value={draft}
-        onChange={(e) => { setDraft(e.target.value); autoResize(); }}
-        onBlur={commit}
-        onKeyDown={handleKey}
-        rows={2}
-        className={`w-full resize-none rounded border border-accent/30 bg-transparent px-1 py-0.5 outline-none focus:ring-1 focus:ring-accent/20 ${className}`}
-      />
+      <div>
+        <textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(e) => { setDraft(e.target.value); autoResize(); }}
+          onKeyDown={handleKey}
+          rows={2}
+          className={`w-full resize-none rounded border border-accent/30 bg-transparent px-1 py-0.5 outline-none focus:ring-1 focus:ring-accent/20 ${className}`}
+        />
+        <div className="mt-2 flex gap-2">
+          <button
+            onMouseDown={(e) => { e.preventDefault(); commit(); }}
+            className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent/90"
+          >
+            Save
+          </button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); setDraft(value); setEditing(false); }}
+            className="rounded-md border border-border px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-background hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -168,10 +198,14 @@ export function EditableTextarea({
 export function EditableList({
   items,
   onChange,
+  checkedItems = new Set(),
+  onToggleCheck,
   placeholder = "Add an item...",
 }: {
   items: string[];
   onChange: (items: string[]) => void;
+  checkedItems?: Set<number>;
+  onToggleCheck?: (index: number) => void;
   placeholder?: string;
 }) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -220,32 +254,40 @@ export function EditableList({
       <ul className="flex flex-col gap-2.5">
         {items.map((item, i) => (
           <li key={i} className="group flex items-start gap-3">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#3D5A3D"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="mt-0.5 shrink-0"
-            >
-              <path d="M5 13l4 4L19 7" />
-            </svg>
+            <input
+              type="checkbox"
+              checked={checkedItems.has(i)}
+              onChange={() => onToggleCheck?.(i)}
+              className="mt-1 h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-border accent-accent"
+            />
             {editingIdx === i ? (
-              <input
-                ref={inputRef}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onBlur={() => commitItem(i)}
-                onKeyDown={(e) => handleKey(e, i)}
-                className="flex-1 rounded border border-accent/30 bg-transparent px-1 py-0.5 text-sm leading-relaxed text-foreground outline-none focus:ring-1 focus:ring-accent/20"
-              />
+              <div className="flex-1">
+                <input
+                  ref={inputRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => handleKey(e, i)}
+                  className="w-full rounded border border-accent/30 bg-transparent px-1 py-0.5 text-sm leading-relaxed text-foreground outline-none focus:ring-1 focus:ring-accent/20"
+                />
+                <div className="mt-1.5 flex gap-2">
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); commitItem(i); }}
+                    className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent/90"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); setEditingIdx(null); setDraft(""); }}
+                    className="rounded-md border border-border px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-background hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             ) : (
               <span
                 onClick={() => startEdit(i)}
-                className="flex-1 cursor-pointer rounded px-1 py-0.5 text-sm leading-relaxed text-foreground transition-colors hover:bg-[#F5F4F1]"
+                className={`flex-1 cursor-pointer rounded px-1 py-0.5 text-sm leading-relaxed transition-colors hover:bg-[#F5F4F1] ${checkedItems.has(i) ? "text-muted line-through" : "text-foreground"}`}
               >
                 {item || <span className="italic text-muted">{placeholder}</span>}
               </span>

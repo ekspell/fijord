@@ -1,18 +1,36 @@
 "use client";
 
-import { TicketContext, TicketDetail } from "@/lib/types";
+import { useState } from "react";
+import { TicketContext, TicketDetail, Quote } from "@/lib/types";
+import { useNav } from "./nav-context";
 import { EditableText, EditableTextarea, EditableList, EditablePriority } from "./components/editable-fields";
+import TranscriptDrawer from "./transcript-drawer";
 
 export default function TicketDetailView({
   context,
   onBack,
   onUpdate,
+  breadcrumbLabel = "Scope",
 }: {
   context: TicketContext;
   onBack: () => void;
   onUpdate?: (updates: Partial<TicketDetail>) => void;
+  breadcrumbLabel?: string;
 }) {
   const { ticket, problem, problemColor, meetingTitle, meetingDate } = context;
+  const { transcript } = useNav();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerQuote, setDrawerQuote] = useState<Quote | null>(null);
+  const [checkedAC, setCheckedAC] = useState<Set<number>>(new Set());
+
+  const toggleAC = (index: number) => {
+    setCheckedAC((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "short",
@@ -26,7 +44,7 @@ export default function TicketDetailView({
       <div className="pb-2">
         <nav className="flex items-center gap-2 text-sm text-muted">
           <button onClick={onBack} className="hover:text-foreground">
-            Scope
+            {breadcrumbLabel}
           </button>
           <span className="text-muted/50">&rsaquo;</span>
           <span className="font-medium text-foreground">{ticket.id}</span>
@@ -64,7 +82,7 @@ export default function TicketDetailView({
               <EditableText
                 value={ticket.title}
                 onChange={(val) => onUpdate?.({ title: val })}
-                className="text-2xl font-semibold text-foreground"
+                className="text-[32px] font-normal text-foreground"
                 as="h1"
               />
             </div>
@@ -134,6 +152,8 @@ export default function TicketDetailView({
               <EditableList
                 items={ticket.acceptanceCriteria}
                 onChange={(items) => onUpdate?.({ acceptanceCriteria: items })}
+                checkedItems={checkedAC}
+                onToggleCheck={toggleAC}
               />
             </div>
           </div>
@@ -155,7 +175,8 @@ export default function TicketDetailView({
               {ticket.quotes.map((quote, i) => (
                 <div
                   key={i}
-                  className="rounded-lg border border-border bg-background p-4"
+                  onClick={() => { setDrawerQuote(quote); setDrawerOpen(true); }}
+                  className="cursor-pointer rounded-lg border border-border bg-background p-4 transition-colors hover:bg-[#F9F8F6]"
                 >
                   <p className="text-sm italic leading-relaxed text-foreground">
                     &ldquo;{quote.text}&rdquo;
@@ -204,37 +225,50 @@ export default function TicketDetailView({
           </div>
 
           {/* Source Transcript */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
-              Source Transcript
-            </h3>
-            <button
-              onClick={onBack}
-              className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-background"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="shrink-0"
-                style={{ color: problemColor }}
+          {transcript && (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
+                Source Transcript
+              </h3>
+              <button
+                onClick={() => { setDrawerQuote(null); setDrawerOpen(true); }}
+                className="flex w-full items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-background"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2"
-                />
-              </svg>
-              <span className="text-sm font-medium text-foreground">
-                {meetingTitle} &mdash; {meetingDate}
-              </span>
-            </button>
-          </div>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="shrink-0"
+                  style={{ color: problemColor }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-foreground">
+                  {meetingTitle || "Meeting transcript"} {meetingDate && <>&mdash; {meetingDate}</>}
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Transcript drawer */}
+      {drawerOpen && transcript && (
+        <TranscriptDrawer
+          transcript={transcript}
+          highlightQuote={drawerQuote}
+          meetingTitle={meetingTitle || "Meeting"}
+          meetingDate={meetingDate || ""}
+          onClose={() => { setDrawerOpen(false); setDrawerQuote(null); }}
+        />
+      )}
     </div>
   );
 }

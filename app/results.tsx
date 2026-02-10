@@ -38,7 +38,7 @@ function EvidenceCard({ quote, color, dimmed, onClick }: { quote: Quote; color?:
       className={`mb-2 cursor-pointer rounded-lg bg-background p-3.5 transition-all ${dimmed ? "opacity-30" : "hover:bg-[#F9F8F6]"}`}
       style={{ borderLeft: `3px solid ${color || "#D4CFC5"}` }}
     >
-      <p className="text-[13px] leading-relaxed text-foreground">
+      <p className="text-[13px] italic leading-relaxed text-foreground">
         {quote.summary || quote.text}
       </p>
       <p className="mt-1.5 text-[11px] font-medium text-muted">
@@ -65,7 +65,7 @@ function ProblemCard({ problem, index, color, active, dimmed, onClick }: { probl
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-              <p className="text-[11px] font-medium text-foreground">
+              <p className="text-sm font-medium leading-snug text-foreground">
                 {problem.title}
               </p>
             </div>

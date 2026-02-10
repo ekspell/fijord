@@ -17,6 +17,10 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+input, button, textarea, select {
+  font-family: inherit;
+}
+
 @keyframes slide-in-right {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }

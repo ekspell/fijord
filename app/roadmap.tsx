@@ -2,7 +2,8 @@
 
 import { useState, useRef } from "react";
 import { useNav, RoadmapTicket } from "./nav-context";
-import { EditableText, EditableTextarea, EditableList, EditablePriority } from "./components/editable-fields";
+import { TicketDetail, TicketContext, Quote } from "@/lib/types";
+import TicketDetailView from "./ticket-detail";
 
 type ColumnKey = "now" | "next" | "later";
 
@@ -34,10 +35,12 @@ function ColHeader({ label, dotColor, count }: { label: string; dotColor: string
 
 function TicketCard({
   ticket,
+  loading,
   onDragStart,
   onClick,
 }: {
   ticket: RoadmapTicket;
+  loading: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
 }) {
@@ -45,10 +48,10 @@ function TicketCard({
 
   return (
     <div
-      draggable
+      draggable={!loading}
       onDragStart={(e) => onDragStart(e, ticket.id)}
       onClick={onClick}
-      className="mb-3 cursor-grab rounded-xl border border-border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] active:cursor-grabbing active:shadow-lg"
+      className={`mb-3 cursor-grab rounded-xl border border-border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] active:cursor-grabbing active:shadow-lg ${loading ? "opacity-60" : ""}`}
     >
       <div className="mb-2 flex items-center gap-2">
         <span className="text-[11px] font-semibold text-muted">{ticket.id}</span>
@@ -68,258 +71,58 @@ function TicketCard({
           {ticket.problemTitle}
         </span>
       </div>
+      {loading && (
+        <div className="mt-2 flex items-center gap-2">
+          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-accent" />
+          <span className="text-[11px] text-muted">Generating ticket...</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function RoadmapTicketDetail({
-  ticket,
-  onBack,
-  onUpdate,
-}: {
-  ticket: RoadmapTicket;
-  onBack: () => void;
-  onUpdate: (updates: Partial<RoadmapTicket>) => void;
-}) {
-  const colLabel = { now: "Now", next: "Next", later: "Later" }[ticket.column];
+/** Convert a RoadmapTicket into the TicketContext shape that TicketDetailView expects */
+function roadmapToContext(ticket: RoadmapTicket): TicketContext {
+  const quotes: Quote[] = ticket.quotes && ticket.quotes.length > 0
+    ? ticket.quotes
+    : (ticket.problemQuotes || []).map((q) => ({
+        text: q.text,
+        summary: q.summary || "",
+        speaker: q.speaker,
+        timestamp: "",
+      }));
 
-  return (
-    <div className="mx-auto max-w-[900px]">
-      {/* Breadcrumb */}
-      <div className="pb-2">
-        <nav className="flex items-center gap-2 text-sm text-muted">
-          <button onClick={onBack} className="hover:text-foreground">
-            Roadmap
-          </button>
-          <span className="text-muted/50">&rsaquo;</span>
-          <span className="font-medium text-foreground">{ticket.id}</span>
-        </nav>
-      </div>
-
-      <div className="flex gap-6 pt-6 pb-24">
-        {/* Main content */}
-        <div className="w-2/3">
-          <div className="rounded-xl border border-border bg-card p-8">
-            {/* Header */}
-            <div className="mb-4 flex items-center gap-3">
-              <span className="text-sm font-medium text-muted">{ticket.id}</span>
-              <EditablePriority
-                value={ticket.priority}
-                onChange={(val) => onUpdate({ priority: val })}
-              />
-              <span className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted">
-                {colLabel}
-              </span>
-            </div>
-
-            {/* Title */}
-            <div className="mb-6">
-              <EditableText
-                value={ticket.title}
-                onChange={(val) => onUpdate({ title: val })}
-                className="text-2xl font-semibold text-foreground"
-                as="h1"
-              />
-            </div>
-
-            {/* Original Problem block */}
-            <div
-              className="mb-8 overflow-hidden rounded-lg border"
-              style={{ borderColor: "#E8E6E1" }}
-            >
-              <div className="flex">
-                <div className="w-1 shrink-0" style={{ backgroundColor: ticket.problemColor }} />
-                <div className="flex-1 p-4">
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ticket.problemColor }} />
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: ticket.problemColor }}>
-                      Original Problem
-                    </p>
-                  </div>
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {ticket.problemTitle}
-                  </h3>
-                  {ticket.problemDescription && (
-                    <p className="mt-1 text-xs leading-relaxed text-muted">
-                      {ticket.problemDescription}
-                    </p>
-                  )}
-                  {ticket.problemQuotes && ticket.problemQuotes.length > 0 && (
-                    <div className="mt-3 border-t border-border pt-3">
-                      {ticket.problemQuotes.map((q, i) => (
-                        <p key={i} className="mt-1 text-[12px] italic text-muted">
-                          &ldquo;{q.text}&rdquo; &mdash; {q.speaker}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Problem Statement */}
-            {ticket.problemStatement !== undefined ? (
-              <div className="mb-8">
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: ticket.problemColor }}>
-                  Problem Statement
-                </h2>
-                <EditableTextarea
-                  value={ticket.problemStatement || ""}
-                  onChange={(val) => onUpdate({ problemStatement: val })}
-                  className="text-sm leading-relaxed text-foreground"
-                  placeholder="Add a problem statement..."
-                />
-              </div>
-            ) : (
-              <button
-                onClick={() => onUpdate({ problemStatement: "" })}
-                className="mb-4 flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-foreground"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Add problem statement
-              </button>
-            )}
-
-            {/* Description */}
-            {ticket.description !== undefined ? (
-              <div className="mb-8">
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: ticket.problemColor }}>
-                  Description
-                </h2>
-                <EditableTextarea
-                  value={ticket.description || ""}
-                  onChange={(val) => onUpdate({ description: val })}
-                  className="text-sm leading-relaxed text-foreground"
-                  placeholder="Add a description..."
-                />
-              </div>
-            ) : (
-              <button
-                onClick={() => onUpdate({ description: "" })}
-                className="mb-4 flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-foreground"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Add description
-              </button>
-            )}
-
-            {/* Acceptance Criteria */}
-            {ticket.acceptanceCriteria !== undefined ? (
-              <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: ticket.problemColor }}>
-                  Acceptance Criteria
-                </h2>
-                <EditableList
-                  items={ticket.acceptanceCriteria}
-                  onChange={(items) => onUpdate({ acceptanceCriteria: items })}
-                />
-              </div>
-            ) : (
-              <button
-                onClick={() => onUpdate({ acceptanceCriteria: [] })}
-                className="mb-4 flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-foreground"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Add acceptance criteria
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Right sidebar */}
-        <div className="w-1/3 flex flex-col gap-4">
-          {/* Details */}
-          <div className="rounded-xl border border-border bg-card p-5">
-            <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
-              Details
-            </h3>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Priority</span>
-                <EditablePriority
-                  value={ticket.priority}
-                  onChange={(val) => onUpdate({ priority: val })}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Column</span>
-                <span className="text-sm font-medium text-foreground">{colLabel}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Problem</span>
-                <span
-                  className="flex items-center gap-1.5 text-sm font-medium"
-                  style={{ color: ticket.problemColor }}
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: ticket.problemColor }} />
-                  {ticket.problemTitle.length > 20
-                    ? ticket.problemTitle.slice(0, 20) + "..."
-                    : ticket.problemTitle}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quotes — prefer full ticket quotes if available, fall back to problem quotes */}
-          {(ticket.quotes && ticket.quotes.length > 0) ? (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
-                User Quotes
-              </h3>
-              <div className="flex flex-col gap-3">
-                {ticket.quotes.map((q, i) => (
-                  <div key={i} className="rounded-lg border border-border bg-background p-4">
-                    <p className="text-sm italic leading-relaxed text-foreground">
-                      &ldquo;{q.text}&rdquo;
-                    </p>
-                    <p className="mt-2 text-xs text-muted">
-                      {q.speaker} {q.timestamp && <>&middot; {q.timestamp}</>}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : ticket.problemQuotes && ticket.problemQuotes.length > 0 ? (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
-                User Quotes
-              </h3>
-              <div className="flex flex-col gap-3">
-                {ticket.problemQuotes.map((q, i) => (
-                  <div key={i} className="rounded-lg border border-border bg-background p-4">
-                    <p className="text-sm italic leading-relaxed text-foreground">
-                      &ldquo;{q.text}&rdquo;
-                    </p>
-                    <p className="mt-2 text-xs text-muted">{q.speaker}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {/* Back button */}
-          <button
-            onClick={onBack}
-            className="w-full rounded-xl border border-border bg-card px-5 py-3.5 text-sm font-medium text-foreground transition-colors hover:bg-background"
-          >
-            &larr; Back to roadmap
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return {
+    ticket: {
+      id: ticket.id,
+      title: ticket.title,
+      priority: ticket.priority as "High" | "Med" | "Low",
+      status: ticket.status || ({ now: "Now", next: "Next", later: "Later" }[ticket.column]),
+      problemStatement: ticket.problemStatement || "",
+      description: ticket.description || "",
+      acceptanceCriteria: ticket.acceptanceCriteria || [],
+      quotes,
+    },
+    problem: {
+      id: ticket.id + "-problem",
+      title: ticket.problemTitle,
+      description: ticket.problemDescription,
+      severity: "Med" as const,
+      quotes,
+    },
+    problemIndex: 0,
+    problemColor: ticket.problemColor,
+    solution: { title: "", description: "" },
+    meetingTitle: "",
+    meetingDate: "",
+  };
 }
 
 export default function Roadmap() {
-  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab } = useNav();
+  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab, transcript } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<RoadmapTicket | null>(null);
+  const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const draggedId = useRef<string | null>(null);
 
   const columns = COLUMN_META.map((meta) => ({
@@ -358,18 +161,85 @@ export default function Roadmap() {
     draggedId.current = null;
   };
 
-  const handleTicketUpdate = (updates: Partial<RoadmapTicket>) => {
+  const hasDetail = (ticket: RoadmapTicket) =>
+    ticket.problemStatement !== undefined && ticket.description !== undefined && ticket.acceptanceCriteria !== undefined;
+
+  const handleTicketClick = async (ticket: RoadmapTicket) => {
+    // If detail already exists, open directly
+    if (hasDetail(ticket)) {
+      setSelectedTicket(ticket);
+      return;
+    }
+
+    // Generate detail via API
+    setLoadingTicket(ticket.id);
+    try {
+      const res = await fetch("/api/generate-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript,
+          problem: {
+            id: ticket.id + "-problem",
+            title: ticket.problemTitle,
+            description: ticket.problemDescription,
+            severity: "Med",
+            quotes: (ticket.problemQuotes || []).map((q) => ({
+              text: q.text,
+              summary: q.summary || "",
+              speaker: q.speaker,
+              timestamp: "",
+            })),
+          },
+          solution: { title: ticket.title, description: "" },
+          workItem: { id: ticket.id, title: ticket.title, priority: ticket.priority },
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to generate ticket");
+
+      const detail: TicketDetail = await res.json();
+      const updates: Partial<RoadmapTicket> = {
+        status: detail.status,
+        problemStatement: detail.problemStatement,
+        description: detail.description,
+        acceptanceCriteria: detail.acceptanceCriteria,
+        quotes: detail.quotes,
+      };
+      updateRoadmapTicket(ticket.id, updates);
+      setSelectedTicket({ ...ticket, ...updates });
+    } catch (err) {
+      console.error(err);
+      // Open with whatever data exists
+      setSelectedTicket(ticket);
+    } finally {
+      setLoadingTicket(null);
+    }
+  };
+
+  const handleTicketUpdate = (updates: Partial<TicketDetail>) => {
     if (!selectedTicket) return;
-    updateRoadmapTicket(selectedTicket.id, updates);
-    setSelectedTicket((prev) => prev ? { ...prev, ...updates } : prev);
+    // Map TicketDetail fields back to RoadmapTicket fields
+    const roadmapUpdates: Partial<RoadmapTicket> = {};
+    if (updates.title !== undefined) roadmapUpdates.title = updates.title;
+    if (updates.priority !== undefined) roadmapUpdates.priority = updates.priority;
+    if (updates.status !== undefined) roadmapUpdates.status = updates.status;
+    if (updates.problemStatement !== undefined) roadmapUpdates.problemStatement = updates.problemStatement;
+    if (updates.description !== undefined) roadmapUpdates.description = updates.description;
+    if (updates.acceptanceCriteria !== undefined) roadmapUpdates.acceptanceCriteria = updates.acceptanceCriteria;
+    if (updates.quotes !== undefined) roadmapUpdates.quotes = updates.quotes;
+    updateRoadmapTicket(selectedTicket.id, roadmapUpdates);
+    setSelectedTicket((prev) => prev ? { ...prev, ...roadmapUpdates } : prev);
   };
 
   if (selectedTicket) {
+    const ctx = roadmapToContext(selectedTicket);
     return (
-      <RoadmapTicketDetail
-        ticket={selectedTicket}
+      <TicketDetailView
+        context={ctx}
         onBack={() => setSelectedTicket(null)}
         onUpdate={handleTicketUpdate}
+        breadcrumbLabel="Roadmap"
       />
     );
   }
@@ -438,8 +308,9 @@ export default function Roadmap() {
               <TicketCard
                 key={ticket.id}
                 ticket={ticket}
+                loading={loadingTicket === ticket.id}
                 onDragStart={handleDragStart}
-                onClick={() => setSelectedTicket(ticket)}
+                onClick={() => handleTicketClick(ticket)}
               />
             ))}
             {col.tickets.length === 0 && (
