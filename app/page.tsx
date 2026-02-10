@@ -188,7 +188,7 @@ export default function Discovery() {
             </div>
 
             <h1 className="mb-3 text-2xl font-medium text-foreground">
-              Analyzing your transcript...
+              Analyzing meeting artifacts...
             </h1>
             <p className="mb-12 text-[15px] leading-relaxed text-muted">
               Extracting problems, generating solutions, and writing
@@ -287,7 +287,7 @@ export default function Discovery() {
             <circle cx="8" cy="8" r="4" fill="#EF4444" />
             <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
           </svg>
-          Record using Granola
+          Record meeting
         </button>
 
         <div className="my-6 flex w-full items-center gap-4">

@@ -34,7 +34,7 @@ function EvidenceCard({ quote, color, dimmed, onClick }: { quote: Quote; color?:
   return (
     <div
       onClick={onClick}
-      className={`mb-2 cursor-pointer rounded-lg bg-background p-3.5 transition-all ${dimmed ? "opacity-30" : "hover:bg-[#F3F2EF]"}`}
+      className={`mb-2 cursor-pointer rounded-lg bg-background p-3.5 transition-all ${dimmed ? "opacity-30" : "hover:bg-[#F9F8F6]"}`}
       style={{ borderLeft: `3px solid ${color || "#D4CFC5"}` }}
     >
       <p className="text-[13px] italic leading-relaxed text-foreground">
@@ -52,9 +52,8 @@ function ProblemCard({ problem, index, color, active, dimmed, onClick }: { probl
   return (
     <div
       onClick={onClick}
-      className={`mb-2 cursor-pointer overflow-hidden rounded-lg border transition-all ${dimmed ? "opacity-30" : "hover:bg-[#FAFAF8]"} ${active ? "ring-2 ring-offset-1" : ""}`}
+      className={`mb-2 cursor-pointer overflow-hidden rounded-lg border bg-white transition-all ${dimmed ? "opacity-30" : "hover:bg-[#F9F8F6]"} ${active ? "ring-2 ring-offset-1" : ""}`}
       style={{
-        backgroundColor: "#FFFFFF",
         borderColor: active ? color : "#E8E6E1",
         ...(active ? { ["--tw-ring-color" as string]: color } : {}),
       }}
@@ -109,7 +108,7 @@ function TicketCard({
   return (
     <div
       className={`mb-2 rounded-lg border bg-card p-3.5 transition-all ${
-        selected ? "border-accent/40 ring-1 ring-accent/20" : "border-border hover:bg-[#FAFAF8]"
+        selected ? "border-accent/40 ring-1 ring-accent/20" : "border-border hover:bg-[#F9F8F6]"
       }`}
     >
       <div className="mb-1.5 flex items-center gap-2">
