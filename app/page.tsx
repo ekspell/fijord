@@ -156,7 +156,7 @@ export default function Discovery() {
     return <Results />;
   }
 
-  if (activeTab === "Roadmap" && result) {
+  if (activeTab === "Roadmap") {
     return <Roadmap />;
   }
 

@@ -1,32 +1,15 @@
 "use client";
 
-import { useNav } from "./nav-context";
-import { solutionResult, WorkItem } from "@/lib/types";
+import { useState, useRef } from "react";
+import { useNav, SavedInitiative } from "./nav-context";
 
-type Initiative = {
-  title: string;
-  description: string;
-  ticketCount: number;
-  quoteCount: number;
-  problemLabel: string;
-  items: { name: string; id: string; priority: string }[];
-};
+type ColumnKey = "now" | "next" | "later";
 
-type Column = {
-  key: string;
-  label: string;
-  dotColor: string;
-  initiatives: Initiative[];
-};
-
-const PRIORITY_ORDER: Record<string, number> = { High: 0, Med: 1, Low: 2 };
-
-function getHighestPriority(items: WorkItem[]): string {
-  if (items.length === 0) return "Low";
-  return items.reduce((best, item) =>
-    (PRIORITY_ORDER[item.priority] ?? 2) < (PRIORITY_ORDER[best.priority] ?? 2) ? item : best
-  ).priority;
-}
+const COLUMN_META: { key: ColumnKey; label: string; dotColor: string }[] = [
+  { key: "now", label: "Now", dotColor: "#2C5F2D" },
+  { key: "next", label: "Next", dotColor: "#B5860B" },
+  { key: "later", label: "Later", dotColor: "#9C978E" },
+];
 
 function ColHeader({ label, dotColor, count }: { label: string; dotColor: string; count: number }) {
   return (
@@ -42,7 +25,13 @@ function ColHeader({ label, dotColor, count }: { label: string; dotColor: string
   );
 }
 
-function InitiativeCard({ initiative }: { initiative: Initiative }) {
+function InitiativeCard({
+  initiative,
+  onDragStart,
+}: {
+  initiative: SavedInitiative;
+  onDragStart: (e: React.DragEvent, id: string) => void;
+}) {
   const STATUS_COLORS: Record<string, string> = {
     High: "#B5860B",
     Med: "#6B6860",
@@ -50,8 +39,11 @@ function InitiativeCard({ initiative }: { initiative: Initiative }) {
   };
 
   return (
-    <div className="mb-3 rounded-xl border border-border bg-card p-5">
-      {/* Drag handle (visual only) */}
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, initiative.id)}
+      className="mb-3 cursor-grab rounded-xl border border-border bg-card p-5 transition-shadow active:cursor-grabbing active:shadow-lg"
+    >
       <div className="relative">
         <span className="absolute -top-1 right-0 text-sm text-muted/30 select-none">
           &#x2807;
@@ -65,7 +57,6 @@ function InitiativeCard({ initiative }: { initiative: Initiative }) {
         {initiative.description}
       </p>
 
-      {/* Stat badges */}
       <div className="mt-3.5 flex flex-wrap gap-2">
         <span
           className="flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-medium"
@@ -84,7 +75,6 @@ function InitiativeCard({ initiative }: { initiative: Initiative }) {
         </span>
       </div>
 
-      {/* Linked tickets */}
       {initiative.items.length > 0 && (
         <div className="mt-4 border-t border-border pt-3.5">
           {initiative.items.map((item) => (
@@ -104,45 +94,70 @@ function InitiativeCard({ initiative }: { initiative: Initiative }) {
 }
 
 export default function Roadmap() {
-  const { result, solutions, setActiveTab } = useNav();
+  const { roadmap, setRoadmap, setActiveTab } = useNav();
+  const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
+  const draggedId = useRef<string | null>(null);
 
-  if (!result) return null;
+  // Group initiatives into columns based on their saved column assignment
+  const columns = COLUMN_META.map((meta) => ({
+    ...meta,
+    initiatives: roadmap.filter((init) => init.column === meta.key),
+  }));
 
-  // Build initiatives: each problem + its solution = one initiative
-  const initiatives: Initiative[] = result.problems.map((problem, i) => {
-    const sol: solutionResult | undefined = solutions[i];
-    const items = sol?.workItems || [];
-    return {
-      title: sol?.solution.title || problem.title,
-      description: sol?.solution.description || problem.description,
-      ticketCount: items.length,
-      quoteCount: problem.quotes.length,
-      problemLabel: `Problem ${i + 1}`,
-      items: items.map((item) => ({
-        name: item.title,
-        id: item.id,
-        priority: item.priority,
-      })),
-    };
-  });
+  const totalTickets = roadmap.reduce((sum, i) => sum + i.ticketCount, 0);
 
-  // Sort into columns by highest-priority ticket in each initiative
-  const columns: Column[] = [
-    { key: "now", label: "Now", dotColor: "#2C5F2D", initiatives: [] },
-    { key: "next", label: "Next", dotColor: "#B5860B", initiatives: [] },
-    { key: "later", label: "Later", dotColor: "#9C978E", initiatives: [] },
-  ];
+  const handleDragStart = (_e: React.DragEvent, id: string) => {
+    draggedId.current = id;
+  };
 
-  initiatives.forEach((init) => {
-    const highest = getHighestPriority(
-      solutions[initiatives.indexOf(init)]?.workItems || []
+  const handleDragOver = (e: React.DragEvent, colKey: ColumnKey) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dragOverCol !== colKey) setDragOverCol(colKey);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverCol(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, colKey: ColumnKey) => {
+    e.preventDefault();
+    setDragOverCol(null);
+    if (draggedId.current === null) return;
+
+    const updated = roadmap.map((init) =>
+      init.id === draggedId.current ? { ...init, column: colKey } : init
     );
-    if (highest === "High") columns[0].initiatives.push(init);
-    else if (highest === "Med") columns[1].initiatives.push(init);
-    else columns[2].initiatives.push(init);
-  });
+    setRoadmap(updated);
+    draggedId.current = null;
+  };
 
-  const totalTickets = initiatives.reduce((sum, i) => sum + i.ticketCount, 0);
+  const handleDragEnd = () => {
+    setDragOverCol(null);
+    draggedId.current = null;
+  };
+
+  if (roadmap.length === 0) {
+    return (
+      <div className="mx-auto max-w-[1100px]">
+        <div className="mb-8">
+          <h1 className="text-[32px] font-normal text-foreground">Roadmap</h1>
+          <p className="mt-1 text-sm text-muted">
+            Process a transcript and save tickets to see them here.
+          </p>
+        </div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+          <p className="text-sm text-muted">No initiatives on the roadmap yet.</p>
+          <button
+            onClick={() => setActiveTab("Discovery")}
+            className="mt-4 rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+          >
+            Process a transcript
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-[1100px]">
@@ -151,7 +166,7 @@ export default function Roadmap() {
         <div>
           <h1 className="text-[32px] font-normal text-foreground">Roadmap</h1>
           <p className="mt-1 text-sm text-muted">
-            Initiatives grouped by priority. Ticket priorities determine column placement.
+            Drag initiatives between columns to reprioritize.
           </p>
         </div>
         <div className="flex gap-2">
@@ -170,14 +185,32 @@ export default function Roadmap() {
       {/* 3-column kanban */}
       <div className="mb-8 grid grid-cols-3 gap-5">
         {columns.map((col) => (
-          <div key={col.key} style={{ minHeight: 400 }}>
+          <div
+            key={col.key}
+            onDragOver={(e) => handleDragOver(e, col.key)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, col.key)}
+            onDragEnd={handleDragEnd}
+            className={`rounded-xl p-2 transition-colors ${
+              dragOverCol === col.key ? "bg-accent/5 ring-2 ring-accent/20" : ""
+            }`}
+            style={{ minHeight: 400 }}
+          >
             <ColHeader label={col.label} dotColor={col.dotColor} count={col.initiatives.length} />
-            {col.initiatives.map((init, i) => (
-              <InitiativeCard key={i} initiative={init} />
+            {col.initiatives.map((init) => (
+              <InitiativeCard
+                key={init.id}
+                initiative={init}
+                onDragStart={handleDragStart}
+              />
             ))}
             {col.initiatives.length === 0 && (
-              <div className="flex items-center justify-center rounded-xl border border-dashed border-border py-16 text-xs text-muted">
-                No initiatives yet
+              <div
+                className={`flex items-center justify-center rounded-xl border border-dashed py-16 text-xs text-muted ${
+                  dragOverCol === col.key ? "border-accent bg-accent/5" : "border-border"
+                }`}
+              >
+                {dragOverCol === col.key ? "Drop here" : "No initiatives yet"}
               </div>
             )}
           </div>
@@ -187,13 +220,13 @@ export default function Roadmap() {
       {/* Bottom bar */}
       <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
         <p className="text-[13px] text-muted">
-          <strong className="text-foreground">{initiatives.length} initiatives</strong> with{" "}
-          <strong className="text-foreground">{totalTickets} tickets</strong> from{" "}
-          <strong className="text-foreground">1 call</strong>
+          <strong className="text-foreground">{roadmap.length} initiatives</strong> with{" "}
+          <strong className="text-foreground">{totalTickets} tickets</strong>
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("Scope")}
+            disabled={!columns.some(() => true)}
             className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
           >
             View tickets

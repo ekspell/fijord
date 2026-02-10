@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useNav } from "./nav-context";
+import { useNav, SavedInitiative } from "./nav-context";
 import { solutionResult, WorkItem, TicketDetail, TicketContext, Quote } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
 
@@ -102,7 +102,7 @@ function TicketCard({
 }
 
 export default function Results() {
-  const { result: data, solutions, transcript, processingTime, setActiveTab } = useNav();
+  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
 
@@ -265,7 +265,39 @@ export default function Results() {
             View transcript
           </button>
           <button
-            onClick={() => setActiveTab("Roadmap")}
+            onClick={() => {
+              if (!data) return;
+              const PRIORITY_TO_COL: Record<string, "now" | "next" | "later"> = {
+                High: "now", Med: "next", Low: "later",
+              };
+              const newInitiatives: SavedInitiative[] = data.problems.map((problem, i) => {
+                const sol = solutions[i];
+                const items = sol?.workItems || [];
+                const highest = items.length > 0
+                  ? items.reduce((best, item) =>
+                      ({ High: 0, Med: 1, Low: 2 }[item.priority] ?? 2) <
+                      ({ High: 0, Med: 1, Low: 2 }[best.priority] ?? 2)
+                        ? item : best
+                    ).priority
+                  : "Low";
+                return {
+                  id: `init-${Date.now()}-${i}`,
+                  title: sol?.solution.title || problem.title,
+                  description: sol?.solution.description || problem.description,
+                  ticketCount: items.length,
+                  quoteCount: problem.quotes.length,
+                  problemLabel: `Problem ${i + 1}`,
+                  items: items.map((item) => ({
+                    name: item.title,
+                    id: item.id,
+                    priority: item.priority,
+                  })),
+                  column: PRIORITY_TO_COL[highest] || "later",
+                };
+              });
+              addToRoadmap(newInitiatives);
+              setActiveTab("Roadmap");
+            }}
             className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
           >
             Save to roadmap &rarr;

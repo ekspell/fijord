@@ -5,7 +5,7 @@ import { useNav } from "../nav-context";
 const tabs = ["Discovery", "Scope", "Roadmap"];
 
 export default function TopNav() {
-  const { activeTab, setActiveTab, result } = useNav();
+  const { activeTab, setActiveTab, result, roadmap } = useNav();
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-background/85 px-8 backdrop-blur-md" style={{ height: 56 }}>
@@ -22,8 +22,9 @@ export default function TopNav() {
       {/* Tabs */}
       <nav className="flex gap-1 rounded-xl border border-border bg-card p-1">
         {tabs.map((tab) => {
-          const needsData = tab === "Scope" || tab === "Roadmap";
-          const disabled = needsData && !result;
+          const disabled =
+            (tab === "Scope" && !result) ||
+            (tab === "Roadmap" && !result && roadmap.length === 0);
           return (
             <button
               key={tab}
