@@ -1,3 +1,12 @@
+// Color palette for problem threading — assigned by index
+export const PROBLEM_COLORS = [
+  "#7C6CA5", // purple
+  "#3A8A7C", // teal
+  "#C17D4A", // amber
+  "#5B82B5", // blue
+  "#B56B6B", // rose
+];
+
 export type Quote = {
   text: string;
   speaker: string;
@@ -52,6 +61,7 @@ export type TicketContext = {
   ticket: TicketDetail;
   problem: ExtractedProblem;
   problemIndex: number;
+  problemColor: string;
   solution: solutionResult["solution"];
   meetingTitle: string;
   meetingDate: string;

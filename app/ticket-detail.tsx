@@ -3,9 +3,9 @@
 import { TicketContext } from "@/lib/types";
 
 const PRIORITY_STYLES: Record<string, string> = {
-  High: "bg-amber-100 text-amber-700",
-  Med: "bg-yellow-50 text-yellow-700",
-  Low: "bg-gray-100 text-gray-600",
+  High: "bg-red-50 text-red-700",
+  Med: "bg-amber-50 text-amber-700",
+  Low: "bg-blue-50 text-blue-700",
 };
 
 export default function TicketDetailView({
@@ -15,7 +15,7 @@ export default function TicketDetailView({
   context: TicketContext;
   onBack: () => void;
 }) {
-  const { ticket, problem, problemIndex, meetingTitle, meetingDate } = context;
+  const { ticket, problem, problemColor, meetingTitle, meetingDate } = context;
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "short",
@@ -66,22 +66,46 @@ export default function TicketDetailView({
             </div>
 
             {/* Title */}
-            <h1 className="mb-4 text-2xl font-semibold text-foreground">
+            <h1 className="mb-6 text-2xl font-semibold text-foreground">
               {ticket.title}
             </h1>
 
-            {/* Problem link */}
-            <button
-              onClick={onBack}
-              className="mb-8 flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-800"
+            {/* Original Problem block */}
+            <div
+              className="mb-8 overflow-hidden rounded-lg border"
+              style={{ borderColor: "#E8E6E1" }}
             >
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-              Problem {problemIndex + 1}: {problem.title}
-            </button>
+              <div className="flex">
+                <div className="w-1 shrink-0" style={{ backgroundColor: problemColor }} />
+                <div className="flex-1 p-4">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: problemColor }} />
+                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: problemColor }}>
+                      Original Problem
+                    </p>
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {problem.title}
+                  </h3>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">
+                    {problem.description}
+                  </p>
+                  {problem.quotes.length > 0 && (
+                    <div className="mt-3 border-t border-border pt-3">
+                      {problem.quotes.slice(0, 2).map((q, i) => (
+                        <p key={i} className="mt-1 text-[12px] italic text-muted">
+                          &ldquo;{q.text}&rdquo; &mdash; {q.speaker}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Problem Statement */}
             <div className="mb-8">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-amber-700">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: problemColor }}>
                 Problem Statement
               </h2>
               <p className="text-sm leading-relaxed text-foreground">
@@ -91,7 +115,7 @@ export default function TicketDetailView({
 
             {/* Description */}
             <div className="mb-8">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-amber-700">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: problemColor }}>
                 Description
               </h2>
               <p className="text-sm leading-relaxed text-foreground">
@@ -101,7 +125,7 @@ export default function TicketDetailView({
 
             {/* Acceptance Criteria */}
             <div>
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-amber-700">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: problemColor }}>
                 Acceptance Criteria
               </h2>
               <ul className="flex flex-col gap-2.5">
@@ -175,16 +199,14 @@ export default function TicketDetailView({
                 <span className="text-sm text-muted">Problem</span>
                 <button
                   onClick={onBack}
-                  className="text-sm font-medium text-amber-700 hover:text-amber-800"
+                  className="flex items-center gap-1.5 text-sm font-medium hover:opacity-80"
+                  style={{ color: problemColor }}
                 >
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: problemColor }} />
                   {problem.title.length > 20
                     ? problem.title.slice(0, 20) + "..."
                     : problem.title}
                 </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Roadmap</span>
-                <span className="text-sm font-medium text-foreground">Now</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">Created</span>
@@ -211,7 +233,8 @@ export default function TicketDetailView({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                className="shrink-0 text-amber-600"
+                className="shrink-0"
+                style={{ color: problemColor }}
               >
                 <path
                   strokeLinecap="round"
@@ -224,11 +247,6 @@ export default function TicketDetailView({
               </span>
             </button>
           </div>
-
-          {/* View design brief button */}
-          <button className="w-full rounded-xl bg-accent px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-accent-light">
-            View design brief &#10022;
-          </button>
         </div>
       </div>
     </div>

@@ -246,7 +246,7 @@ export default function Discovery() {
     <div className="mx-auto max-w-2xl">
       <div className="mb-2">
         <h1 className="text-2xl font-semibold text-foreground">
-          Process a product conversation
+          Process a meeting notes or a transcript
         </h1>
         <p className="mt-2 text-sm text-muted">
           Record a meeting or upload a transcript to extract issues, evidence,

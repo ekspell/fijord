@@ -3,20 +3,20 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { ProblemsResult, solutionResult } from "@/lib/types";
 
-export type SavedInitiative = {
+export type RoadmapTicket = {
   id: string;
   title: string;
-  description: string;
-  ticketCount: number;
-  quoteCount: number;
-  problemLabel: string;
-  items: { name: string; id: string; priority: string }[];
+  priority: string;
+  problemTitle: string;
+  problemDescription: string;
+  problemColor: string;
+  problemQuotes: { text: string; speaker: string }[];
   column: "now" | "next" | "later";
 };
 
-const STORAGE_KEY = "fjord-roadmap";
+const STORAGE_KEY = "fjord-roadmap-v2";
 
-function loadRoadmap(): SavedInitiative[] {
+function loadRoadmap(): RoadmapTicket[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -26,7 +26,7 @@ function loadRoadmap(): SavedInitiative[] {
   }
 }
 
-function persistRoadmap(items: SavedInitiative[]) {
+function persistRoadmap(items: RoadmapTicket[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
@@ -42,9 +42,9 @@ type NavContextType = {
   setTranscript: (t: string) => void;
   processingTime: string;
   setProcessingTime: (t: string) => void;
-  roadmap: SavedInitiative[];
-  setRoadmap: (items: SavedInitiative[]) => void;
-  addToRoadmap: (items: SavedInitiative[]) => void;
+  roadmap: RoadmapTicket[];
+  setRoadmap: (items: RoadmapTicket[]) => void;
+  addToRoadmap: (items: RoadmapTicket[]) => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -69,7 +69,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [solutions, setSolutions] = useState<solutionResult[]>([]);
   const [transcript, setTranscript] = useState("");
   const [processingTime, setProcessingTime] = useState("0");
-  const [roadmap, setRoadmapState] = useState<SavedInitiative[]>([]);
+  const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -77,14 +77,13 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (saved.length > 0) setRoadmapState(saved);
   }, []);
 
-  const setRoadmap = (items: SavedInitiative[]) => {
+  const setRoadmap = (items: RoadmapTicket[]) => {
     setRoadmapState(items);
     persistRoadmap(items);
   };
 
-  const addToRoadmap = (newItems: SavedInitiative[]) => {
+  const addToRoadmap = (newItems: RoadmapTicket[]) => {
     setRoadmapState((prev) => {
-      // Deduplicate by id
       const existingIds = new Set(prev.map((i) => i.id));
       const unique = newItems.filter((i) => !existingIds.has(i.id));
       const merged = [...prev, ...unique];
