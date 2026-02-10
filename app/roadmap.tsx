@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useNav, RoadmapTicket } from "./nav-context";
+import { EditableText, EditableTextarea, EditableList, EditablePriority } from "./components/editable-fields";
 
 type ColumnKey = "now" | "next" | "later";
 
@@ -74,11 +75,12 @@ function TicketCard({
 function RoadmapTicketDetail({
   ticket,
   onBack,
+  onUpdate,
 }: {
   ticket: RoadmapTicket;
   onBack: () => void;
+  onUpdate: (updates: Partial<RoadmapTicket>) => void;
 }) {
-  const ps = PRIORITY_STYLES[ticket.priority] || PRIORITY_STYLES.Low;
   const colLabel = { now: "Now", next: "Next", later: "Later" }[ticket.column];
 
   return (
@@ -101,21 +103,24 @@ function RoadmapTicketDetail({
             {/* Header */}
             <div className="mb-4 flex items-center gap-3">
               <span className="text-sm font-medium text-muted">{ticket.id}</span>
-              <span
-                className="rounded px-2 py-0.5 text-[11px] font-semibold uppercase"
-                style={{ backgroundColor: ps.bg, color: ps.text }}
-              >
-                {ticket.priority}
-              </span>
+              <EditablePriority
+                value={ticket.priority}
+                onChange={(val) => onUpdate({ priority: val })}
+              />
               <span className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted">
                 {colLabel}
               </span>
             </div>
 
             {/* Title */}
-            <h1 className="mb-6 text-2xl font-semibold text-foreground">
-              {ticket.title}
-            </h1>
+            <div className="mb-6">
+              <EditableText
+                value={ticket.title}
+                onChange={(val) => onUpdate({ title: val })}
+                className="text-2xl font-semibold text-foreground"
+                as="h1"
+              />
+            </div>
 
             {/* Original Problem block */}
             <div
@@ -151,6 +156,79 @@ function RoadmapTicketDetail({
                 </div>
               </div>
             </div>
+
+            {/* Problem Statement */}
+            {ticket.problemStatement !== undefined ? (
+              <div className="mb-8">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: ticket.problemColor }}>
+                  Problem Statement
+                </h2>
+                <EditableTextarea
+                  value={ticket.problemStatement || ""}
+                  onChange={(val) => onUpdate({ problemStatement: val })}
+                  className="text-sm leading-relaxed text-foreground"
+                  placeholder="Add a problem statement..."
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => onUpdate({ problemStatement: "" })}
+                className="mb-4 flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-foreground"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add problem statement
+              </button>
+            )}
+
+            {/* Description */}
+            {ticket.description !== undefined ? (
+              <div className="mb-8">
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: ticket.problemColor }}>
+                  Description
+                </h2>
+                <EditableTextarea
+                  value={ticket.description || ""}
+                  onChange={(val) => onUpdate({ description: val })}
+                  className="text-sm leading-relaxed text-foreground"
+                  placeholder="Add a description..."
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => onUpdate({ description: "" })}
+                className="mb-4 flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-foreground"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add description
+              </button>
+            )}
+
+            {/* Acceptance Criteria */}
+            {ticket.acceptanceCriteria !== undefined ? (
+              <div>
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: ticket.problemColor }}>
+                  Acceptance Criteria
+                </h2>
+                <EditableList
+                  items={ticket.acceptanceCriteria}
+                  onChange={(items) => onUpdate({ acceptanceCriteria: items })}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => onUpdate({ acceptanceCriteria: [] })}
+                className="mb-4 flex items-center gap-1.5 text-xs font-medium text-muted transition-colors hover:text-foreground"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add acceptance criteria
+              </button>
+            )}
           </div>
         </div>
 
@@ -164,7 +242,10 @@ function RoadmapTicketDetail({
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">Priority</span>
-                <span className="text-sm font-medium text-foreground">{ticket.priority}</span>
+                <EditablePriority
+                  value={ticket.priority}
+                  onChange={(val) => onUpdate({ priority: val })}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">Column</span>
@@ -185,8 +266,26 @@ function RoadmapTicketDetail({
             </div>
           </div>
 
-          {/* Quotes */}
-          {ticket.problemQuotes && ticket.problemQuotes.length > 0 && (
+          {/* Quotes — prefer full ticket quotes if available, fall back to problem quotes */}
+          {(ticket.quotes && ticket.quotes.length > 0) ? (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
+                User Quotes
+              </h3>
+              <div className="flex flex-col gap-3">
+                {ticket.quotes.map((q, i) => (
+                  <div key={i} className="rounded-lg border border-border bg-background p-4">
+                    <p className="text-sm italic leading-relaxed text-foreground">
+                      &ldquo;{q.text}&rdquo;
+                    </p>
+                    <p className="mt-2 text-xs text-muted">
+                      {q.speaker} {q.timestamp && <>&middot; {q.timestamp}</>}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : ticket.problemQuotes && ticket.problemQuotes.length > 0 ? (
             <div className="rounded-xl border border-border bg-card p-5">
               <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">
                 User Quotes
@@ -202,7 +301,7 @@ function RoadmapTicketDetail({
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* Back button */}
           <button
@@ -218,7 +317,7 @@ function RoadmapTicketDetail({
 }
 
 export default function Roadmap() {
-  const { roadmap, setRoadmap, setActiveTab } = useNav();
+  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<RoadmapTicket | null>(null);
   const draggedId = useRef<string | null>(null);
@@ -259,11 +358,18 @@ export default function Roadmap() {
     draggedId.current = null;
   };
 
+  const handleTicketUpdate = (updates: Partial<RoadmapTicket>) => {
+    if (!selectedTicket) return;
+    updateRoadmapTicket(selectedTicket.id, updates);
+    setSelectedTicket((prev) => prev ? { ...prev, ...updates } : prev);
+  };
+
   if (selectedTicket) {
     return (
       <RoadmapTicketDetail
         ticket={selectedTicket}
         onBack={() => setSelectedTicket(null)}
+        onUpdate={handleTicketUpdate}
       />
     );
   }

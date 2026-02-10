@@ -159,6 +159,7 @@ export default function Results() {
   const [filterProblemId, setFilterProblemId] = useState<string | null>(null);
   const [drawerQuote, setDrawerQuote] = useState<Quote | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [generatedDetails, setGeneratedDetails] = useState<Map<string, TicketDetail>>(new Map());
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -225,6 +226,21 @@ export default function Results() {
   );
 
   const handleTicketClick = async (ticket: typeof allTickets[0]) => {
+    // If we already have a generated detail for this ticket, reuse it
+    const existing = generatedDetails.get(ticket.item.id);
+    if (existing) {
+      setTicketContext({
+        ticket: existing,
+        problem: data.problems[ticket.problemIndex],
+        problemIndex: ticket.problemIndex,
+        problemColor: ticket.problemColor,
+        solution: ticket.solution.solution,
+        meetingTitle: data.meetingTitle,
+        meetingDate: data.date,
+      });
+      return;
+    }
+
     setLoadingTicket(ticket.item.id);
     try {
       const res = await fetch("/api/generate-ticket", {
@@ -241,6 +257,7 @@ export default function Results() {
       if (!res.ok) throw new Error("Failed to generate ticket");
 
       const ticketDetail: TicketDetail = await res.json();
+      setGeneratedDetails((prev) => new Map(prev).set(ticketDetail.id, ticketDetail));
       setTicketContext({
         ticket: ticketDetail,
         problem: data.problems[ticket.problemIndex],
@@ -257,11 +274,19 @@ export default function Results() {
     }
   };
 
+  const handleTicketUpdate = (updates: Partial<TicketDetail>) => {
+    if (!ticketContext) return;
+    const updatedTicket = { ...ticketContext.ticket, ...updates };
+    setTicketContext({ ...ticketContext, ticket: updatedTicket });
+    setGeneratedDetails((prev) => new Map(prev).set(updatedTicket.id, updatedTicket));
+  };
+
   if (ticketContext) {
     return (
       <TicketDetailView
         context={ticketContext}
         onBack={() => setTicketContext(null)}
+        onUpdate={handleTicketUpdate}
       />
     );
   }
@@ -433,20 +458,27 @@ export default function Results() {
               const PRIORITY_TO_COL: Record<string, "now" | "next" | "later"> = {
                 High: "now", Med: "next", Low: "later",
               };
-              // Build flat tickets for roadmap from selected items
+              // Build flat tickets for roadmap from selected items, including full detail if generated
               const newTickets: RoadmapTicket[] = [];
               allTickets.forEach((ticket) => {
                 if (!selectedTickets.has(ticket.item.id)) return;
                 const problem = data.problems[ticket.problemIndex];
+                const detail = generatedDetails.get(ticket.item.id);
                 newTickets.push({
                   id: ticket.item.id,
-                  title: ticket.item.title,
-                  priority: ticket.item.priority,
+                  title: detail?.title || ticket.item.title,
+                  priority: detail?.priority || ticket.item.priority,
                   problemTitle: ticket.problemTitle,
                   problemDescription: problem.description,
                   problemColor: ticket.problemColor,
                   problemQuotes: problem.quotes.slice(0, 2).map((q) => ({ text: q.text, summary: q.summary, speaker: q.speaker })),
-                  column: PRIORITY_TO_COL[ticket.item.priority] || "later",
+                  column: PRIORITY_TO_COL[detail?.priority || ticket.item.priority] || "later",
+                  // Full detail fields (if generated)
+                  status: detail?.status,
+                  problemStatement: detail?.problemStatement,
+                  description: detail?.description,
+                  acceptanceCriteria: detail?.acceptanceCriteria,
+                  quotes: detail?.quotes,
                 });
               });
               addToRoadmap(newTickets);

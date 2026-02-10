@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { ProblemsResult, solutionResult } from "@/lib/types";
+import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
 
 export type RoadmapTicket = {
   id: string;
@@ -12,14 +12,28 @@ export type RoadmapTicket = {
   problemColor: string;
   problemQuotes: { text: string; summary?: string; speaker: string }[];
   column: "now" | "next" | "later";
+  // Full detail fields (optional — populated when ticket detail is generated)
+  status?: string;
+  problemStatement?: string;
+  description?: string;
+  acceptanceCriteria?: string[];
+  quotes?: Quote[];
 };
 
-const STORAGE_KEY = "fjord-roadmap-v2";
+const STORAGE_KEY = "fjord-roadmap-v3";
 
 function loadRoadmap(): RoadmapTicket[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      // Migrate from v2
+      raw = localStorage.getItem("fjord-roadmap-v2");
+      if (raw) {
+        localStorage.setItem(STORAGE_KEY, raw);
+        localStorage.removeItem("fjord-roadmap-v2");
+      }
+    }
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -45,6 +59,7 @@ type NavContextType = {
   roadmap: RoadmapTicket[];
   setRoadmap: (items: RoadmapTicket[]) => void;
   addToRoadmap: (items: RoadmapTicket[]) => void;
+  updateRoadmapTicket: (id: string, updates: Partial<RoadmapTicket>) => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -61,6 +76,7 @@ const NavContext = createContext<NavContextType>({
   roadmap: [],
   setRoadmap: () => {},
   addToRoadmap: () => {},
+  updateRoadmapTicket: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -92,6 +108,14 @@ export function NavProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateRoadmapTicket = (id: string, updates: Partial<RoadmapTicket>) => {
+    setRoadmapState((prev) => {
+      const updated = prev.map((t) => (t.id === id ? { ...t, ...updates } : t));
+      persistRoadmap(updated);
+      return updated;
+    });
+  };
+
   return (
     <NavContext.Provider
       value={{
@@ -108,6 +132,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         roadmap,
         setRoadmap,
         addToRoadmap,
+        updateRoadmapTicket,
       }}
     >
       {children}

@@ -183,8 +183,8 @@ export default function TranscriptDrawer({
           </button>
         </div>
 
-        {/* Highlight banner — shows direction to quote, hides when quote is visible */}
-        {highlightQuote && highlightDir !== null && (
+        {/* Highlight banner — always visible when a quote is highlighted, flips direction on scroll */}
+        {highlightQuote && (
           <button
             onClick={scrollToHighlight}
             className="flex items-center gap-2 border-b border-[#E5D9A8] bg-[#FDF6E3] px-6 py-2.5 text-left text-[13px] font-medium text-[#8B7520] transition-colors hover:bg-[#FCF0D0]"
@@ -202,7 +202,7 @@ export default function TranscriptDrawer({
             >
               <path d="M12 5v14M19 12l-7 7-7-7" />
             </svg>
-            {highlightDir === "above" ? "Scroll up to highlighted quote" : "Scroll down to highlighted quote"}
+            {highlightDir === "above" ? "Scroll up to highlighted quote" : "Highlighted quote"}
           </button>
         )}
 

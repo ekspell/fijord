@@ -1,19 +1,16 @@
 "use client";
 
-import { TicketContext } from "@/lib/types";
-
-const PRIORITY_STYLES: Record<string, string> = {
-  High: "bg-red-50 text-red-700",
-  Med: "bg-amber-50 text-amber-700",
-  Low: "bg-blue-50 text-blue-700",
-};
+import { TicketContext, TicketDetail } from "@/lib/types";
+import { EditableText, EditableTextarea, EditableList, EditablePriority } from "./components/editable-fields";
 
 export default function TicketDetailView({
   context,
   onBack,
+  onUpdate,
 }: {
   context: TicketContext;
   onBack: () => void;
+  onUpdate?: (updates: Partial<TicketDetail>) => void;
 }) {
   const { ticket, problem, problemColor, meetingTitle, meetingDate } = context;
 
@@ -53,22 +50,24 @@ export default function TicketDetailView({
             {/* Header: ID, priority badge, status badge */}
             <div className="mb-4 flex items-center gap-3">
               <span className="text-sm font-medium text-muted">{ticket.id}</span>
-              <span
-                className={`rounded px-2 py-0.5 text-[11px] font-semibold uppercase ${
-                  PRIORITY_STYLES[ticket.priority] || ""
-                }`}
-              >
-                {ticket.priority}
-              </span>
+              <EditablePriority
+                value={ticket.priority}
+                onChange={(val) => onUpdate?.({ priority: val as "High" | "Med" | "Low" })}
+              />
               <span className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted">
                 {ticket.status || "Ready for design"}
               </span>
             </div>
 
             {/* Title */}
-            <h1 className="mb-6 text-2xl font-semibold text-foreground">
-              {ticket.title}
-            </h1>
+            <div className="mb-6">
+              <EditableText
+                value={ticket.title}
+                onChange={(val) => onUpdate?.({ title: val })}
+                className="text-2xl font-semibold text-foreground"
+                as="h1"
+              />
+            </div>
 
             {/* Original Problem block */}
             <div
@@ -108,9 +107,11 @@ export default function TicketDetailView({
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: problemColor }}>
                 Problem Statement
               </h2>
-              <p className="text-sm leading-relaxed text-foreground">
-                {ticket.problemStatement}
-              </p>
+              <EditableTextarea
+                value={ticket.problemStatement}
+                onChange={(val) => onUpdate?.({ problemStatement: val })}
+                className="text-sm leading-relaxed text-foreground"
+              />
             </div>
 
             {/* Description */}
@@ -118,9 +119,11 @@ export default function TicketDetailView({
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: problemColor }}>
                 Description
               </h2>
-              <p className="text-sm leading-relaxed text-foreground">
-                {ticket.description}
-              </p>
+              <EditableTextarea
+                value={ticket.description}
+                onChange={(val) => onUpdate?.({ description: val })}
+                className="text-sm leading-relaxed text-foreground"
+              />
             </div>
 
             {/* Acceptance Criteria */}
@@ -128,28 +131,10 @@ export default function TicketDetailView({
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: problemColor }}>
                 Acceptance Criteria
               </h2>
-              <ul className="flex flex-col gap-2.5">
-                {ticket.acceptanceCriteria.map((criteria, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#3D5A3D"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="mt-0.5 shrink-0"
-                    >
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-sm leading-relaxed text-foreground">
-                      {criteria}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <EditableList
+                items={ticket.acceptanceCriteria}
+                onChange={(items) => onUpdate?.({ acceptanceCriteria: items })}
+              />
             </div>
           </div>
         </div>
@@ -191,9 +176,10 @@ export default function TicketDetailView({
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">Priority</span>
-                <span className="text-sm font-medium text-foreground">
-                  {ticket.priority}
-                </span>
+                <EditablePriority
+                  value={ticket.priority}
+                  onChange={(val) => onUpdate?.({ priority: val as "High" | "Med" | "Low" })}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted">Problem</span>
