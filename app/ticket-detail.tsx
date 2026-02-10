@@ -93,9 +93,9 @@ export default function TicketDetailView({
                 as="h1"
                 style={{
                   fontFamily: 'var(--font-sans)',
-                  fontSize: '48px',
-                  letterSpacing: '-4px',
-                  lineHeight: '74.4px',
+                  fontSize: '32px',
+                  letterSpacing: '-1px',
+                  lineHeight: '37.2px',
                   fontWeight: 300,
                 }}
               />

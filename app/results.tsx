@@ -80,7 +80,7 @@ function ProblemCard({ problem, index, color, active, dimmed, onClick }: { probl
             {problem.description}
           </p>
           <p className="mt-2 text-[11px] font-medium text-muted">
-            &darr; {problem.quotes.length} supporting quotes
+            ↳ {problem.quotes.length} supporting quotes
           </p>
         </div>
       </div>
@@ -344,17 +344,6 @@ export default function Results() {
           <p className="mt-1.5 text-[13px] text-muted">
             {data.date} &middot; {data.participants}
           </p>
-        </div>
-        <div className="flex gap-3">
-          <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted">
-            {coloredQuotes.length} quotes
-          </span>
-          <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted">
-            {data.problems.length} problems
-          </span>
-          <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted">
-            {allTickets.length} tickets
-          </span>
         </div>
       </div>
 

@@ -39,12 +39,14 @@ function TicketCard({
   failed,
   onDragStart,
   onClick,
+  onDelete,
 }: {
   ticket: RoadmapTicket;
   loading: boolean;
   failed: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
+  onDelete: () => void;
 }) {
   const ps = PRIORITY_STYLES[ticket.priority] || PRIORITY_STYLES.Low;
 
@@ -53,8 +55,17 @@ function TicketCard({
       draggable={!loading}
       onDragStart={(e) => onDragStart(e, ticket.id)}
       onClick={onClick}
-      className={`mb-3 cursor-grab rounded-xl border border-border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] active:cursor-grabbing active:shadow-lg ${loading ? "opacity-60" : ""}`}
+      className={`group/card relative mb-3 cursor-grab rounded-xl border border-border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] active:cursor-grabbing active:shadow-lg ${loading ? "opacity-60" : ""}`}
     >
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-muted opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover/card:opacity-100"
+        title="Delete ticket"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
       <div className="mb-2 flex items-center gap-2">
         <span className="text-[11px] font-semibold text-muted">{ticket.id}</span>
         <span
@@ -136,7 +147,14 @@ export default function Roadmap() {
   const [selectedTicket, setSelectedTicket] = useState<RoadmapTicket | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [failedTicket, setFailedTicket] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const draggedId = useRef<string | null>(null);
+
+  const handleDelete = () => {
+    if (!confirmDeleteId) return;
+    setRoadmap(roadmap.filter((t) => t.id !== confirmDeleteId));
+    setConfirmDeleteId(null);
+  };
 
   const columns = COLUMN_META.map((meta) => ({
     ...meta,
@@ -351,6 +369,7 @@ export default function Roadmap() {
                 failed={failedTicket === ticket.id}
                 onDragStart={handleDragStart}
                 onClick={() => handleTicketClick(ticket)}
+                onDelete={() => setConfirmDeleteId(ticket.id)}
               />
             ))}
             {col.tickets.length === 0 && (
@@ -386,6 +405,33 @@ export default function Roadmap() {
           </button>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-fade-in" onClick={() => setConfirmDeleteId(null)}>
+          <div className="fixed inset-0 bg-black/20" />
+          <div className="relative z-10 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-foreground">Delete ticket?</h3>
+            <p className="mt-2 text-[13px] text-muted">
+              Are you sure you want to remove <strong className="text-foreground">{confirmDeleteId}</strong> from the roadmap? This can&apos;t be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmDeleteId(null)}
+                className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
