@@ -55,12 +55,13 @@ export default function Discovery() {
     setSolutions,
     setTranscript,
     setProcessingTime,
+    roadmap,
   } = useNav();
 
   const [steps, setSteps] = useState<Step[]>([
     { title: "Reading transcript", detail: "Parsing input...", status: "pending" },
     { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
-    { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
+    { title: "Designing solutions", detail: "Connecting problems to fixes......", status: "pending" },
     { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
   ]);
 
@@ -127,8 +128,12 @@ export default function Discovery() {
 
       const solutionResults = await Promise.all(solutionPromises);
 
-      // Assign sequential IDs across all work items (don't trust AI-generated IDs)
-      let ticketNum = 101;
+      // Assign sequential IDs, continuing from the highest existing roadmap ticket
+      const maxExisting = roadmap.reduce((max, t) => {
+        const match = t.id.match(/^FJD-(\d+)$/);
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+      }, 100);
+      let ticketNum = maxExisting + 1;
       solutionResults.forEach((sol) => {
         sol.workItems.forEach((item) => {
           item.id = `FJD-${ticketNum++}`;
@@ -188,7 +193,7 @@ export default function Discovery() {
             </div>
 
             <h1 className="mb-3 text-2xl font-medium text-foreground">
-              Analyzing meeting artifacts...
+              Analyzing transcript...
             </h1>
             <p className="mb-12 text-[15px] leading-relaxed text-muted">
               Extracting problems, generating solutions, and writing

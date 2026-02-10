@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Quote } from "@/lib/types";
 
 /**
@@ -93,10 +93,29 @@ export default function TranscriptDrawer({
   const lines = parseTranscript(transcript);
   const highlightRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // "above" = highlight is above viewport (scroll up), "below" = below (scroll down), null = visible
+  const [highlightDir, setHighlightDir] = useState<"above" | "below" | null>(null);
 
   const matchedLineIdx = highlightQuote ? findQuoteInTranscript(lines, highlightQuote.text) : -1;
 
-  // Close on Escape key
+  // Check whether the highlighted element is above, below, or within the scroll viewport
+  const checkHighlightPosition = useCallback(() => {
+    if (!highlightRef.current || !scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const el = highlightRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+
+    if (elRect.bottom < containerRect.top) {
+      setHighlightDir("above");
+    } else if (elRect.top > containerRect.bottom) {
+      setHighlightDir("below");
+    } else {
+      setHighlightDir(null);
+    }
+  }, []);
+
+  // Close on Escape key + lock body scroll
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -109,7 +128,7 @@ export default function TranscriptDrawer({
     };
   }, [onClose]);
 
-  // Auto-scroll to highlighted quote
+  // Auto-scroll to highlighted quote on open
   useEffect(() => {
     if (highlightRef.current && scrollContainerRef.current) {
       const timer = setTimeout(() => {
@@ -119,7 +138,19 @@ export default function TranscriptDrawer({
     }
   }, [matchedLineIdx]);
 
-  // Scroll to highlight when clicking the banner
+  // Track scroll position to update banner direction
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || matchedLineIdx < 0) return;
+    // Initial check after scroll animation settles
+    const initTimer = setTimeout(checkHighlightPosition, 600);
+    container.addEventListener("scroll", checkHighlightPosition, { passive: true });
+    return () => {
+      clearTimeout(initTimer);
+      container.removeEventListener("scroll", checkHighlightPosition);
+    };
+  }, [matchedLineIdx, checkHighlightPosition]);
+
   const scrollToHighlight = () => {
     highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
@@ -152,16 +183,26 @@ export default function TranscriptDrawer({
           </button>
         </div>
 
-        {/* Highlight banner */}
-        {highlightQuote && (
+        {/* Highlight banner — shows direction to quote, hides when quote is visible */}
+        {highlightQuote && highlightDir !== null && (
           <button
             onClick={scrollToHighlight}
             className="flex items-center gap-2 border-b border-[#E5D9A8] bg-[#FDF6E3] px-6 py-2.5 text-left text-[13px] font-medium text-[#8B7520] transition-colors hover:bg-[#FCF0D0]"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ transform: highlightDir === "above" ? "rotate(180deg)" : undefined }}
+            >
               <path d="M12 5v14M19 12l-7 7-7-7" />
             </svg>
-            Scrolled to highlighted quote
+            {highlightDir === "above" ? "Scroll up to highlighted quote" : "Scroll down to highlighted quote"}
           </button>
         )}
 
