@@ -453,6 +453,26 @@ export default function Results() {
           </button>
           <button
             disabled={selectedTickets.size === 0}
+            onClick={() => {}}
+            className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-sm font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <svg width="16" height="16" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+            </svg>
+            Send to Linear
+          </button>
+          <button
+            disabled={selectedTickets.size === 0}
+            onClick={() => {}}
+            className="flex items-center gap-2 rounded-lg border border-[#0052CC]/20 bg-[#0052CC]/5 px-4 py-2 text-sm font-medium text-[#0052CC] transition-colors hover:bg-[#0052CC]/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.53 2C11.53 2 8.67 4.87 8.67 8.13c0 1.62.66 3.09 1.72 4.15L14.52 8.13 11.53 2zM4.85 15.49l4.13-4.14A5.84 5.84 0 017 8.13C7 6.82 7.4 5.6 8.07 4.58L2 10.66l2.85 4.83zM8.13 15.36c0-1.63.66-3.1 1.72-4.16L5.72 15.33l2.99 6.14c0-.01 2.86-2.87 2.86-6.13-.78-.77-1.8-1.44-3.44-1.44v1.46zm7.21-7.23L11.21 12.3A5.83 5.83 0 0114.44 16c1.27 0 2.46-.4 3.44-1.08L24 8.84l-2.86-4.83-5.8 4.12zM15.37 16c0 1.62-.66 3.09-1.72 4.15L17.78 16l-2.99-6.13s-2.86 2.87-2.86 6.13h3.44z" />
+            </svg>
+            Send to Jira
+          </button>
+          <button
+            disabled={selectedTickets.size === 0}
             onClick={() => {
               if (!data) return;
               const PRIORITY_TO_COL: Record<string, "now" | "next" | "later"> = {
