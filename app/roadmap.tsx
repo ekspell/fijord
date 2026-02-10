@@ -330,20 +330,6 @@ export default function Roadmap() {
             Drag tickets between columns to reprioritize.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => showToast("Linear export — coming soon")}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
-          >
-            Export to Linear
-          </button>
-          <button
-            onClick={() => setActiveTab("Discovery")}
-            className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent/90"
-          >
-            + New call
-          </button>
-        </div>
       </div>
 
       {/* 3-column kanban */}
@@ -385,26 +371,6 @@ export default function Roadmap() {
         ))}
       </div>
 
-      {/* Bottom bar */}
-      <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
-        <p className="text-[13px] text-muted">
-          <strong className="text-foreground">{roadmap.length} tickets</strong> on the roadmap
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setActiveTab("Scope")}
-            className="rounded-lg border border-border px-4 py-2 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
-          >
-            View scope
-          </button>
-          <button
-            onClick={() => setActiveTab("Discovery")}
-            className="rounded-lg bg-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent/90"
-          >
-            + New call
-          </button>
-        </div>
-      </div>
 
       {/* Delete confirmation modal */}
       {confirmDeleteId && (
