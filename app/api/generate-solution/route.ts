@@ -3,6 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 const client = new Anthropic();
 
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      console.warn(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
+      delay *= 2;
+    }
+  }
+  throw new Error("Unreachable");
+}
+
 function extractJSON(text: string): string {
   let cleaned = text.trim();
   if (cleaned.startsWith("```")) {
@@ -20,7 +34,7 @@ export async function POST(request: NextRequest) {
   try {
     const { transcript, problem } = await request.json();
 
-    const message = await client.messages.create({
+    const message = await withRetry(() => client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 4096,
       system: `You are Fjord, a product management AI. Given a problem extracted from a meeting transcript, generate ONE opinionated solution (called a "solution") and a list of work items needed to implement it.
@@ -48,7 +62,7 @@ Respond with ONLY valid JSON (no markdown, no code fences):
           content: `Original transcript (for context):\n${transcript}\n\nProblem to solve:\nTitle: ${problem.title}\nDescription: ${problem.description}\nSupporting quotes: ${problem.quotes.map((q: { text: string }) => `"${q.text}"`).join(", ")}`,
         },
       ],
-    });
+    }));
 
     if (message.stop_reason === "max_tokens") {
       return NextResponse.json({ error: "AI response was truncated" }, { status: 500 });

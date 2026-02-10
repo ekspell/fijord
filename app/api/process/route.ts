@@ -3,6 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 const client = new Anthropic();
 
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      console.warn(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
+      await new Promise((r) => setTimeout(r, delay));
+      delay *= 2;
+    }
+  }
+  throw new Error("Unreachable");
+}
+
 const SYSTEM_PROMPT = `You are Fjord, a product management AI. You analyze meeting transcripts and extract structured problems.
 
 Your job:
@@ -74,17 +88,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 8192,
-      messages: [
-        {
-          role: "user",
-          content: `Here is a meeting transcript to analyze:\n\n${transcript}`,
-        },
-      ],
-      system: SYSTEM_PROMPT,
-    });
+    const message = await withRetry(() =>
+      client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 8192,
+        messages: [
+          {
+            role: "user",
+            content: `Here is a meeting transcript to analyze:\n\n${transcript}`,
+          },
+        ],
+        system: SYSTEM_PROMPT,
+      })
+    );
 
     if (message.stop_reason === "max_tokens") {
       console.error("Response truncated — hit max_tokens limit");
