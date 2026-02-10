@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNav, RoadmapTicket } from "./nav-context";
 import { solutionResult, WorkItem, TicketDetail, TicketContext, Quote, PROBLEM_COLORS } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
+import TranscriptDrawer from "./transcript-drawer";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   High: { bg: "bg-red-50", text: "text-red-700" },
@@ -37,8 +38,8 @@ function EvidenceCard({ quote, color, dimmed, onClick }: { quote: Quote; color?:
       className={`mb-2 cursor-pointer rounded-lg bg-background p-3.5 transition-all ${dimmed ? "opacity-30" : "hover:bg-[#F9F8F6]"}`}
       style={{ borderLeft: `3px solid ${color || "#D4CFC5"}` }}
     >
-      <p className="text-[13px] italic leading-relaxed text-foreground">
-        &ldquo;{quote.text}&rdquo;
+      <p className="text-[13px] leading-relaxed text-foreground">
+        {quote.summary || quote.text}
       </p>
       <p className="mt-1.5 text-[11px] font-medium text-muted">
         {quote.speaker} &mdash; {quote.timestamp}
@@ -156,6 +157,8 @@ export default function Results() {
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [filterProblemId, setFilterProblemId] = useState<string | null>(null);
+  const [drawerQuote, setDrawerQuote] = useState<Quote | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -351,7 +354,10 @@ export default function Results() {
                 quote={cq.quote}
                 color={cq.color}
                 dimmed={filterProblemId !== null && cq.problemId !== filterProblemId}
-                onClick={() => toggleFilter(cq.problemId)}
+                onClick={() => {
+                  setDrawerQuote(cq.quote);
+                  setDrawerOpen(true);
+                }}
               />
             ))}
           </div>
@@ -411,7 +417,13 @@ export default function Results() {
           <strong className="text-foreground">{allTickets.length}</strong> tickets selected
         </p>
         <div className="flex items-center gap-2">
-          <button className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background">
+          <button
+            onClick={() => {
+              setDrawerQuote(null);
+              setDrawerOpen(true);
+            }}
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background"
+          >
             View transcript
           </button>
           <button
@@ -433,7 +445,7 @@ export default function Results() {
                   problemTitle: ticket.problemTitle,
                   problemDescription: problem.description,
                   problemColor: ticket.problemColor,
-                  problemQuotes: problem.quotes.slice(0, 2).map((q) => ({ text: q.text, speaker: q.speaker })),
+                  problemQuotes: problem.quotes.slice(0, 2).map((q) => ({ text: q.text, summary: q.summary, speaker: q.speaker })),
                   column: PRIORITY_TO_COL[ticket.item.priority] || "later",
                 });
               });
@@ -446,6 +458,20 @@ export default function Results() {
           </button>
         </div>
       </div>
+
+      {/* Transcript drawer */}
+      {drawerOpen && (
+        <TranscriptDrawer
+          transcript={transcript}
+          highlightQuote={drawerQuote}
+          meetingTitle={data.meetingTitle}
+          meetingDate={data.date}
+          onClose={() => {
+            setDrawerOpen(false);
+            setDrawerQuote(null);
+          }}
+        />
+      )}
     </div>
   );
 }

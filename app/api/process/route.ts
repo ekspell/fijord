@@ -34,7 +34,8 @@ Rules:
 - Each problem must be backed by specific evidence from the transcript
 - Skip small talk, pleasantries, and off-topic discussion
 - If the transcript has no real problems, return an empty problems array — don't make things up
-- Quotes should be near-exact from the transcript
+- "text" should be the near-exact verbatim quote from the transcript
+- "summary" should be a tight paraphrase (8-15 words) that captures the gist — written for quick scanning
 - Typically 2-5 problems. Don't force more than exist.
 - Base severity ONLY on evidence. If unsure, default to "Med".
 
@@ -52,7 +53,8 @@ Output valid JSON only, no other text:
       "severity": "High | Med | Low",
       "quotes": [
         {
-          "text": "string — exact quote from transcript",
+          "text": "string — exact verbatim quote from transcript",
+          "summary": "string — tight paraphrase, 8-15 words, for quick scanning",
           "speaker": "string — who said it",
           "timestamp": "string — e.g. '4:12' or 'early in call'"
         }

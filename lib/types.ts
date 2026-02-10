@@ -9,6 +9,7 @@ export const PROBLEM_COLORS = [
 
 export type Quote = {
   text: string;
+  summary: string;
   speaker: string;
   timestamp: string;
 };

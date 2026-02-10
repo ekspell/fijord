@@ -10,7 +10,7 @@ export type RoadmapTicket = {
   problemTitle: string;
   problemDescription: string;
   problemColor: string;
-  problemQuotes: { text: string; speaker: string }[];
+  problemQuotes: { text: string; summary?: string; speaker: string }[];
   column: "now" | "next" | "later";
 };
 
