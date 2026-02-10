@@ -306,7 +306,7 @@ export default function Results() {
   }
 
   return (
-    <div className="mx-auto max-w-[1200px]">
+    <div className="mx-auto max-w-[1100px]">
       {/* Summary banner */}
       <div className="mb-6 flex items-center justify-between rounded-xl p-5" style={{ backgroundColor: "#EEF4EE", border: "1px solid rgba(44, 95, 45, 0.13)" }}>
         <div className="flex items-center gap-3">
