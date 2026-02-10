@@ -101,6 +101,7 @@ function roadmapToContext(ticket: RoadmapTicket): TicketContext {
       problemStatement: ticket.problemStatement || "",
       description: ticket.description || "",
       acceptanceCriteria: ticket.acceptanceCriteria || [],
+      checkedAC: ticket.checkedAC,
       quotes,
     },
     problem: {
@@ -227,6 +228,7 @@ export default function Roadmap() {
     if (updates.problemStatement !== undefined) roadmapUpdates.problemStatement = updates.problemStatement;
     if (updates.description !== undefined) roadmapUpdates.description = updates.description;
     if (updates.acceptanceCriteria !== undefined) roadmapUpdates.acceptanceCriteria = updates.acceptanceCriteria;
+    if (updates.checkedAC !== undefined) roadmapUpdates.checkedAC = updates.checkedAC;
     if (updates.quotes !== undefined) roadmapUpdates.quotes = updates.quotes;
     updateRoadmapTicket(selectedTicket.id, roadmapUpdates);
     setSelectedTicket((prev) => prev ? { ...prev, ...roadmapUpdates } : prev);

@@ -54,6 +54,7 @@ export type TicketDetail = {
   problemStatement: string;
   description: string;
   acceptanceCriteria: string[];
+  checkedAC?: number[];
   quotes: Quote[];
 };
 

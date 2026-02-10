@@ -21,13 +21,16 @@ export default function TicketDetailView({
   const { transcript } = useNav();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerQuote, setDrawerQuote] = useState<Quote | null>(null);
-  const [checkedAC, setCheckedAC] = useState<Set<number>>(new Set());
+  const [checkedAC, setCheckedAC] = useState<Set<number>>(
+    new Set(ticket.checkedAC || [])
+  );
 
   const toggleAC = (index: number) => {
     setCheckedAC((prev) => {
       const next = new Set(prev);
       if (next.has(index)) next.delete(index);
       else next.add(index);
+      onUpdate?.({ checkedAC: Array.from(next) });
       return next;
     });
   };
@@ -51,14 +54,18 @@ export default function TicketDetailView({
         </nav>
       </div>
 
-      {/* Sub-breadcrumb */}
-      <div className="pb-6">
-        <nav className="flex items-center gap-2 text-sm">
-          <span className="text-muted">{meetingTitle}</span>
-          <span className="text-muted/50">&rsaquo;</span>
-          <span className="font-semibold text-foreground">{ticket.id}</span>
-        </nav>
-      </div>
+      {/* Sub-breadcrumb — only shown when there's a meeting title */}
+      {meetingTitle ? (
+        <div className="pb-6">
+          <nav className="flex items-center gap-2 text-sm">
+            <span className="text-muted">{meetingTitle}</span>
+            <span className="text-muted/50">&rsaquo;</span>
+            <span className="font-semibold text-foreground">{ticket.id}</span>
+          </nav>
+        </div>
+      ) : (
+        <div className="pb-4" />
+      )}
 
       {/* Two-column layout */}
       <div className="flex gap-6 pb-24">

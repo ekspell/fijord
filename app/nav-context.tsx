@@ -17,6 +17,7 @@ export type RoadmapTicket = {
   problemStatement?: string;
   description?: string;
   acceptanceCriteria?: string[];
+  checkedAC?: number[];
   quotes?: Quote[];
 };
 
