@@ -242,9 +242,9 @@ export default function Results() {
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <ColHeader title="Suggested tickets" count={`${allTickets.length} tickets`} />
           <div className="max-h-[600px] overflow-y-auto p-3">
-            {allTickets.map((ticket) => (
+            {allTickets.map((ticket, i) => (
               <TicketCard
-                key={ticket.item.id}
+                key={`${ticket.problemIndex}-${ticket.item.id}`}
                 item={ticket.item}
                 problemLabel={ticket.problemLabel}
                 loading={loadingTicket === ticket.item.id}
