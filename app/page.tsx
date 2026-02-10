@@ -127,6 +127,14 @@ export default function Discovery() {
 
       const solutionResults = await Promise.all(solutionPromises);
 
+      // Assign sequential IDs across all work items (don't trust AI-generated IDs)
+      let ticketNum = 101;
+      solutionResults.forEach((sol) => {
+        sol.workItems.forEach((item) => {
+          item.id = `FJD-${ticketNum++}`;
+        });
+      });
+
       const totalTickets = solutionResults.reduce((sum, s) => sum + s.workItems.length, 0);
       updateStep(3, "done", `${totalTickets} tickets created`);
 
