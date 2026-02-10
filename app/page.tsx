@@ -256,7 +256,7 @@ export default function Discovery() {
           style={{
             fontFamily: 'var(--font-sans)',
             fontSize: '48px',
-            letterSpacing: '-4px',
+            letterSpacing: '-1px',
             lineHeight: '74.4px',
             fontWeight: 300,
           }}
