@@ -37,22 +37,37 @@ function EvidenceCard({ quote }: { quote: Quote }) {
   );
 }
 
-function ProblemCard({ problem, index }: { problem: { title: string; description: string; quotes: Quote[] }; index: number }) {
+const SEVERITY_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
+  High: { bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA", label: "High severity" },
+  Med:  { bg: "#FDF6E3", text: "#B5860B", border: "#EDE2C4", label: "Medium severity" },
+  Low:  { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: "Low severity" },
+};
+
+function ProblemCard({ problem, index }: { problem: { title: string; description: string; severity?: string; quotes: Quote[] }; index: number }) {
+  const sev = SEVERITY_STYLES[problem.severity || "Med"] || SEVERITY_STYLES.Med;
   return (
     <div
       className="mb-2 rounded-lg border p-3.5"
-      style={{ backgroundColor: "#FDF6E3", borderColor: "#EDE2C4" }}
+      style={{ backgroundColor: sev.bg, borderColor: sev.border }}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#B5860B" }}>
-        Problem {index + 1}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: sev.text }}>
+          Problem {index + 1}
+        </p>
+        <span
+          className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+          style={{ backgroundColor: sev.border, color: sev.text }}
+        >
+          {sev.label}
+        </span>
+      </div>
       <h4 className="mt-1.5 text-sm font-semibold leading-snug text-foreground">
         {problem.title}
       </h4>
       <p className="mt-1 text-xs leading-relaxed text-muted">
         {problem.description}
       </p>
-      <p className="mt-2 text-[11px] font-medium" style={{ color: "#B5860B" }}>
+      <p className="mt-2 text-[11px] font-medium" style={{ color: sev.text }}>
         &darr; {problem.quotes.length} supporting quotes
       </p>
     </div>
@@ -108,19 +123,35 @@ export default function Results() {
 
   if (!data) return null;
 
-  const allQuotes = data.problems.flatMap((p) => p.quotes);
+  const SEVERITY_ORDER: Record<string, number> = { High: 0, Med: 1, Low: 2 };
 
+  // Sort problems by severity (High → Med → Low)
+  const sortedProblems = [...data.problems].sort(
+    (a, b) => (SEVERITY_ORDER[a.severity] ?? 1) - (SEVERITY_ORDER[b.severity] ?? 1)
+  );
+
+  const allQuotes = sortedProblems.flatMap((p) => p.quotes);
+
+  // Build tickets aligned to sorted problem order
   const allTickets: { item: WorkItem; problemIndex: number; problemLabel: string; solution: solutionResult }[] = [];
-  solutions.forEach((sol, i) => {
+  sortedProblems.forEach((problem, sortedIdx) => {
+    const originalIdx = data.problems.indexOf(problem);
+    const sol = solutions[originalIdx];
+    if (!sol) return;
     sol.workItems.forEach((item) => {
       allTickets.push({
         item,
-        problemIndex: i,
-        problemLabel: `Problem ${i + 1}`,
+        problemIndex: originalIdx,
+        problemLabel: `Problem ${sortedIdx + 1}`,
         solution: sol,
       });
     });
   });
+
+  // Sort tickets by priority (High → Med → Low)
+  allTickets.sort(
+    (a, b) => (SEVERITY_ORDER[a.item.priority] ?? 1) - (SEVERITY_ORDER[b.item.priority] ?? 1)
+  );
 
   const handleTicketClick = async (ticket: typeof allTickets[0]) => {
     setLoadingTicket(ticket.item.id);
@@ -230,9 +261,9 @@ export default function Results() {
 
         {/* Problems column */}
         <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <ColHeader title="Problems" count={`${data.problems.length} found`} />
+          <ColHeader title="Problems" count={`${sortedProblems.length} found`} />
           <div className="max-h-[600px] overflow-y-auto p-3">
-            {data.problems.map((problem, i) => (
+            {sortedProblems.map((problem, i) => (
               <ProblemCard key={problem.id} problem={problem} index={i} />
             ))}
           </div>

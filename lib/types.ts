@@ -9,6 +9,7 @@ export type ExtractedProblem = {
   id: string;
   title: string;
   description: string;
+  severity: "High" | "Med" | "Low";
   quotes: Quote[];
 };
 
