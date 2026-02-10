@@ -25,7 +25,7 @@ export default function RootLayout({
       <body className={`${dmSans.variable} antialiased`}>
         <NavProvider>
           <TopNav />
-          <main className="overflow-y-auto px-8 pt-4 pb-8">
+          <main className="overflow-y-auto px-8 pt-10 pb-8">
             {children}
           </main>
         </NavProvider>

@@ -249,7 +249,7 @@ export default function Discovery() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl" style={{ paddingTop: 80 }}>
       <div className="mb-2">
         <h1
           className="text-foreground"
