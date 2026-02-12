@@ -1,70 +1,76 @@
-# Fjord — Handoff Notes (Feb 8, 2026)
+# Fjord — Handoff Notes (Feb 10, 2026)
 
 ## What We Built Today
 
-### 1. Single-Shot Pipeline (transcript in, kanban board out)
-Replaced the old progressive drill-down flow (click problem → generate solution → click work item → generate ticket) with a single-shot experience. User pastes a transcript, sees a processing animation with real progress, and lands on a 3-column board.
+### 1. Global Toast Notification System
+Added a `showToast()` function to NavContext that renders a bottom-center toast with auto-dismiss (2.5s). Used across the app for "coming soon" placeholders on Record, Linear, and Jira buttons.
 
-### 2. Chained API Calls with Real Progress
-- `/api/process` extracts problems from the transcript (Haiku 4.5)
-- `/api/generate-solution` runs in parallel for every problem (Haiku 4.5)
-- Progress steps update live with real data ("Found 3 problems", "6 tickets created")
-- Total pipeline takes ~10-20 seconds depending on transcript length
+### 2. Error Recovery on Ticket Generation
+Both Scope and Roadmap views now show a "Failed to load — click to retry" state on ticket cards when `/api/generate-ticket` fails, with a red icon indicator.
 
-### 3. 3-Column Results View (Scope)
-After processing, the user sees three columns:
-- **Evidence**: All quotes from the transcript, styled with left border
-- **Problems**: Grouped pain points with amber cards and quote counts
-- **Suggested Tickets**: Clickable ticket cards with ID, priority badge, and link to parent problem
+### 3. Delete Tickets from Roadmap
+Added an X button (visible on hover) to each roadmap ticket card. Clicking it opens a confirmation modal ("Are you sure you want to delete?") before removing the ticket.
 
-### 4. Ticket Detail Page
-Clicking a ticket card calls `/api/generate-ticket` (Sonnet 4.5) and shows a full ticket view:
-- Two-column layout: main card + right sidebar
-- Problem statement, description, acceptance criteria (3-5 items)
-- User quotes, details panel, source transcript link
+### 4. Typography & Spacing Polish
+- All page headings standardized: 48px, weight 300, -1px letter-spacing
+- Added font weight 300 (light) to DM Sans
+- Global header gap set to 40px below top nav divider (`pt-10` on `<main>`)
+- Discovery page heading sits 120px below divider (80px extra padding)
+- All pages aligned to `max-w-[1100px]`
 
-### 5. Top Nav with Context-Driven Tabs
-- Removed the sidebar navigation
-- Added sticky top nav: Discovery, Scope, Roadmap
-- Nav state managed via React Context (`NavProvider` / `useNav`)
-- Tab auto-advances from Discovery → Scope when processing completes
+### 5. UI Cleanup
+- Removed stat pills (quotes/problems/tickets) from Scope page header
+- Replaced `↓` with `↳` on problem card quote counts
+- Removed "Export to Linear" / "+ New call" buttons and bottom action bar from Roadmap
+- Disabled "Record meeting" button with "coming soon" label
+- Removed file upload drop zone from Discovery page
+- Fixed six-dot typo in processing step copy
 
-### 6. Discovery Landing Page
-- Moved from `/meeting/new` to `/` (root route)
-- Transcript paste area, "Record using Granola" button, file drop zone
-- Error display for failed API calls
+### 6. Deployment
+- Deployed to Vercel at **https://fijord.app**
+- Set up `ANTHROPIC_API_KEY` as environment variable on Vercel
+- Local repo linked to `fijord` Vercel project
+
+### 7. Documentation
+- Created `PROJECT-STATUS.md` — full inventory of features, stubs, and production gaps
+- Exported morning session transcript for YC application
 
 ## What's Working
 
-- Paste transcript → real processing animation → 3-column results
-- Click ticket card → loading indicator → full ticket detail view
-- Back navigation from ticket detail to results (state preserved)
-- Top nav auto-switches to Scope after processing
-- AI filters out small talk and requires evidence-backed problems
-- Concise ticket generation (2-3 sentence descriptions, 3-5 acceptance criteria)
-- JSON truncation detection on all API routes (`stop_reason` check)
+- Full end-to-end pipeline: paste transcript → processing animation → 3-column Scope board
+- Click ticket → generate full detail (Sonnet 4.5) → two-column detail view with inline editing
+- Roadmap: drag-and-drop kanban (Now/Next/Later), delete with confirmation, ticket detail
+- All text fields inline-editable (title, description, problem statement, acceptance criteria)
+- Acceptance criteria checkboxes with persistence
+- Transcript drawer highlighting quotes in context
+- Color-coded problem threading across Evidence/Problems/Tickets columns
+- Roadmap persisted to localStorage (`fjord-roadmap-v3`)
+- Global toast for coming-soon feature placeholders
+- Error state with retry on failed ticket generation
+- Live at **https://fijord.app**
 
 ## What's Next
 
-- **Roadmap tab**: Build the Now / Next / Later kanban view (data structure exists in the HTML prototype)
-- **Design Brief**: AI-generated design brief from transcript (screen exists in prototype)
-- **Transcript viewer**: Slide-out panel that highlights quotes in context
-- **File upload**: Wire the drop zone to actually parse .txt/.md/.pdf/.docx files
-- **Granola integration**: Connect the "Record using Granola" button
-- **Export**: "Save to roadmap" and "Export to Linear" functionality
-- **Persistence**: Currently all state is in-memory; add database or local storage
-- **Error recovery**: If one solution generation fails, still show partial results
+- **Authentication**: Supabase Auth selected as provider — needs sign-in method decision (Google, email/password, etc.) and implementation
+- **Database**: Supabase Postgres to replace localStorage — persist transcripts, tickets, roadmaps per user
+- **Multi-tenancy**: Each user sees only their own data
+- **Payments**: Stripe integration for subscriptions
+- **Linear/Jira export**: UI exists (buttons + selection), backend needs wiring
+- **File upload**: Parse .txt/.md/.pdf/.docx transcripts
+- **Recording**: Granola or similar integration
+- **Error boundaries**: React error boundaries for crash recovery
+- **Rate limiting**: Protect API routes from abuse
 
 ## Key Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| One API call vs. chained calls | **Chained** (`/process` → `/generate-solution` × N in parallel) | Reliability (smaller JSON per call), real progress feedback, speed through parallelism |
-| Navigation pattern | **Top nav with context**, no sidebar | Simpler for the target user (small startups, solo entrepreneurs). Sidebar was too complex for MVP |
-| Model selection | **Haiku 4.5** for extraction + solutions, **Sonnet 4.5** for full ticket detail | Haiku is fast and cheap for structured extraction; Sonnet gives higher quality for the detailed ticket the user reads carefully |
-| State management | **In-page state** (no database) | Ship fast for MVP; all data flows from transcript → results in one session |
-| Results layout | **3-column board** (Evidence → Problems → Tickets) | Matches the "wow moment" the founders wanted — transcript in, kanban out |
-| Tab auto-advance | **Discovery → Scope** on completion | Makes the flow feel like forward progress; user doesn't need to click a tab |
+| Auth provider | **Supabase Auth** | Bundles auth + database in one platform, avoiding multiple vendor integrations |
+| Deployment | **Vercel** at fijord.app | Native Next.js support, easy domain setup, auto-SSL |
+| Heading typography | **48px / weight 300 / -1px tracking** | Clean, modern look — consistent across all pages |
+| Content max-width | **1100px** on all pages | Consistent left/right padding across Discovery, Scope, and Roadmap |
+| Coming-soon features | **Toast notifications** | Lets users know features exist without cluttering UI with disabled states |
+| Roadmap chrome | **Removed action bars** | Stripped header buttons and bottom bar to simplify the view |
 
 ## File Map
 
@@ -72,20 +78,20 @@ Clicking a ticket card calls `/api/generate-ticket` (Sonnet 4.5) and shows a ful
 app/
   page.tsx              — Discovery landing (transcript input + processing animation)
   results.tsx           — 3-column Scope view (Evidence, Problems, Tickets)
-  ticket-detail.tsx     — Full ticket detail view (two-column layout)
-  nav-context.tsx       — React Context for active tab state
+  roadmap.tsx           — Now/Next/Later kanban with drag-and-drop
+  ticket-detail.tsx     — Full ticket detail view (two-column, inline editable)
+  nav-context.tsx       — React Context: tabs, results, roadmap, toast system
+  transcript-drawer.tsx — Slide-out transcript panel with quote highlighting
   layout.tsx            — Root layout with NavProvider + TopNav
-  globals.css           — Tailwind v4 theme tokens
+  globals.css           — Tailwind v4 theme tokens + animations
   components/
     top-nav.tsx         — Sticky top nav (Discovery, Scope, Roadmap)
+    editable-fields.tsx — EditableText, EditableTextarea, EditableList, EditablePriority
   api/
-    process/route.ts    — Extract problems from transcript (Haiku 4.5)
-    generate-solution/  — Generate solution + work items per problem (Haiku 4.5)
-    generate-ticket/    — Generate full ticket detail (Sonnet 4.5)
+    process/route.ts         — Extract problems from transcript (Haiku 4.5)
+    generate-solution/       — Generate solution + work items per problem (Haiku 4.5)
+    generate-ticket/         — Generate full ticket detail (Sonnet 4.5)
 lib/
   types.ts              — Shared TypeScript types
+PROJECT-STATUS.md       — Full product status inventory
 ```
-
-## Rollback
-
-Git tag `v1-progressive-pipeline` preserves the old progressive drill-down flow if needed.
