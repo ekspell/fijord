@@ -1,51 +1,49 @@
-# Fjord — Handoff Notes (Feb 10, 2026)
+# Fjord — Handoff Notes (Feb 12, 2026)
 
 ## What We Built Today
 
-### 1. Global Toast Notification System
-Added a `showToast()` function to NavContext that renders a bottom-center toast with auto-dismiss (2.5s). Used across the app for "coming soon" placeholders on Record, Linear, and Jira buttons.
+### 1. Ticket Detail Back Navigation (user feedback fix)
+- Added a left arrow icon + green accent color to the breadcrumb on ticket detail view
+- "← Scope > FJD-101" and "← Roadmap > FJD-101" are now clearly clickable
+- Pattern is consistent across both Scope and Roadmap drill-in
 
-### 2. Error Recovery on Ticket Generation
-Both Scope and Roadmap views now show a "Failed to load — click to retry" state on ticket cards when `/api/generate-ticket` fails, with a red icon indicator.
+### 2. Save-to-Roadmap Flow Improvements (user feedback fix)
+- Added hint text "Select tickets to add to your roadmap" above ticket cards (disappears once a ticket is checked)
+- Enlarged checkboxes (h-4 w-4 with thicker border) for visibility
+- "Save to roadmap" button gets a green glow/shadow when tickets are selected
+- After saving: clears selection, shows toast "3 tickets added to Roadmap" with clickable **View Roadmap →** link
+- User stays on Scope page instead of being auto-switched to Roadmap
 
-### 3. Delete Tickets from Roadmap
-Added an X button (visible on hover) to each roadmap ticket card. Clicking it opens a confirmation modal ("Are you sure you want to delete?") before removing the ticket.
+### 3. Toast System Upgrade
+- Toast now supports an optional action (label + onClick callback)
+- Action renders as a clickable green link with arrow (e.g. "View Roadmap →")
+- Toasts with actions stay visible longer (4s vs 2.5s)
+- Toast icon changed from gray to accent green
 
-### 4. Typography & Spacing Polish
-- All page headings standardized: 48px, weight 300, -1px letter-spacing
-- Added font weight 300 (light) to DM Sans
-- Global header gap set to 40px below top nav divider (`pt-10` on `<main>`)
-- Discovery page heading sits 120px below divider (80px extra padding)
-- All pages aligned to `max-w-[1100px]`
+## Previous Session (Feb 10, 2026)
 
-### 5. UI Cleanup
-- Removed stat pills (quotes/problems/tickets) from Scope page header
-- Replaced `↓` with `↳` on problem card quote counts
-- Removed "Export to Linear" / "+ New call" buttons and bottom action bar from Roadmap
-- Disabled "Record meeting" button with "coming soon" label
-- Removed file upload drop zone from Discovery page
-- Fixed six-dot typo in processing step copy
-
-### 6. Deployment
+### Built
+- Global toast notification system for "coming soon" placeholders
+- Error recovery on failed ticket generation (click to retry)
+- Delete tickets from roadmap with confirmation modal
+- Typography & spacing polish (48px headings, 40px global gap, 120px Discovery offset, 1100px max-width)
+- UI cleanup (removed stat pills, roadmap action bars, file upload, disabled Record button)
 - Deployed to Vercel at **https://fijord.app**
-- Set up `ANTHROPIC_API_KEY` as environment variable on Vercel
-- Local repo linked to `fijord` Vercel project
-
-### 7. Documentation
-- Created `PROJECT-STATUS.md` — full inventory of features, stubs, and production gaps
-- Exported morning session transcript for YC application
+- Created `PROJECT-STATUS.md`
 
 ## What's Working
 
 - Full end-to-end pipeline: paste transcript → processing animation → 3-column Scope board
 - Click ticket → generate full detail (Sonnet 4.5) → two-column detail view with inline editing
+- Clear back navigation from ticket detail to parent view (Scope or Roadmap)
+- Save selected tickets to roadmap with success toast + "View Roadmap →" action
 - Roadmap: drag-and-drop kanban (Now/Next/Later), delete with confirmation, ticket detail
 - All text fields inline-editable (title, description, problem statement, acceptance criteria)
 - Acceptance criteria checkboxes with persistence
 - Transcript drawer highlighting quotes in context
 - Color-coded problem threading across Evidence/Problems/Tickets columns
 - Roadmap persisted to localStorage (`fjord-roadmap-v3`)
-- Global toast for coming-soon feature placeholders
+- Toast system with optional action links
 - Error state with retry on failed ticket generation
 - Live at **https://fijord.app**
 
@@ -71,6 +69,7 @@ Added an X button (visible on hover) to each roadmap ticket card. Clicking it op
 | Content max-width | **1100px** on all pages | Consistent left/right padding across Discovery, Scope, and Roadmap |
 | Coming-soon features | **Toast notifications** | Lets users know features exist without cluttering UI with disabled states |
 | Roadmap chrome | **Removed action bars** | Stripped header buttons and bottom bar to simplify the view |
+| Save-to-roadmap UX | **Toast + stay on page** | User stays on Scope after saving; toast with "View Roadmap →" link lets them navigate when ready |
 
 ## File Map
 
@@ -80,7 +79,7 @@ app/
   results.tsx           — 3-column Scope view (Evidence, Problems, Tickets)
   roadmap.tsx           — Now/Next/Later kanban with drag-and-drop
   ticket-detail.tsx     — Full ticket detail view (two-column, inline editable)
-  nav-context.tsx       — React Context: tabs, results, roadmap, toast system
+  nav-context.tsx       — React Context: tabs, results, roadmap, toast system (with action links)
   transcript-drawer.tsx — Slide-out transcript panel with quote highlighting
   layout.tsx            — Root layout with NavProvider + TopNav
   globals.css           — Tailwind v4 theme tokens + animations
