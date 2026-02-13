@@ -119,7 +119,7 @@ function TicketCard({
           type="checkbox"
           checked={selected}
           onChange={onToggle}
-          className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-border accent-accent"
+          className="h-4 w-4 shrink-0 cursor-pointer rounded border-2 border-border accent-accent"
         />
         <span className="text-[11px] font-semibold text-muted">{item.id}</span>
         <span
@@ -428,6 +428,11 @@ export default function Results() {
             count={`${filterProblemId ? allTickets.filter((t) => t.problemId === filterProblemId).length : allTickets.length} tickets`}
           />
           <div className="max-h-[600px] overflow-y-auto p-3">
+            {selectedTickets.size === 0 && (
+              <p className="mb-2 rounded-lg bg-accent/5 px-3 py-2 text-center text-[11px] text-muted">
+                Select tickets to add to your roadmap
+              </p>
+            )}
             {allTickets.map((ticket, i) => {
               if (filterProblemId && ticket.problemId !== filterProblemId) return null;
               return (
@@ -514,10 +519,19 @@ export default function Results() {
                   quotes: detail?.quotes,
                 });
               });
+              const count = newTickets.length;
               addToRoadmap(newTickets);
-              setActiveTab("Roadmap");
+              setSelectedTickets(new Set());
+              showToast(
+                `${count} ticket${count !== 1 ? "s" : ""} added to Roadmap`,
+                { label: "View Roadmap", onClick: () => setActiveTab("Roadmap") }
+              );
             }}
-            className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-40"
+            className={`rounded-lg px-5 py-2 text-sm font-medium text-white transition-all ${
+              selectedTickets.size > 0
+                ? "bg-accent shadow-md shadow-accent/25 hover:bg-accent/90"
+                : "bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+            }`}
           >
             Save to roadmap &rarr;
           </button>
