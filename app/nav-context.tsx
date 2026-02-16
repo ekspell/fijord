@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
+import { JiraCreds } from "@/lib/jira";
 
 export type RoadmapTicket = {
   id: string;
@@ -23,6 +24,7 @@ export type RoadmapTicket = {
 
 const STORAGE_KEY = "fjord-roadmap-v3";
 const LINEAR_KEY_STORAGE = "fjord-linear-api-key";
+const JIRA_CREDS_STORAGE = "fjord-jira-creds";
 
 function loadLinearApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -33,6 +35,22 @@ function persistLinearApiKey(key: string) {
   if (typeof window === "undefined") return;
   if (key) localStorage.setItem(LINEAR_KEY_STORAGE, key);
   else localStorage.removeItem(LINEAR_KEY_STORAGE);
+}
+
+function loadJiraCreds(): JiraCreds | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(JIRA_CREDS_STORAGE);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistJiraCreds(creds: JiraCreds | null) {
+  if (typeof window === "undefined") return;
+  if (creds) localStorage.setItem(JIRA_CREDS_STORAGE, JSON.stringify(creds));
+  else localStorage.removeItem(JIRA_CREDS_STORAGE);
 }
 
 function loadRoadmap(): RoadmapTicket[] {
@@ -78,6 +96,9 @@ type NavContextType = {
   linearApiKey: string;
   setLinearApiKey: (key: string) => void;
   clearLinearApiKey: () => void;
+  jiraCreds: JiraCreds | null;
+  setJiraCreds: (creds: JiraCreds) => void;
+  clearJiraCreds: () => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -100,6 +121,9 @@ const NavContext = createContext<NavContextType>({
   linearApiKey: "",
   setLinearApiKey: () => {},
   clearLinearApiKey: () => {},
+  jiraCreds: null,
+  setJiraCreds: () => {},
+  clearJiraCreds: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -119,6 +143,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const [linearApiKey, setLinearApiKeyState] = useState("");
+  const [jiraCreds, setJiraCredsState] = useState<JiraCreds | null>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -126,6 +151,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (saved.length > 0) setRoadmapState(saved);
     const savedKey = loadLinearApiKey();
     if (savedKey) setLinearApiKeyState(savedKey);
+    const savedJira = loadJiraCreds();
+    if (savedJira) setJiraCredsState(savedJira);
   }, []);
 
   const setLinearApiKey = (key: string) => {
@@ -136,6 +163,16 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const clearLinearApiKey = () => {
     setLinearApiKeyState("");
     persistLinearApiKey("");
+  };
+
+  const setJiraCreds = (creds: JiraCreds) => {
+    setJiraCredsState(creds);
+    persistJiraCreds(creds);
+  };
+
+  const clearJiraCreds = () => {
+    setJiraCredsState(null);
+    persistJiraCreds(null);
   };
 
   const setRoadmap = (items: RoadmapTicket[]) => {
@@ -183,6 +220,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
         linearApiKey,
         setLinearApiKey,
         clearLinearApiKey,
+        jiraCreds,
+        setJiraCreds,
+        clearJiraCreds,
       }}
     >
       {children}

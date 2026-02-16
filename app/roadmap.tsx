@@ -6,6 +6,8 @@ import { TicketDetail, TicketContext, Quote } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
 import LinearConnectModal from "./components/linear-connect-modal";
 import LinearSendModal from "./components/linear-send-modal";
+import JiraConnectModal from "./components/jira-connect-modal";
+import JiraSendModal from "./components/jira-send-modal";
 
 type ColumnKey = "now" | "next" | "later";
 
@@ -144,7 +146,7 @@ function roadmapToContext(ticket: RoadmapTicket): TicketContext {
 }
 
 export default function Roadmap() {
-  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab, transcript, showToast, linearApiKey, setLinearApiKey } = useNav();
+  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab, transcript, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<RoadmapTicket | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
@@ -153,6 +155,9 @@ export default function Roadmap() {
   const [showLinearConnect, setShowLinearConnect] = useState(false);
   const [showLinearSend, setShowLinearSend] = useState(false);
   const [preparingLinear, setPreparingLinear] = useState<{ done: number; total: number } | null>(null);
+  const [showJiraConnect, setShowJiraConnect] = useState(false);
+  const [showJiraSend, setShowJiraSend] = useState(false);
+  const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
   const draggedId = useRef<string | null>(null);
 
   const handleDelete = () => {
@@ -221,6 +226,68 @@ export default function Roadmap() {
 
     setPreparingLinear(null);
     setShowLinearSend(true);
+  };
+
+  const prepareAndSendToJira = async () => {
+    const missing = roadmap.filter((t) => !hasDetail(t));
+
+    if (missing.length === 0) {
+      setShowJiraSend(true);
+      return;
+    }
+
+    setPreparingJira({ done: 0, total: missing.length });
+    let done = 0;
+
+    for (let i = 0; i < missing.length; i += 3) {
+      const batch = missing.slice(i, i + 3);
+      const results = await Promise.allSettled(
+        batch.map(async (ticket) => {
+          const res = await fetch("/api/generate-ticket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transcript,
+              problem: {
+                id: ticket.id + "-problem",
+                title: ticket.problemTitle,
+                description: ticket.problemDescription,
+                severity: "Med",
+                quotes: (ticket.problemQuotes || []).map((q) => ({
+                  text: q.text,
+                  summary: q.summary || "",
+                  speaker: q.speaker,
+                  timestamp: "",
+                })),
+              },
+              solution: { title: ticket.title, description: "" },
+              workItem: { id: ticket.id, title: ticket.title, priority: ticket.priority },
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to generate ticket");
+          const detail = await res.json();
+          return { ticketId: ticket.id, detail };
+        })
+      );
+
+      results.forEach((r) => {
+        if (r.status === "fulfilled") {
+          updateRoadmapTicket(r.value.ticketId, {
+            status: r.value.detail.status,
+            problemStatement: r.value.detail.problemStatement,
+            description: r.value.detail.description,
+            acceptanceCriteria: r.value.detail.acceptanceCriteria,
+            quotes: r.value.detail.quotes,
+          });
+        }
+      });
+
+      done += batch.length;
+      setPreparingJira({ done, total: missing.length });
+    }
+
+    setPreparingJira(null);
+    setShowJiraSend(true);
   };
 
   const columns = COLUMN_META.map((meta) => ({
@@ -397,25 +464,47 @@ export default function Roadmap() {
             Drag tickets between columns to reprioritize.
           </p>
         </div>
-        <button
-          disabled={!!preparingLinear}
-          onClick={() => {
-            if (!linearApiKey) setShowLinearConnect(true);
-            else prepareAndSendToLinear();
-          }}
-          className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-[13px] font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {preparingLinear ? (
-            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#5E6AD2]/30 border-t-[#5E6AD2]" />
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 100 100" fill="currentColor">
-              <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
-            </svg>
-          )}
-          {preparingLinear
-            ? `Preparing ${preparingLinear.done}/${preparingLinear.total}...`
-            : "Export to Linear"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            disabled={!!preparingLinear}
+            onClick={() => {
+              if (!linearApiKey) setShowLinearConnect(true);
+              else prepareAndSendToLinear();
+            }}
+            className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-[13px] font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {preparingLinear ? (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#5E6AD2]/30 border-t-[#5E6AD2]" />
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 100 100" fill="currentColor">
+                <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+              </svg>
+            )}
+            {preparingLinear
+              ? `Preparing ${preparingLinear.done}/${preparingLinear.total}...`
+              : "Export to Linear"}
+          </button>
+          <button
+            disabled={!!preparingJira}
+            onClick={() => {
+              if (!jiraCreds) setShowJiraConnect(true);
+              else prepareAndSendToJira();
+            }}
+            className="flex items-center gap-2 rounded-lg border border-[#0052CC]/20 bg-[#0052CC]/5 px-4 py-2 text-[13px] font-medium text-[#0052CC] transition-colors hover:bg-[#0052CC]/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {preparingJira ? (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0052CC]/30 border-t-[#0052CC]" />
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" />
+                <path d="M11.575 0H0a5.217 5.217 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 12.487V1.005A1.005 1.005 0 0011.575 0z" opacity=".65" transform="translate(5.714 5.713)" />
+              </svg>
+            )}
+            {preparingJira
+              ? `Preparing ${preparingJira.done}/${preparingJira.total}...`
+              : "Export to Jira"}
+          </button>
+        </div>
       </div>
 
       {/* 3-column kanban */}
@@ -487,6 +576,40 @@ export default function Roadmap() {
             showToast(
               `${count} ticket${count !== 1 ? "s" : ""} sent to Linear`,
               firstUrl ? { label: "Open in Linear", onClick: () => window.open(firstUrl, "_blank") } : undefined
+            );
+          }}
+        />
+      )}
+
+      {/* Jira modals */}
+      {showJiraConnect && (
+        <JiraConnectModal
+          onClose={() => setShowJiraConnect(false)}
+          onConnected={(creds) => {
+            setJiraCreds(creds);
+            setShowJiraConnect(false);
+            prepareAndSendToJira();
+          }}
+        />
+      )}
+      {showJiraSend && jiraCreds && (
+        <JiraSendModal
+          tickets={roadmap.map((t) => ({
+            id: t.id,
+            title: t.title,
+            priority: t.priority as "High" | "Med" | "Low",
+            description: t.description,
+            acceptanceCriteria: t.acceptanceCriteria,
+          }))}
+          creds={jiraCreds}
+          onClose={() => setShowJiraSend(false)}
+          onSuccess={(results) => {
+            setShowJiraSend(false);
+            const count = results.length;
+            const firstUrl = results[0]?.url;
+            showToast(
+              `${count} ticket${count !== 1 ? "s" : ""} sent to Jira`,
+              firstUrl ? { label: "Open in Jira", onClick: () => window.open(firstUrl, "_blank") } : undefined
             );
           }}
         />

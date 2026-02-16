@@ -6,21 +6,26 @@ import { useNav } from "../nav-context";
 const tabs = ["Discovery", "Scope", "Roadmap"];
 
 export default function TopNav() {
-  const { activeTab, setActiveTab, result, roadmap, linearApiKey, clearLinearApiKey } = useNav();
+  const { activeTab, setActiveTab, result, roadmap, linearApiKey, clearLinearApiKey, jiraCreds, clearJiraCreds } = useNav();
   const [showLinearMenu, setShowLinearMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [showJiraMenu, setShowJiraMenu] = useState(false);
+  const linearMenuRef = useRef<HTMLDivElement>(null);
+  const jiraMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu on outside click
+  // Close menus on outside click
   useEffect(() => {
-    if (!showLinearMenu) return;
+    if (!showLinearMenu && !showJiraMenu) return;
     const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (showLinearMenu && linearMenuRef.current && !linearMenuRef.current.contains(e.target as Node)) {
         setShowLinearMenu(false);
+      }
+      if (showJiraMenu && jiraMenuRef.current && !jiraMenuRef.current.contains(e.target as Node)) {
+        setShowJiraMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [showLinearMenu]);
+  }, [showLinearMenu, showJiraMenu]);
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-background/85 px-8 backdrop-blur-md" style={{ height: 56 }}>
@@ -60,7 +65,7 @@ export default function TopNav() {
       {/* Right side */}
       <div className="flex items-center gap-3">
         {linearApiKey && (
-          <div className="relative" ref={menuRef}>
+          <div className="relative" ref={linearMenuRef}>
             <button
               onClick={() => setShowLinearMenu(!showLinearMenu)}
               className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-card"
@@ -76,6 +81,32 @@ export default function TopNav() {
                 <div className="px-3 py-2 text-[11px] font-medium text-muted">Linear connected</div>
                 <button
                   onClick={() => { clearLinearApiKey(); setShowLinearMenu(false); }}
+                  className="w-full rounded-md px-3 py-2 text-left text-[13px] text-red-600 transition-colors hover:bg-red-50"
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {jiraCreds && (
+          <div className="relative" ref={jiraMenuRef}>
+            <button
+              onClick={() => setShowJiraMenu(!showJiraMenu)}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-card"
+              title="Jira connected"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="#0052CC">
+                <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" />
+                <path d="M11.575 0H0a5.217 5.217 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 12.487V1.005A1.005 1.005 0 0011.575 0z" opacity=".65" transform="translate(5.714 5.713)" />
+              </svg>
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            </button>
+            {showJiraMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-card p-1 shadow-lg">
+                <div className="px-3 py-2 text-[11px] font-medium text-muted">Jira connected</div>
+                <button
+                  onClick={() => { clearJiraCreds(); setShowJiraMenu(false); }}
                   className="w-full rounded-md px-3 py-2 text-left text-[13px] text-red-600 transition-colors hover:bg-red-50"
                 >
                   Disconnect

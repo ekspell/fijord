@@ -7,6 +7,8 @@ import TicketDetailView from "./ticket-detail";
 import TranscriptDrawer from "./transcript-drawer";
 import LinearConnectModal from "./components/linear-connect-modal";
 import LinearSendModal from "./components/linear-send-modal";
+import JiraConnectModal from "./components/jira-connect-modal";
+import JiraSendModal from "./components/jira-send-modal";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   High: { bg: "bg-red-50", text: "text-red-700" },
@@ -165,7 +167,7 @@ function TicketCard({
 }
 
 export default function Results() {
-  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey } = useNav();
+  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
@@ -177,6 +179,9 @@ export default function Results() {
   const [showLinearConnect, setShowLinearConnect] = useState(false);
   const [showLinearSend, setShowLinearSend] = useState(false);
   const [preparingLinear, setPreparingLinear] = useState<{ done: number; total: number } | null>(null);
+  const [showJiraConnect, setShowJiraConnect] = useState(false);
+  const [showJiraSend, setShowJiraSend] = useState(false);
+  const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -342,6 +347,51 @@ export default function Results() {
     setShowLinearSend(true);
   };
 
+  const prepareAndSendToJira = async () => {
+    const selectedList = allTickets.filter((t) => selectedTickets.has(t.item.id));
+    const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
+
+    if (missing.length === 0) {
+      setShowJiraSend(true);
+      return;
+    }
+
+    setPreparingJira({ done: 0, total: missing.length });
+
+    let done = 0;
+    for (let i = 0; i < missing.length; i += 3) {
+      const batch = missing.slice(i, i + 3);
+      const results = await Promise.allSettled(
+        batch.map(async (ticket) => {
+          const res = await fetch("/api/generate-ticket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transcript,
+              problem: data.problems[ticket.problemIndex],
+              solution: ticket.solution.solution,
+              workItem: ticket.item,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to generate ticket");
+          return res.json() as Promise<TicketDetail>;
+        })
+      );
+
+      results.forEach((r) => {
+        if (r.status === "fulfilled") {
+          setGeneratedDetails((prev) => new Map(prev).set(r.value.id, r.value));
+        }
+      });
+
+      done += batch.length;
+      setPreparingJira({ done, total: missing.length });
+    }
+
+    setPreparingJira(null);
+    setShowJiraSend(true);
+  };
+
   const handleTicketUpdate = (updates: Partial<TicketDetail>) => {
     if (!ticketContext) return;
     const updatedTicket = { ...ticketContext.ticket, ...updates };
@@ -482,11 +532,33 @@ export default function Results() {
             count={`${filterProblemId ? allTickets.filter((t) => t.problemId === filterProblemId).length : allTickets.length} tickets`}
           />
           <div className="max-h-[600px] overflow-y-auto p-3">
-            {selectedTickets.size === 0 && (
-              <p className="mb-2 rounded-lg bg-accent/5 px-3 py-2 text-center text-[11px] text-muted">
-                Select tickets to add to your roadmap
-              </p>
-            )}
+            <div className="mb-2 flex items-center justify-between rounded-lg bg-accent/5 px-3 py-2">
+              <span className="text-[11px] text-muted">
+                {selectedTickets.size === 0
+                  ? "Select tickets to add to your roadmap"
+                  : `${selectedTickets.size} selected`}
+              </span>
+              <button
+                onClick={() => {
+                  const visibleIds = allTickets
+                    .filter((t) => !filterProblemId || t.problemId === filterProblemId)
+                    .map((t) => t.item.id);
+                  const allSelected = visibleIds.every((id) => selectedTickets.has(id));
+                  if (allSelected) {
+                    setSelectedTickets(new Set());
+                  } else {
+                    setSelectedTickets(new Set(visibleIds));
+                  }
+                }}
+                className="text-[11px] font-medium text-accent transition-colors hover:text-accent/80"
+              >
+                {allTickets
+                  .filter((t) => !filterProblemId || t.problemId === filterProblemId)
+                  .every((t) => selectedTickets.has(t.item.id))
+                  ? "Deselect all"
+                  : "Select all"}
+              </button>
+            </div>
             {allTickets.map((ticket, i) => {
               if (filterProblemId && ticket.problemId !== filterProblemId) return null;
               return (
@@ -543,14 +615,24 @@ export default function Results() {
               : "Send to Linear"}
           </button>
           <button
-            disabled={selectedTickets.size === 0}
-            onClick={() => showToast("Jira integration — coming soon")}
+            disabled={selectedTickets.size === 0 || !!preparingJira}
+            onClick={() => {
+              if (!jiraCreds) setShowJiraConnect(true);
+              else prepareAndSendToJira();
+            }}
             className="flex items-center gap-2 rounded-lg border border-[#0052CC]/20 bg-[#0052CC]/5 px-4 py-2 text-sm font-medium text-[#0052CC] transition-colors hover:bg-[#0052CC]/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M11.53 2C11.53 2 8.67 4.87 8.67 8.13c0 1.62.66 3.09 1.72 4.15L14.52 8.13 11.53 2zM4.85 15.49l4.13-4.14A5.84 5.84 0 017 8.13C7 6.82 7.4 5.6 8.07 4.58L2 10.66l2.85 4.83zM8.13 15.36c0-1.63.66-3.1 1.72-4.16L5.72 15.33l2.99 6.14c0-.01 2.86-2.87 2.86-6.13-.78-.77-1.8-1.44-3.44-1.44v1.46zm7.21-7.23L11.21 12.3A5.83 5.83 0 0114.44 16c1.27 0 2.46-.4 3.44-1.08L24 8.84l-2.86-4.83-5.8 4.12zM15.37 16c0 1.62-.66 3.09-1.72 4.15L17.78 16l-2.99-6.13s-2.86 2.87-2.86 6.13h3.44z" />
-            </svg>
-            Send to Jira
+            {preparingJira ? (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0052CC]/30 border-t-[#0052CC]" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" />
+                <path d="M11.575 0H0a5.217 5.217 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 12.487V1.005A1.005 1.005 0 0011.575 0z" opacity=".65" transform="translate(5.714 5.713)" />
+              </svg>
+            )}
+            {preparingJira
+              ? `Preparing ${preparingJira.done}/${preparingJira.total}...`
+              : "Send to Jira"}
           </button>
           <button
             disabled={selectedTickets.size === 0}
@@ -636,6 +718,46 @@ export default function Results() {
             showToast(
               `${count} ticket${count !== 1 ? "s" : ""} sent to Linear`,
               firstUrl ? { label: "Open in Linear", onClick: () => window.open(firstUrl, "_blank") } : undefined
+            );
+          }}
+        />
+      )}
+
+      {/* Jira modals */}
+      {showJiraConnect && (
+        <JiraConnectModal
+          onClose={() => setShowJiraConnect(false)}
+          onConnected={(creds) => {
+            setJiraCreds(creds);
+            setShowJiraConnect(false);
+            prepareAndSendToJira();
+          }}
+        />
+      )}
+      {showJiraSend && jiraCreds && (
+        <JiraSendModal
+          tickets={allTickets
+            .filter((t) => selectedTickets.has(t.item.id))
+            .map((t) => {
+              const detail = generatedDetails.get(t.item.id);
+              return {
+                id: t.item.id,
+                title: detail?.title || t.item.title,
+                priority: (detail?.priority || t.item.priority) as "High" | "Med" | "Low",
+                description: detail?.description,
+                acceptanceCriteria: detail?.acceptanceCriteria,
+              };
+            })}
+          creds={jiraCreds}
+          onClose={() => setShowJiraSend(false)}
+          onSuccess={(results) => {
+            setShowJiraSend(false);
+            setSelectedTickets(new Set());
+            const count = results.length;
+            const firstUrl = results[0]?.url;
+            showToast(
+              `${count} ticket${count !== 1 ? "s" : ""} sent to Jira`,
+              firstUrl ? { label: "Open in Jira", onClick: () => window.open(firstUrl, "_blank") } : undefined
             );
           }}
         />
