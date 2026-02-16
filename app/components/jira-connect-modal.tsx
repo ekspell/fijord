@@ -16,11 +16,23 @@ export default function JiraConnectModal({
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const cleanDomain = (raw: string) =>
+    raw.trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "")         // strip any path after domain
+      .replace(/\s/g, "")           // strip whitespace
+      .toLowerCase();
+
   const handleConnect = async () => {
-    const d = domain.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+    const d = cleanDomain(domain);
     const e = email.trim();
     const t = apiToken.trim();
     if (!d || !e || !t) return;
+
+    if (!d.includes(".")) {
+      setError("Domain should look like yourcompany.atlassian.net");
+      return;
+    }
 
     setValidating(true);
     setError(null);
@@ -31,15 +43,19 @@ export default function JiraConnectModal({
       const data = await jiraFetch("myself", "GET", undefined, creds);
       if (data.accountId) {
         onConnected(creds);
+      } else if (data.errorMessage) {
+        setError(`Jira responded: ${data.errorMessage}. Check that "${d}" is your correct Jira domain.`);
       } else {
         setError("Could not verify your account — check your credentials.");
       }
     } catch (err) {
       if (err instanceof JiraError) {
         if (err.status === 401) {
-          setError("Invalid credentials — check your domain, email, and API token.");
+          setError("Invalid credentials — check your email and API token.");
         } else if (err.status === 429) {
           setError("Rate limited — please wait a moment and try again.");
+        } else if (err.message.includes("Site temporarily unavailable")) {
+          setError(`Could not reach "${d}" — double-check your Jira domain.`);
         } else {
           setError(err.message);
         }
@@ -74,27 +90,25 @@ export default function JiraConnectModal({
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="mb-4 rounded-lg bg-background p-3 text-[13px] text-muted">
-          <p className="mb-1 font-medium text-foreground">Where to find your API token:</p>
-          <ol className="list-inside list-decimal space-y-0.5">
-            <li>Go to <strong>id.atlassian.com/manage-profile/security/api-tokens</strong></li>
-            <li>Click <strong>Create API token</strong></li>
-            <li>Copy the token and paste it below</li>
-          </ol>
-        </div>
-
         {/* Domain input */}
         <div className="mb-3">
           <label className="mb-1.5 block text-[13px] font-medium text-foreground">Jira domain</label>
           <input
             type="text"
             value={domain}
-            onChange={(e) => setDomain(e.target.value)}
+            onChange={(e) => {
+              // Extract just the domain from whatever the user types or pastes
+              const v = e.target.value
+                .replace(/^https?:\/\//, "")
+                .replace(/\/.*$/, "")
+                .trim();
+              setDomain(v);
+            }}
             placeholder="yourcompany.atlassian.net"
             className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-[#0052CC]/40 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/10"
             autoFocus
           />
+          <p className="mt-1 text-[11px] text-muted">Open Jira in your browser and copy the URL — it looks like yourcompany.atlassian.net</p>
         </div>
 
         {/* Email input */}
@@ -107,11 +121,22 @@ export default function JiraConnectModal({
             placeholder="you@company.com"
             className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-[#0052CC]/40 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/10"
           />
+          <p className="mt-1 text-[11px] text-muted">The email address associated with your Atlassian account</p>
         </div>
 
         {/* API token input */}
         <div className="mb-3">
-          <label className="mb-1.5 block text-[13px] font-medium text-foreground">API token</label>
+          <label className="mb-1.5 flex items-center justify-between text-[13px] font-medium text-foreground">
+            API token
+            <a
+              href="https://id.atlassian.com/manage-profile/security/api-tokens"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-normal text-[#0052CC] hover:underline"
+            >
+              Create API token &rarr;
+            </a>
+          </label>
           <input
             type="password"
             value={apiToken}
@@ -120,6 +145,7 @@ export default function JiraConnectModal({
             placeholder="Paste your API token..."
             className="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-[#0052CC]/40 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/10"
           />
+          <p className="mt-1 text-[11px] text-muted">Generate a token from your Atlassian account security settings</p>
         </div>
 
         {/* Error */}
