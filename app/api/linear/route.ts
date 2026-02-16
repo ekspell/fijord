@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: apiKey,
       },
       body: JSON.stringify({ query, variables }),
     });
@@ -36,8 +36,9 @@ export async function POST(request: NextRequest) {
           { status: 429 }
         );
       }
+      const errorBody = await res.text();
       return NextResponse.json(
-        { error: "Linear API error" },
+        { error: `Linear API error: ${errorBody}` },
         { status: res.status }
       );
     }

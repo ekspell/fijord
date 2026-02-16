@@ -152,12 +152,75 @@ export default function Roadmap() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showLinearConnect, setShowLinearConnect] = useState(false);
   const [showLinearSend, setShowLinearSend] = useState(false);
+  const [preparingLinear, setPreparingLinear] = useState<{ done: number; total: number } | null>(null);
   const draggedId = useRef<string | null>(null);
 
   const handleDelete = () => {
     if (!confirmDeleteId) return;
     setRoadmap(roadmap.filter((t) => t.id !== confirmDeleteId));
     setConfirmDeleteId(null);
+  };
+
+  const prepareAndSendToLinear = async () => {
+    const missing = roadmap.filter((t) => !hasDetail(t));
+
+    if (missing.length === 0) {
+      setShowLinearSend(true);
+      return;
+    }
+
+    setPreparingLinear({ done: 0, total: missing.length });
+    let done = 0;
+
+    for (let i = 0; i < missing.length; i += 3) {
+      const batch = missing.slice(i, i + 3);
+      const results = await Promise.allSettled(
+        batch.map(async (ticket) => {
+          const res = await fetch("/api/generate-ticket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transcript,
+              problem: {
+                id: ticket.id + "-problem",
+                title: ticket.problemTitle,
+                description: ticket.problemDescription,
+                severity: "Med",
+                quotes: (ticket.problemQuotes || []).map((q) => ({
+                  text: q.text,
+                  summary: q.summary || "",
+                  speaker: q.speaker,
+                  timestamp: "",
+                })),
+              },
+              solution: { title: ticket.title, description: "" },
+              workItem: { id: ticket.id, title: ticket.title, priority: ticket.priority },
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to generate ticket");
+          const detail = await res.json();
+          return { ticketId: ticket.id, detail };
+        })
+      );
+
+      results.forEach((r) => {
+        if (r.status === "fulfilled") {
+          updateRoadmapTicket(r.value.ticketId, {
+            status: r.value.detail.status,
+            problemStatement: r.value.detail.problemStatement,
+            description: r.value.detail.description,
+            acceptanceCriteria: r.value.detail.acceptanceCriteria,
+            quotes: r.value.detail.quotes,
+          });
+        }
+      });
+
+      done += batch.length;
+      setPreparingLinear({ done, total: missing.length });
+    }
+
+    setPreparingLinear(null);
+    setShowLinearSend(true);
   };
 
   const columns = COLUMN_META.map((meta) => ({
@@ -335,16 +398,23 @@ export default function Roadmap() {
           </p>
         </div>
         <button
+          disabled={!!preparingLinear}
           onClick={() => {
             if (!linearApiKey) setShowLinearConnect(true);
-            else setShowLinearSend(true);
+            else prepareAndSendToLinear();
           }}
-          className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-[13px] font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10"
+          className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-[13px] font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <svg width="14" height="14" viewBox="0 0 100 100" fill="currentColor">
-            <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
-          </svg>
-          Export to Linear
+          {preparingLinear ? (
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#5E6AD2]/30 border-t-[#5E6AD2]" />
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+            </svg>
+          )}
+          {preparingLinear
+            ? `Preparing ${preparingLinear.done}/${preparingLinear.total}...`
+            : "Export to Linear"}
         </button>
       </div>
 
@@ -395,7 +465,7 @@ export default function Roadmap() {
           onConnected={(key) => {
             setLinearApiKey(key);
             setShowLinearConnect(false);
-            setShowLinearSend(true);
+            prepareAndSendToLinear();
           }}
         />
       )}

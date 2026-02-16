@@ -176,6 +176,7 @@ export default function Results() {
   const [failedTicket, setFailedTicket] = useState<string | null>(null);
   const [showLinearConnect, setShowLinearConnect] = useState(false);
   const [showLinearSend, setShowLinearSend] = useState(false);
+  const [preparingLinear, setPreparingLinear] = useState<{ done: number; total: number } | null>(null);
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -290,6 +291,55 @@ export default function Results() {
     } finally {
       setLoadingTicket(null);
     }
+  };
+
+  const prepareAndSendToLinear = async () => {
+    // Find selected tickets that don't have generated details yet
+    const selectedList = allTickets.filter((t) => selectedTickets.has(t.item.id));
+    const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
+
+    if (missing.length === 0) {
+      // All details already generated
+      setShowLinearSend(true);
+      return;
+    }
+
+    // Generate missing details with progress
+    setPreparingLinear({ done: 0, total: missing.length });
+
+    let done = 0;
+    // Generate 3 at a time to balance speed vs rate limits
+    for (let i = 0; i < missing.length; i += 3) {
+      const batch = missing.slice(i, i + 3);
+      const results = await Promise.allSettled(
+        batch.map(async (ticket) => {
+          const res = await fetch("/api/generate-ticket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transcript,
+              problem: data.problems[ticket.problemIndex],
+              solution: ticket.solution.solution,
+              workItem: ticket.item,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to generate ticket");
+          return res.json() as Promise<TicketDetail>;
+        })
+      );
+
+      results.forEach((r) => {
+        if (r.status === "fulfilled") {
+          setGeneratedDetails((prev) => new Map(prev).set(r.value.id, r.value));
+        }
+      });
+
+      done += batch.length;
+      setPreparingLinear({ done, total: missing.length });
+    }
+
+    setPreparingLinear(null);
+    setShowLinearSend(true);
   };
 
   const handleTicketUpdate = (updates: Partial<TicketDetail>) => {
@@ -474,17 +524,23 @@ export default function Results() {
             View transcript
           </button>
           <button
-            disabled={selectedTickets.size === 0}
+            disabled={selectedTickets.size === 0 || !!preparingLinear}
             onClick={() => {
               if (!linearApiKey) setShowLinearConnect(true);
-              else setShowLinearSend(true);
+              else prepareAndSendToLinear();
             }}
             className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-sm font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <svg width="16" height="16" viewBox="0 0 100 100" fill="currentColor">
-              <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
-            </svg>
-            Send to Linear
+            {preparingLinear ? (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#5E6AD2]/30 border-t-[#5E6AD2]" />
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 100 100" fill="currentColor">
+                <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+              </svg>
+            )}
+            {preparingLinear
+              ? `Preparing ${preparingLinear.done}/${preparingLinear.total}...`
+              : "Send to Linear"}
           </button>
           <button
             disabled={selectedTickets.size === 0}
@@ -552,7 +608,7 @@ export default function Results() {
           onConnected={(key) => {
             setLinearApiKey(key);
             setShowLinearConnect(false);
-            setShowLinearSend(true);
+            prepareAndSendToLinear();
           }}
         />
       )}
