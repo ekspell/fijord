@@ -5,6 +5,8 @@ import { useNav, RoadmapTicket } from "./nav-context";
 import { solutionResult, WorkItem, TicketDetail, TicketContext, Quote, PROBLEM_COLORS } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
 import TranscriptDrawer from "./transcript-drawer";
+import LinearConnectModal from "./components/linear-connect-modal";
+import LinearSendModal from "./components/linear-send-modal";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   High: { bg: "bg-red-50", text: "text-red-700" },
@@ -163,7 +165,7 @@ function TicketCard({
 }
 
 export default function Results() {
-  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast } = useNav();
+  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
@@ -172,6 +174,8 @@ export default function Results() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [generatedDetails, setGeneratedDetails] = useState<Map<string, TicketDetail>>(new Map());
   const [failedTicket, setFailedTicket] = useState<string | null>(null);
+  const [showLinearConnect, setShowLinearConnect] = useState(false);
+  const [showLinearSend, setShowLinearSend] = useState(false);
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -471,7 +475,10 @@ export default function Results() {
           </button>
           <button
             disabled={selectedTickets.size === 0}
-            onClick={() => showToast("Linear integration — coming soon")}
+            onClick={() => {
+              if (!linearApiKey) setShowLinearConnect(true);
+              else setShowLinearSend(true);
+            }}
             className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-sm font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg width="16" height="16" viewBox="0 0 100 100" fill="currentColor">
@@ -537,6 +544,46 @@ export default function Results() {
           </button>
         </div>
       </div>
+
+      {/* Linear modals */}
+      {showLinearConnect && (
+        <LinearConnectModal
+          onClose={() => setShowLinearConnect(false)}
+          onConnected={(key) => {
+            setLinearApiKey(key);
+            setShowLinearConnect(false);
+            setShowLinearSend(true);
+          }}
+        />
+      )}
+      {showLinearSend && (
+        <LinearSendModal
+          tickets={allTickets
+            .filter((t) => selectedTickets.has(t.item.id))
+            .map((t) => {
+              const detail = generatedDetails.get(t.item.id);
+              return {
+                id: t.item.id,
+                title: detail?.title || t.item.title,
+                priority: (detail?.priority || t.item.priority) as "High" | "Med" | "Low",
+                description: detail?.description,
+                acceptanceCriteria: detail?.acceptanceCriteria,
+              };
+            })}
+          apiKey={linearApiKey}
+          onClose={() => setShowLinearSend(false)}
+          onSuccess={(results) => {
+            setShowLinearSend(false);
+            setSelectedTickets(new Set());
+            const count = results.length;
+            const firstUrl = results[0]?.url;
+            showToast(
+              `${count} ticket${count !== 1 ? "s" : ""} sent to Linear`,
+              firstUrl ? { label: "Open in Linear", onClick: () => window.open(firstUrl, "_blank") } : undefined
+            );
+          }}
+        />
+      )}
 
       {/* Transcript drawer */}
       {drawerOpen && (

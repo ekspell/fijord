@@ -22,6 +22,18 @@ export type RoadmapTicket = {
 };
 
 const STORAGE_KEY = "fjord-roadmap-v3";
+const LINEAR_KEY_STORAGE = "fjord-linear-api-key";
+
+function loadLinearApiKey(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(LINEAR_KEY_STORAGE) || "";
+}
+
+function persistLinearApiKey(key: string) {
+  if (typeof window === "undefined") return;
+  if (key) localStorage.setItem(LINEAR_KEY_STORAGE, key);
+  else localStorage.removeItem(LINEAR_KEY_STORAGE);
+}
 
 function loadRoadmap(): RoadmapTicket[] {
   if (typeof window === "undefined") return [];
@@ -63,6 +75,9 @@ type NavContextType = {
   updateRoadmapTicket: (id: string, updates: Partial<RoadmapTicket>) => void;
   toast: { msg: string; action?: { label: string; onClick: () => void } } | null;
   showToast: (msg: string, action?: { label: string; onClick: () => void }) => void;
+  linearApiKey: string;
+  setLinearApiKey: (key: string) => void;
+  clearLinearApiKey: () => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -82,6 +97,9 @@ const NavContext = createContext<NavContextType>({
   updateRoadmapTicket: () => {},
   toast: null,
   showToast: () => {},
+  linearApiKey: "",
+  setLinearApiKey: () => {},
+  clearLinearApiKey: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -100,11 +118,25 @@ export function NavProvider({ children }: { children: ReactNode }) {
     toastTimer.current = setTimeout(() => setToast(null), action ? 4000 : 2500);
   }, []);
 
+  const [linearApiKey, setLinearApiKeyState] = useState("");
+
   // Load from localStorage on mount
   useEffect(() => {
     const saved = loadRoadmap();
     if (saved.length > 0) setRoadmapState(saved);
+    const savedKey = loadLinearApiKey();
+    if (savedKey) setLinearApiKeyState(savedKey);
   }, []);
+
+  const setLinearApiKey = (key: string) => {
+    setLinearApiKeyState(key);
+    persistLinearApiKey(key);
+  };
+
+  const clearLinearApiKey = () => {
+    setLinearApiKeyState("");
+    persistLinearApiKey("");
+  };
 
   const setRoadmap = (items: RoadmapTicket[]) => {
     setRoadmapState(items);
@@ -148,6 +180,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
         updateRoadmapTicket,
         toast,
         showToast,
+        linearApiKey,
+        setLinearApiKey,
+        clearLinearApiKey,
       }}
     >
       {children}

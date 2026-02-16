@@ -1,11 +1,26 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import { useNav } from "../nav-context";
 
 const tabs = ["Discovery", "Scope", "Roadmap"];
 
 export default function TopNav() {
-  const { activeTab, setActiveTab, result, roadmap } = useNav();
+  const { activeTab, setActiveTab, result, roadmap, linearApiKey, clearLinearApiKey } = useNav();
+  const [showLinearMenu, setShowLinearMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showLinearMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowLinearMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showLinearMenu]);
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-background/85 px-8 backdrop-blur-md" style={{ height: 56 }}>
@@ -42,9 +57,36 @@ export default function TopNav() {
         })}
       </nav>
 
-      {/* Avatar */}
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-xs font-semibold text-accent">
-        KS
+      {/* Right side */}
+      <div className="flex items-center gap-3">
+        {linearApiKey && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowLinearMenu(!showLinearMenu)}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-card"
+              title="Linear connected"
+            >
+              <svg width="12" height="12" viewBox="0 0 100 100" fill="#5E6AD2">
+                <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+              </svg>
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            </button>
+            {showLinearMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-card p-1 shadow-lg">
+                <div className="px-3 py-2 text-[11px] font-medium text-muted">Linear connected</div>
+                <button
+                  onClick={() => { clearLinearApiKey(); setShowLinearMenu(false); }}
+                  className="w-full rounded-md px-3 py-2 text-left text-[13px] text-red-600 transition-colors hover:bg-red-50"
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/10 text-xs font-semibold text-accent">
+          KS
+        </div>
       </div>
     </header>
   );

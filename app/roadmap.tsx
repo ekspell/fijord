@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { useNav, RoadmapTicket } from "./nav-context";
 import { TicketDetail, TicketContext, Quote } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
+import LinearConnectModal from "./components/linear-connect-modal";
+import LinearSendModal from "./components/linear-send-modal";
 
 type ColumnKey = "now" | "next" | "later";
 
@@ -142,12 +144,14 @@ function roadmapToContext(ticket: RoadmapTicket): TicketContext {
 }
 
 export default function Roadmap() {
-  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab, transcript, showToast } = useNav();
+  const { roadmap, setRoadmap, updateRoadmapTicket, setActiveTab, transcript, showToast, linearApiKey, setLinearApiKey } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<RoadmapTicket | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [failedTicket, setFailedTicket] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showLinearConnect, setShowLinearConnect] = useState(false);
+  const [showLinearSend, setShowLinearSend] = useState(false);
   const draggedId = useRef<string | null>(null);
 
   const handleDelete = () => {
@@ -330,6 +334,18 @@ export default function Roadmap() {
             Drag tickets between columns to reprioritize.
           </p>
         </div>
+        <button
+          onClick={() => {
+            if (!linearApiKey) setShowLinearConnect(true);
+            else setShowLinearSend(true);
+          }}
+          className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-[13px] font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10"
+        >
+          <svg width="14" height="14" viewBox="0 0 100 100" fill="currentColor">
+            <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+          </svg>
+          Export to Linear
+        </button>
       </div>
 
       {/* 3-column kanban */}
@@ -371,6 +387,40 @@ export default function Roadmap() {
         ))}
       </div>
 
+
+      {/* Linear modals */}
+      {showLinearConnect && (
+        <LinearConnectModal
+          onClose={() => setShowLinearConnect(false)}
+          onConnected={(key) => {
+            setLinearApiKey(key);
+            setShowLinearConnect(false);
+            setShowLinearSend(true);
+          }}
+        />
+      )}
+      {showLinearSend && (
+        <LinearSendModal
+          tickets={roadmap.map((t) => ({
+            id: t.id,
+            title: t.title,
+            priority: t.priority as "High" | "Med" | "Low",
+            description: t.description,
+            acceptanceCriteria: t.acceptanceCriteria,
+          }))}
+          apiKey={linearApiKey}
+          onClose={() => setShowLinearSend(false)}
+          onSuccess={(results) => {
+            setShowLinearSend(false);
+            const count = results.length;
+            const firstUrl = results[0]?.url;
+            showToast(
+              `${count} ticket${count !== 1 ? "s" : ""} sent to Linear`,
+              firstUrl ? { label: "Open in Linear", onClick: () => window.open(firstUrl, "_blank") } : undefined
+            );
+          }}
+        />
+      )}
 
       {/* Delete confirmation modal */}
       {confirmDeleteId && (
