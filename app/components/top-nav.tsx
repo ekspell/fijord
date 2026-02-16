@@ -6,15 +6,17 @@ import { useNav } from "../nav-context";
 const tabs = ["Discovery", "Scope", "Roadmap"];
 
 export default function TopNav() {
-  const { activeTab, setActiveTab, result, roadmap, linearApiKey, clearLinearApiKey, jiraCreds, clearJiraCreds } = useNav();
+  const { activeTab, setActiveTab, result, roadmap, linearApiKey, clearLinearApiKey, jiraCreds, clearJiraCreds, firefliesApiKey, clearFirefliesApiKey } = useNav();
   const [showLinearMenu, setShowLinearMenu] = useState(false);
   const [showJiraMenu, setShowJiraMenu] = useState(false);
+  const [showFirefliesMenu, setShowFirefliesMenu] = useState(false);
   const linearMenuRef = useRef<HTMLDivElement>(null);
   const jiraMenuRef = useRef<HTMLDivElement>(null);
+  const firefliesMenuRef = useRef<HTMLDivElement>(null);
 
   // Close menus on outside click
   useEffect(() => {
-    if (!showLinearMenu && !showJiraMenu) return;
+    if (!showLinearMenu && !showJiraMenu && !showFirefliesMenu) return;
     const handleClick = (e: MouseEvent) => {
       if (showLinearMenu && linearMenuRef.current && !linearMenuRef.current.contains(e.target as Node)) {
         setShowLinearMenu(false);
@@ -22,10 +24,13 @@ export default function TopNav() {
       if (showJiraMenu && jiraMenuRef.current && !jiraMenuRef.current.contains(e.target as Node)) {
         setShowJiraMenu(false);
       }
+      if (showFirefliesMenu && firefliesMenuRef.current && !firefliesMenuRef.current.contains(e.target as Node)) {
+        setShowFirefliesMenu(false);
+      }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [showLinearMenu, showJiraMenu]);
+  }, [showLinearMenu, showJiraMenu, showFirefliesMenu]);
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-background/85 px-8 backdrop-blur-md" style={{ height: 56 }}>
@@ -107,6 +112,29 @@ export default function TopNav() {
                 <div className="px-3 py-2 text-[11px] font-medium text-muted">Jira connected</div>
                 <button
                   onClick={() => { clearJiraCreds(); setShowJiraMenu(false); }}
+                  className="w-full rounded-md px-3 py-2 text-left text-[13px] text-red-600 transition-colors hover:bg-red-50"
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {firefliesApiKey && (
+          <div className="relative" ref={firefliesMenuRef}>
+            <button
+              onClick={() => setShowFirefliesMenu(!showFirefliesMenu)}
+              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-card"
+              title="Fireflies connected"
+            >
+              <div className="flex h-3 w-3 items-center justify-center rounded-sm bg-[#9333EA] text-[7px] font-bold text-white">F</div>
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            </button>
+            {showFirefliesMenu && (
+              <div className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-card p-1 shadow-lg">
+                <div className="px-3 py-2 text-[11px] font-medium text-muted">Fireflies connected</div>
+                <button
+                  onClick={() => { clearFirefliesApiKey(); setShowFirefliesMenu(false); }}
                   className="w-full rounded-md px-3 py-2 text-left text-[13px] text-red-600 transition-colors hover:bg-red-50"
                 >
                   Disconnect

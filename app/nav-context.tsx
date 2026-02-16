@@ -25,6 +25,7 @@ export type RoadmapTicket = {
 const STORAGE_KEY = "fjord-roadmap-v3";
 const LINEAR_KEY_STORAGE = "fjord-linear-api-key";
 const JIRA_CREDS_STORAGE = "fjord-jira-creds";
+const FIREFLIES_KEY_STORAGE = "fjord-fireflies-api-key";
 
 function loadLinearApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -35,6 +36,17 @@ function persistLinearApiKey(key: string) {
   if (typeof window === "undefined") return;
   if (key) localStorage.setItem(LINEAR_KEY_STORAGE, key);
   else localStorage.removeItem(LINEAR_KEY_STORAGE);
+}
+
+function loadFirefliesApiKey(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(FIREFLIES_KEY_STORAGE) || "";
+}
+
+function persistFirefliesApiKey(key: string) {
+  if (typeof window === "undefined") return;
+  if (key) localStorage.setItem(FIREFLIES_KEY_STORAGE, key);
+  else localStorage.removeItem(FIREFLIES_KEY_STORAGE);
 }
 
 function loadJiraCreds(): JiraCreds | null {
@@ -99,6 +111,9 @@ type NavContextType = {
   jiraCreds: JiraCreds | null;
   setJiraCreds: (creds: JiraCreds) => void;
   clearJiraCreds: () => void;
+  firefliesApiKey: string;
+  setFirefliesApiKey: (key: string) => void;
+  clearFirefliesApiKey: () => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -124,6 +139,9 @@ const NavContext = createContext<NavContextType>({
   jiraCreds: null,
   setJiraCreds: () => {},
   clearJiraCreds: () => {},
+  firefliesApiKey: "",
+  setFirefliesApiKey: () => {},
+  clearFirefliesApiKey: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -144,6 +162,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
 
   const [linearApiKey, setLinearApiKeyState] = useState("");
   const [jiraCreds, setJiraCredsState] = useState<JiraCreds | null>(null);
+  const [firefliesApiKey, setFirefliesApiKeyState] = useState("");
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -153,6 +172,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedKey) setLinearApiKeyState(savedKey);
     const savedJira = loadJiraCreds();
     if (savedJira) setJiraCredsState(savedJira);
+    const savedFireflies = loadFirefliesApiKey();
+    if (savedFireflies) setFirefliesApiKeyState(savedFireflies);
   }, []);
 
   const setLinearApiKey = (key: string) => {
@@ -173,6 +194,16 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const clearJiraCreds = () => {
     setJiraCredsState(null);
     persistJiraCreds(null);
+  };
+
+  const setFirefliesApiKey = (key: string) => {
+    setFirefliesApiKeyState(key);
+    persistFirefliesApiKey(key);
+  };
+
+  const clearFirefliesApiKey = () => {
+    setFirefliesApiKeyState("");
+    persistFirefliesApiKey("");
   };
 
   const setRoadmap = (items: RoadmapTicket[]) => {
@@ -223,6 +254,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
         jiraCreds,
         setJiraCreds,
         clearJiraCreds,
+        firefliesApiKey,
+        setFirefliesApiKey,
+        clearFirefliesApiKey,
       }}
     >
       {children}

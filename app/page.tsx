@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Results from "./results";
 import Roadmap from "./roadmap";
 import { useNav } from "./nav-context";
 import { ProblemsResult, solutionResult } from "@/lib/types";
+import { firefliesFetch, FIREFLIES_QUERIES, formatTranscript, FirefliesTranscript, FirefliesError } from "@/lib/fireflies";
+import FirefliesConnectModal from "./components/fireflies-connect-modal";
 
 type Step = {
   title: string;
@@ -46,6 +48,11 @@ export default function Discovery() {
   const [error, setError] = useState<string | null>(null);
   const startTime = useRef<number>(0);
 
+  const [showFirefliesConnect, setShowFirefliesConnect] = useState(false);
+  const [firefliesTranscripts, setFirefliesTranscripts] = useState<FirefliesTranscript[]>([]);
+  const [loadingTranscripts, setLoadingTranscripts] = useState(false);
+  const [fetchingTranscriptId, setFetchingTranscriptId] = useState<string | null>(null);
+
   const {
     activeTab,
     setActiveTab,
@@ -57,6 +64,8 @@ export default function Discovery() {
     setProcessingTime,
     roadmap,
     showToast,
+    firefliesApiKey,
+    setFirefliesApiKey,
   } = useNav();
 
   const [steps, setSteps] = useState<Step[]>([
@@ -162,6 +171,59 @@ export default function Discovery() {
         { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
         { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
       ]);
+    }
+  };
+
+  // Load Fireflies transcripts when connected
+  const loadFirefliesTranscripts = useCallback(async () => {
+    if (!firefliesApiKey) return;
+    setLoadingTranscripts(true);
+    try {
+      const data = await firefliesFetch(FIREFLIES_QUERIES.transcripts, undefined, firefliesApiKey);
+      const transcripts = data.data?.transcripts || [];
+      setFirefliesTranscripts(transcripts.slice(0, 5));
+    } catch {
+      // Silently fail — user can still paste manually
+    } finally {
+      setLoadingTranscripts(false);
+    }
+  }, [firefliesApiKey]);
+
+  useEffect(() => {
+    if (firefliesApiKey) loadFirefliesTranscripts();
+  }, [firefliesApiKey, loadFirefliesTranscripts]);
+
+  const handleFirefliesConnect = (key: string) => {
+    setFirefliesApiKey(key);
+    setShowFirefliesConnect(false);
+    showToast("Fireflies connected — select a transcript to import");
+  };
+
+  const handleSelectTranscript = async (transcript: FirefliesTranscript) => {
+    if (!firefliesApiKey) return;
+    setFetchingTranscriptId(transcript.id);
+    try {
+      const data = await firefliesFetch(
+        FIREFLIES_QUERIES.transcript,
+        { id: transcript.id },
+        firefliesApiKey
+      );
+      const sentences = data.data?.transcript?.sentences || [];
+      if (sentences.length === 0) {
+        showToast("No transcript content found for this meeting");
+        return;
+      }
+      const formatted = formatTranscript(sentences);
+      setLocalTranscript(formatted);
+      showToast(`Imported "${transcript.title}" — click Process to continue`);
+    } catch (err) {
+      if (err instanceof FirefliesError) {
+        showToast(err.message);
+      } else {
+        showToast("Failed to load transcript — try again");
+      }
+    } finally {
+      setFetchingTranscriptId(null);
     }
   };
 
@@ -291,28 +353,139 @@ export default function Discovery() {
           </button>
         </div>
 
-        <div className="my-6 flex w-full items-center gap-4">
+        <div className="my-8 flex w-full items-center gap-4">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted">or</span>
+          <span className="text-xs text-muted">or import from</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <button
-          onClick={() => showToast("Recording — coming soon")}
-          disabled
-          aria-disabled="true"
-          title="Coming soon — recording isn't available yet"
-          className="flex items-center gap-2.5 rounded-lg border border-border bg-card px-6 py-3 text-sm font-medium text-muted cursor-not-allowed opacity-60"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="8" cy="8" r="4" fill="#EF4444" />
-            <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-          </svg>
-          Record meeting (coming soon)
-        </button>
+        {/* Integration cards */}
+        <div className="flex w-full flex-col gap-2.5">
+          <button
+            onClick={() => showToast("Granola integration — coming soon")}
+            className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#FFF8E7", color: "#B8860B" }}>
+              G
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Granola</p>
+              <p className="text-[12px] text-muted">Connect to import transcripts</p>
+            </div>
+            <span className="text-[12px] font-medium text-muted">
+              Connect <span className="ml-0.5">&rarr;</span>
+            </span>
+          </button>
 
-        {/* Upload area removed per request (was: drag-and-drop transcript upload) */}
+          <button
+            onClick={() => showToast("Otter.ai integration — coming soon")}
+            className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#E8F4FC", color: "#1E88E5" }}>
+              O
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Otter.ai</p>
+              <p className="text-[12px] text-muted">Connect to import transcripts</p>
+            </div>
+            <span className="text-[12px] font-medium text-muted">
+              Connect <span className="ml-0.5">&rarr;</span>
+            </span>
+          </button>
+
+          {firefliesApiKey ? (
+            <>
+              <button
+                onClick={loadFirefliesTranscripts}
+                className="flex w-full items-center gap-3.5 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3.5 text-left transition-all hover:bg-accent/10"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#F3E8FF", color: "#9333EA" }}>
+                  F
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
+                  <p className="text-[12px] text-muted">Import your recent meetings</p>
+                </div>
+                <span className="flex items-center gap-1.5 text-[12px] font-medium text-accent">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                  Connected
+                </span>
+              </button>
+
+              {/* Recent transcripts */}
+              <div className="ml-[50px] rounded-lg border border-border bg-card px-4 py-3">
+                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Recent from Fireflies</p>
+                {loadingTranscripts ? (
+                  <div className="flex items-center gap-2 py-2 text-[13px] text-muted">
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
+                    Loading transcripts...
+                  </div>
+                ) : firefliesTranscripts.length === 0 ? (
+                  <p className="py-2 text-[13px] text-muted">No recent transcripts found</p>
+                ) : (
+                  firefliesTranscripts.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => handleSelectTranscript(t)}
+                      disabled={fetchingTranscriptId !== null}
+                      className="flex w-full items-center justify-between border-b border-border py-2 text-left last:border-b-0 hover:text-accent disabled:opacity-50"
+                    >
+                      <span className="text-[13px] font-medium">
+                        {fetchingTranscriptId === t.id ? (
+                          <span className="flex items-center gap-2 text-muted">
+                            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
+                            Importing...
+                          </span>
+                        ) : (
+                          t.title || "Untitled meeting"
+                        )}
+                      </span>
+                      <span className="text-[12px] text-muted">
+                        {t.date ? new Date(parseInt(t.date)).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={() => setShowFirefliesConnect(true)}
+              className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#F3E8FF", color: "#9333EA" }}>
+                F
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
+                <p className="text-[12px] text-muted">Connect to import transcripts</p>
+              </div>
+              <span className="text-[12px] font-medium text-muted">
+                Connect <span className="ml-0.5">&rarr;</span>
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Tip box */}
+        <div className="mt-8 flex w-full items-start gap-2.5 rounded-xl bg-accent/5 px-4 py-3.5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-accent">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
+          <p className="text-[13px] leading-relaxed text-accent">
+            Don&apos;t have a transcript tool? No problem — just paste any text from your notes, Google Docs, or email thread.
+          </p>
+        </div>
       </div>
+
+      {/* Fireflies connect modal */}
+      {showFirefliesConnect && (
+        <FirefliesConnectModal
+          onClose={() => setShowFirefliesConnect(false)}
+          onConnected={handleFirefliesConnect}
+        />
+      )}
     </div>
   );
 }
