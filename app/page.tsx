@@ -361,38 +361,7 @@ export default function Discovery() {
 
         {/* Integration cards */}
         <div className="flex w-full flex-col gap-2.5">
-          <button
-            onClick={() => showToast("Granola integration — coming soon")}
-            className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#FFF8E7", color: "#B8860B" }}>
-              G
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Granola</p>
-              <p className="text-[12px] text-muted">Connect to import transcripts</p>
-            </div>
-            <span className="text-[12px] font-medium text-muted">
-              Connect <span className="ml-0.5">&rarr;</span>
-            </span>
-          </button>
-
-          <button
-            onClick={() => showToast("Otter.ai integration — coming soon")}
-            className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#E8F4FC", color: "#1E88E5" }}>
-              O
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Otter.ai</p>
-              <p className="text-[12px] text-muted">Connect to import transcripts</p>
-            </div>
-            <span className="text-[12px] font-medium text-muted">
-              Connect <span className="ml-0.5">&rarr;</span>
-            </span>
-          </button>
-
+          {/* Fireflies — live integration */}
           {firefliesApiKey ? (
             <>
               <button
@@ -465,6 +434,34 @@ export default function Discovery() {
               </span>
             </button>
           )}
+
+          {/* Granola — coming soon */}
+          <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#FFF8E7", color: "#B8860B" }}>
+              G
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Granola</p>
+              <p className="text-[12px] text-muted">Import your recent meetings</p>
+            </div>
+            <span className="rounded-full bg-border px-2.5 py-0.5 text-[11px] font-medium text-muted">
+              Coming soon
+            </span>
+          </div>
+
+          {/* Otter — coming soon */}
+          <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#E8F4FC", color: "#1E88E5" }}>
+              O
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">Otter.ai</p>
+              <p className="text-[12px] text-muted">Import your recent meetings</p>
+            </div>
+            <span className="rounded-full bg-border px-2.5 py-0.5 text-[11px] font-medium text-muted">
+              Coming soon
+            </span>
+          </div>
         </div>
 
         {/* Tip box */}
