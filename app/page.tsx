@@ -9,6 +9,46 @@ import { firefliesFetch, FIREFLIES_QUERIES, formatTranscript, FirefliesTranscrip
 import FirefliesConnectModal from "./components/fireflies-connect-modal";
 import Landing from "./landing";
 
+const DEMO_TRANSCRIPT = `Sarah (PM): Alright, let's go through what we heard from the last round of user interviews. I talked to eight customers this week and there are some clear patterns.
+
+Mike (Engineering): Sounds good. What's the biggest thing?
+
+Sarah (PM): Onboarding is still a mess. Four out of eight people said they almost gave up during signup. One person told me, "I had to click through six screens before I could even see what the product does. I almost closed the tab."
+
+Lisa (Design): That tracks with what we're seeing in the analytics. We have a 62% drop-off between the signup form and the dashboard.
+
+Mike (Engineering): Do we know where exactly they're dropping?
+
+Sarah (PM): Mostly the team invitation step. People don't want to invite their team before they've even tried the product themselves. Another user said, "Why are you asking me to invite people when I don't even know if this is useful yet?"
+
+Lisa (Design): We should make that step optional, or move it to after they've had their first success moment.
+
+Sarah (PM): Agreed. The second big theme is search. Almost everyone complained about it. One customer said, "I search for something I know exists and get completely irrelevant results. I've started just scrolling through everything manually." Another person told me their team has basically given up on search entirely and just uses browser find.
+
+Mike (Engineering): Our search is just doing basic string matching right now. We've known it's bad, but it hasn't been prioritized.
+
+Sarah (PM): Well, it's now the number one complaint. People are working around it by creating elaborate folder structures and naming conventions just to avoid having to search. A customer literally said, "We spend 30 minutes every Monday reorganizing our workspace because search doesn't work."
+
+Lisa (Design): What about the third pattern?
+
+Sarah (PM): Notifications. People are overwhelmed. Three users independently said they've turned off all notifications because there's no way to control what you get notified about. One quote that stuck with me: "I was getting 40 notifications a day and maybe two of them were actually relevant to me. I just turned them all off, and now I miss important stuff."
+
+Mike (Engineering): Right, it's all-or-nothing right now. You either get everything or nothing.
+
+Sarah (PM): Exactly. And the downstream effect is that people miss critical updates. One customer said, "My teammate made a breaking change to the API spec and I didn't find out until production broke. The notification was buried in the hundred other ones I'd muted."
+
+Lisa (Design): We need granular notification controls. Per-project, per-type, that kind of thing.
+
+Mike (Engineering): That's a decent amount of work on the backend. We'd need to build a preferences system.
+
+Sarah (PM): I think it's worth it. The notification problem is causing real trust issues. People don't feel like they can rely on the product to tell them what matters.
+
+Lisa (Design): Any other themes?
+
+Sarah (PM): Those are the big three. Onboarding friction, broken search, and notification overload. Each one came up with multiple customers unprompted, so I'm confident these are real problems, not edge cases.
+
+Mike (Engineering): Makes sense. Let's figure out how to tackle these.`;
+
 type Step = {
   title: string;
   detail: string;
@@ -350,12 +390,24 @@ export default function Discovery() {
               {error}
             </div>
           )}
-          <textarea
-            value={localTranscript}
-            onChange={(e) => setLocalTranscript(e.target.value)}
-            placeholder="Paste a meeting transcript here..."
-            className="h-40 w-full resize-none rounded-xl border border-border bg-card p-4 text-sm text-foreground placeholder:text-muted/60 focus:border-accent/40 focus:outline-none"
-          />
+          <div className="relative">
+            <textarea
+              value={localTranscript}
+              onChange={(e) => setLocalTranscript(e.target.value)}
+              className="h-40 w-full resize-none rounded-xl border border-border bg-card p-4 text-sm text-foreground focus:border-accent/40 focus:outline-none"
+            />
+            {!localTranscript && (
+              <div className="pointer-events-none absolute left-4 top-4 text-sm text-muted/60">
+                Paste a meeting transcript here, or{" "}
+                <button
+                  onClick={() => setLocalTranscript(DEMO_TRANSCRIPT)}
+                  className="pointer-events-auto text-accent underline transition-colors hover:text-accent/80"
+                >
+                  use a demo transcript
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={handleProcess}
             disabled={!localTranscript.trim()}
