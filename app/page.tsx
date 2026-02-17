@@ -371,110 +371,97 @@ export default function Discovery() {
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Integration cards */}
-        <div className="flex w-full flex-col gap-2.5">
-          {/* Fireflies — live integration */}
+        {/* Integration cards — single row */}
+        <div className="flex w-full gap-6">
+          {/* Fireflies */}
           {firefliesApiKey ? (
-            <>
-              <button
-                onClick={loadFirefliesTranscripts}
-                className="flex w-full items-center gap-3.5 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3.5 text-left transition-all hover:bg-accent/10"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#F3E8FF" }}>
-                  <img src="/logos/fireflies.svg" alt="Fireflies" className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
-                  <p className="text-[12px] text-muted">Import your recent meetings</p>
-                </div>
-                <span className="flex items-center gap-1.5 text-[12px] font-medium text-accent">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                  Connected
-                </span>
-              </button>
-
-              {/* Recent transcripts */}
-              <div className="ml-[50px] rounded-lg border border-border bg-card px-4 py-3">
-                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Recent from Fireflies</p>
-                {loadingTranscripts ? (
-                  <div className="flex items-center gap-2 py-2 text-[13px] text-muted">
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
-                    Loading transcripts...
-                  </div>
-                ) : firefliesTranscripts.length === 0 ? (
-                  <p className="py-2 text-[13px] text-muted">No recent transcripts found</p>
-                ) : (
-                  firefliesTranscripts.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => handleSelectTranscript(t)}
-                      disabled={fetchingTranscriptId !== null}
-                      className="flex w-full items-center justify-between border-b border-border py-2 text-left last:border-b-0 hover:text-accent disabled:opacity-50"
-                    >
-                      <span className="text-[13px] font-medium">
-                        {fetchingTranscriptId === t.id ? (
-                          <span className="flex items-center gap-2 text-muted">
-                            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
-                            Importing...
-                          </span>
-                        ) : (
-                          t.title || "Untitled meeting"
-                        )}
-                      </span>
-                      <span className="text-[12px] text-muted">
-                        {t.date ? new Date(parseInt(t.date)).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            </>
-          ) : (
             <button
-              onClick={() => setShowFirefliesConnect(true)}
-              className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
+              onClick={loadFirefliesTranscripts}
+              className="flex flex-1 items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3.5 text-left transition-all hover:bg-accent/10"
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#F3E8FF" }}>
                 <img src="/logos/fireflies.svg" alt="Fireflies" className="h-5 w-5" />
               </div>
-              <div className="flex-1">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
-                <p className="text-[12px] text-muted">Connect to import transcripts</p>
+                <p className="text-[12px] text-accent">Connected</p>
               </div>
-              <span className="text-[12px] font-medium text-muted">
-                Connect <span className="ml-0.5">&rarr;</span>
-              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowFirefliesConnect(true)}
+              className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#F3E8FF" }}>
+                <img src="/logos/fireflies.svg" alt="Fireflies" className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
+                <p className="text-[12px] text-muted">Connect &rarr;</p>
+              </div>
             </button>
           )}
 
           {/* Granola — coming soon */}
-          <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
+          <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#FFF8E7" }}>
               <img src="/logos/granola.svg" alt="Granola" className="h-5 w-5" />
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground">Granola</p>
-              <p className="text-[12px] text-muted">Import your recent meetings</p>
+              <p className="text-[12px] text-muted">Coming soon</p>
             </div>
-            <span className="rounded-full bg-border px-2.5 py-0.5 text-[11px] font-medium text-muted">
-              Coming soon
-            </span>
           </div>
 
           {/* Otter — coming soon */}
-          <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
+          <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#E8F4FC" }}>
               <img src="/logos/otter.svg" alt="Otter" className="h-5 w-5" />
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground">Otter.ai</p>
-              <p className="text-[12px] text-muted">Import your recent meetings</p>
+              <p className="text-[12px] text-muted">Coming soon</p>
             </div>
-            <span className="rounded-full bg-border px-2.5 py-0.5 text-[11px] font-medium text-muted">
-              Coming soon
-            </span>
           </div>
         </div>
+
+        {/* Fireflies transcript list (when connected) */}
+        {firefliesApiKey && (
+          <div className="mt-3 rounded-lg border border-border bg-card px-4 py-3">
+            <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Recent from Fireflies</p>
+            {loadingTranscripts ? (
+              <div className="flex items-center gap-2 py-2 text-[13px] text-muted">
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
+                Loading transcripts...
+              </div>
+            ) : firefliesTranscripts.length === 0 ? (
+              <p className="py-2 text-[13px] text-muted">No recent transcripts found</p>
+            ) : (
+              firefliesTranscripts.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => handleSelectTranscript(t)}
+                  disabled={fetchingTranscriptId !== null}
+                  className="flex w-full items-center justify-between border-b border-border py-2 text-left last:border-b-0 hover:text-accent disabled:opacity-50"
+                >
+                  <span className="text-[13px] font-medium">
+                    {fetchingTranscriptId === t.id ? (
+                      <span className="flex items-center gap-2 text-muted">
+                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
+                        Importing...
+                      </span>
+                    ) : (
+                      t.title || "Untitled meeting"
+                    )}
+                  </span>
+                  <span className="text-[12px] text-muted">
+                    {t.date ? new Date(parseInt(t.date)).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
 
         {/* Tip box */}
         <div className="mt-8 flex w-full items-start gap-2.5 rounded-xl bg-accent/5 px-4 py-3.5">

@@ -4,12 +4,16 @@ import { useState, useEffect } from "react";
 
 function AnimatedStrike({ children, active, delay }: { children: React.ReactNode; active: boolean; delay: number }) {
   return (
-    <span className="relative inline text-muted/60">
+    <span
+      style={{
+        textDecorationLine: "line-through",
+        textDecorationColor: active ? "var(--color-foreground)" : "transparent",
+        textDecorationThickness: "1.5px",
+        opacity: active ? 0.45 : 1,
+        transition: `text-decoration-color 500ms ease-in-out ${delay}ms, opacity 500ms ease-in-out ${delay}ms`,
+      }}
+    >
       {children}
-      <span
-        className="absolute left-0 top-1/2 h-[1.5px] bg-muted/80 transition-all duration-500 ease-in-out"
-        style={{ width: active ? "100%" : "0%", transitionDelay: `${delay}ms` }}
-      />
     </span>
   );
 }
