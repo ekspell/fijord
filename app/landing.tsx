@@ -141,7 +141,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             <AnimatedStrike active={strikeActive} delay={0}>transcribe the key points</AnimatedStrike>,{" "}
             <AnimatedStrike active={strikeActive} delay={150}>identify the problems</AnimatedStrike>,{" "}
             <AnimatedStrike active={strikeActive} delay={300}>write up solutions</AnimatedStrike>, and{" "}
-            <AnimatedStrike active={strikeActive} delay={450}>create tickets in Linear</AnimatedStrike>...
+            <AnimatedStrike active={strikeActive} delay={450}>create tickets</AnimatedStrike>...
           </p>
           <h1 className="mb-6 text-[36px] font-semibold leading-[1.15] tracking-tight text-foreground sm:text-[48px]">
             Or just let Fijord do it in 30 seconds
@@ -216,7 +216,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       <section className="mx-auto w-full max-w-[1100px] px-6 py-20 text-center">
         <div className="mx-auto max-w-[700px]">
           <blockquote className="mb-6 text-xl italic leading-relaxed text-foreground sm:text-2xl">
-            &ldquo;What speaks to me is the full lineage &mdash; from messy call data all the way to the ticket. When I wasn&apos;t in the meeting, I finally have context on why we&apos;re doing this.&rdquo;
+            &ldquo;What speaks to me is the full lineage, from messy call data all the way to the ticket. If I wasn&apos;t in the meeting, I finally have context on why we&apos;re doing this.&rdquo;
           </blockquote>
           <p className="text-[15px] text-muted">
             <strong className="text-foreground">PM at Amazon</strong> &middot; Early beta user

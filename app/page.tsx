@@ -235,7 +235,7 @@ export default function Discovery() {
   };
 
   // Landing page for first-time visitors
-  if (showLanding && !result && roadmap.length === 0) {
+  if (showLanding) {
     return <Landing onEnter={handleEnterApp} />;
   }
 
