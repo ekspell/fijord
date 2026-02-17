@@ -8,6 +8,8 @@ import LinearConnectModal from "./components/linear-connect-modal";
 import LinearSendModal from "./components/linear-send-modal";
 import JiraConnectModal from "./components/jira-connect-modal";
 import JiraSendModal from "./components/jira-send-modal";
+import { createShareBundle } from "@/lib/share";
+import { ShareTicket } from "@/lib/kv";
 
 type ColumnKey = "now" | "next" | "later";
 
@@ -17,10 +19,10 @@ const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   Low:  { bg: "#EFF6FF", text: "#1D4ED8" },
 };
 
-const COLUMN_META: { key: ColumnKey; label: string; dotColor: string }[] = [
-  { key: "now", label: "Now", dotColor: "#2C5F2D" },
-  { key: "next", label: "Next", dotColor: "#B5860B" },
-  { key: "later", label: "Later", dotColor: "#9C978E" },
+const COLUMN_META: { key: ColumnKey; label: string; dotColor: string; emptyHint: string }[] = [
+  { key: "now", label: "To do", dotColor: "#2C5F2D", emptyHint: "Drag tickets here to plan" },
+  { key: "next", label: "In progress", dotColor: "#B5860B", emptyHint: "Work that's actively being built" },
+  { key: "later", label: "Done", dotColor: "#9C978E", emptyHint: "Shipped work — nice \ud83c\udf89" },
 ];
 
 function ColHeader({ label, dotColor, count }: { label: string; dotColor: string; count: number }) {
@@ -123,7 +125,7 @@ function roadmapToContext(ticket: RoadmapTicket): TicketContext {
       id: ticket.id,
       title: ticket.title,
       priority: ticket.priority as "High" | "Med" | "Low",
-      status: ticket.status || ({ now: "Now", next: "Next", later: "Later" }[ticket.column]),
+      status: ticket.status || ({ now: "To do", next: "In progress", later: "Done" }[ticket.column]),
       problemStatement: ticket.problemStatement || "",
       description: ticket.description || "",
       acceptanceCriteria: ticket.acceptanceCriteria || [],
@@ -158,6 +160,7 @@ export default function Roadmap() {
   const [showJiraConnect, setShowJiraConnect] = useState(false);
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
+  const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
   const draggedId = useRef<string | null>(null);
 
   const handleDelete = () => {
@@ -166,10 +169,28 @@ export default function Roadmap() {
     setConfirmDeleteId(null);
   };
 
+  const buildRoadmapShareTickets = (tickets: RoadmapTicket[]): ShareTicket[] =>
+    tickets.map((t) => ({
+      id: t.id,
+      title: t.title,
+      priority: t.priority,
+      status: t.status,
+      problemStatement: t.problemStatement,
+      description: t.description,
+      acceptanceCriteria: t.acceptanceCriteria,
+      quotes: t.quotes,
+      problemTitle: t.problemTitle,
+      problemDescription: t.problemDescription,
+      problemColor: t.problemColor,
+      problemQuotes: t.problemQuotes,
+    }));
+
   const prepareAndSendToLinear = async () => {
     const missing = roadmap.filter((t) => !hasDetail(t));
 
     if (missing.length === 0) {
+      const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+      setShareUrls(urls);
       setShowLinearSend(true);
       return;
     }
@@ -225,6 +246,8 @@ export default function Roadmap() {
     }
 
     setPreparingLinear(null);
+    const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+    setShareUrls(urls);
     setShowLinearSend(true);
   };
 
@@ -232,6 +255,8 @@ export default function Roadmap() {
     const missing = roadmap.filter((t) => !hasDetail(t));
 
     if (missing.length === 0) {
+      const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+      setShareUrls(urls);
       setShowJiraSend(true);
       return;
     }
@@ -287,6 +312,8 @@ export default function Roadmap() {
     }
 
     setPreparingJira(null);
+    const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+    setShareUrls(urls);
     setShowJiraSend(true);
   };
 
@@ -424,19 +451,28 @@ export default function Roadmap() {
               fontWeight: 300,
             }}
           >
-            Roadmap
+            Staging area
           </h1>
-          <p className="mt-1 text-sm text-muted">
-            Process a transcript and save tickets to see them here.
+          <p className="mt-1.5 text-sm text-muted">
+            Organize and prioritize tickets before sending them to Linear or Jira.
           </p>
         </div>
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
-          <p className="text-sm text-muted">No tickets on the roadmap yet.</p>
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9C978E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+          </div>
+          <p className="text-[15px] font-medium text-foreground">No tickets yet</p>
+          <p className="mt-1.5 text-[13px] text-muted">Process a meeting to get started.</p>
           <button
             onClick={() => setActiveTab("Discovery")}
-            className="mt-4 rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-accent/90"
+            className="mt-5 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-accent/25 transition-colors hover:bg-accent/90"
           >
-            Process a transcript
+            Process a meeting &rarr;
           </button>
         </div>
       </div>
@@ -446,35 +482,50 @@ export default function Roadmap() {
   return (
     <div className="mx-auto max-w-[1100px]">
       {/* Header */}
-      <div className="mb-8 flex items-end justify-between">
-        <div>
-          <h1
-            className="text-foreground"
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: '48px',
-              letterSpacing: '-1px',
-              lineHeight: '74.4px',
-              fontWeight: 300,
-            }}
-          >
-            Roadmap
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            Drag tickets between columns to reprioritize.
-          </p>
+      <div className="mb-6">
+        <div className="flex items-end justify-between">
+          <div>
+            <h1
+              className="text-foreground"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '48px',
+                letterSpacing: '-1px',
+                lineHeight: '74.4px',
+                fontWeight: 300,
+              }}
+            >
+              Staging area
+            </h1>
+            <p className="mt-1.5 text-sm text-muted">
+              Organize and prioritize tickets before sending them to Linear or Jira.
+            </p>
+          </div>
+          <div className="flex items-center gap-1 text-[13px] text-muted">
+            <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[12px] font-semibold text-accent">
+              {roadmap.length}
+            </span>
+            <span>ticket{roadmap.length !== 1 ? "s" : ""}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+      </div>
+
+      {/* Export action bar */}
+      <div className="mb-6 flex items-center justify-between rounded-xl border border-border bg-card p-4">
+        <p className="text-[13px] text-muted">
+          Ready to ship? Export your tickets to start building.
+        </p>
+        <div className="flex items-center gap-2.5">
           <button
             disabled={!!preparingLinear}
             onClick={() => {
               if (!linearApiKey) setShowLinearConnect(true);
               else prepareAndSendToLinear();
             }}
-            className="flex items-center gap-2 rounded-lg border border-[#5E6AD2]/20 bg-[#5E6AD2]/5 px-4 py-2 text-[13px] font-medium text-[#5E6AD2] transition-colors hover:bg-[#5E6AD2]/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex items-center gap-2 rounded-lg bg-[#5E6AD2] px-5 py-2.5 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-[#5E6AD2]/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {preparingLinear ? (
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#5E6AD2]/30 border-t-[#5E6AD2]" />
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             ) : (
               <svg width="14" height="14" viewBox="0 0 100 100" fill="currentColor">
                 <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
@@ -490,10 +541,10 @@ export default function Roadmap() {
               if (!jiraCreds) setShowJiraConnect(true);
               else prepareAndSendToJira();
             }}
-            className="flex items-center gap-2 rounded-lg border border-[#0052CC]/20 bg-[#0052CC]/5 px-4 py-2 text-[13px] font-medium text-[#0052CC] transition-colors hover:bg-[#0052CC]/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex items-center gap-2 rounded-lg bg-[#0052CC] px-5 py-2.5 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-[#0052CC]/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {preparingJira ? (
-              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0052CC]/30 border-t-[#0052CC]" />
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             ) : (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" />
@@ -535,17 +586,20 @@ export default function Roadmap() {
             ))}
             {col.tickets.length === 0 && (
               <div
-                className={`flex items-center justify-center rounded-xl border border-dashed py-16 text-xs text-muted ${
+                className={`flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center ${
                   dragOverCol === col.key ? "border-accent bg-accent/5" : "border-border"
                 }`}
               >
-                {dragOverCol === col.key ? "Drop here" : "No tickets yet"}
+                {dragOverCol === col.key ? (
+                  <span className="text-xs font-medium text-accent">Drop here</span>
+                ) : (
+                  <span className="text-xs text-muted">{col.emptyHint}</span>
+                )}
               </div>
             )}
           </div>
         ))}
       </div>
-
 
       {/* Linear modals */}
       {showLinearConnect && (
@@ -566,6 +620,7 @@ export default function Roadmap() {
             priority: t.priority as "High" | "Med" | "Low",
             description: t.description,
             acceptanceCriteria: t.acceptanceCriteria,
+            shareUrl: shareUrls.get(t.id),
           }))}
           apiKey={linearApiKey}
           onClose={() => setShowLinearSend(false)}
@@ -600,6 +655,7 @@ export default function Roadmap() {
             priority: t.priority as "High" | "Med" | "Low",
             description: t.description,
             acceptanceCriteria: t.acceptanceCriteria,
+            shareUrl: shareUrls.get(t.id),
           }))}
           creds={jiraCreds}
           onClose={() => setShowJiraSend(false)}

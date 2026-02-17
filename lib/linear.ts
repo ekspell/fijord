@@ -19,12 +19,16 @@ export const PRIORITY_MAP: Record<string, number> = {
 
 export function buildIssueDescription(
   description?: string,
-  acceptanceCriteria?: string[]
+  acceptanceCriteria?: string[],
+  shareUrl?: string
 ): string {
   let md = description || "";
   if (acceptanceCriteria && acceptanceCriteria.length > 0) {
     md += "\n\n## Acceptance Criteria\n";
     md += acceptanceCriteria.map((ac) => `- [ ] ${ac}`).join("\n");
+  }
+  if (shareUrl) {
+    md += "\n\n---\n\n\ud83d\udcce [View full context in Fjord](" + shareUrl + ")";
   }
   return md;
 }

@@ -9,6 +9,8 @@ import LinearConnectModal from "./components/linear-connect-modal";
 import LinearSendModal from "./components/linear-send-modal";
 import JiraConnectModal from "./components/jira-connect-modal";
 import JiraSendModal from "./components/jira-send-modal";
+import { createShareBundle } from "@/lib/share";
+import { ShareTicket } from "@/lib/kv";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   High: { bg: "bg-red-50", text: "text-red-700" },
@@ -182,6 +184,7 @@ export default function Results() {
   const [showJiraConnect, setShowJiraConnect] = useState(false);
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
+  const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -298,13 +301,35 @@ export default function Results() {
     }
   };
 
+  const buildShareTickets = (ticketList: typeof allTickets): ShareTicket[] =>
+    ticketList.map((t) => {
+      const detail = generatedDetails.get(t.item.id);
+      const problem = data.problems[t.problemIndex];
+      return {
+        id: t.item.id,
+        title: detail?.title || t.item.title,
+        priority: detail?.priority || t.item.priority,
+        status: detail?.status,
+        problemStatement: detail?.problemStatement,
+        description: detail?.description,
+        acceptanceCriteria: detail?.acceptanceCriteria,
+        quotes: detail?.quotes,
+        problemTitle: problem.title,
+        problemDescription: problem.description,
+        problemColor: t.problemColor,
+        problemQuotes: problem.quotes.slice(0, 2).map((q) => ({ text: q.text, speaker: q.speaker, summary: q.summary })),
+      };
+    });
+
   const prepareAndSendToLinear = async () => {
     // Find selected tickets that don't have generated details yet
     const selectedList = allTickets.filter((t) => selectedTickets.has(t.item.id));
     const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
 
     if (missing.length === 0) {
-      // All details already generated
+      // All details already generated — create share bundle then open modal
+      const urls = await createShareBundle(data.meetingTitle, data.date, buildShareTickets(selectedList));
+      setShareUrls(urls);
       setShowLinearSend(true);
       return;
     }
@@ -344,6 +369,8 @@ export default function Results() {
     }
 
     setPreparingLinear(null);
+    const urls = await createShareBundle(data.meetingTitle, data.date, buildShareTickets(selectedList));
+    setShareUrls(urls);
     setShowLinearSend(true);
   };
 
@@ -352,6 +379,8 @@ export default function Results() {
     const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
 
     if (missing.length === 0) {
+      const urls = await createShareBundle(data.meetingTitle, data.date, buildShareTickets(selectedList));
+      setShareUrls(urls);
       setShowJiraSend(true);
       return;
     }
@@ -389,6 +418,8 @@ export default function Results() {
     }
 
     setPreparingJira(null);
+    const urls = await createShareBundle(data.meetingTitle, data.date, buildShareTickets(selectedList));
+    setShareUrls(urls);
     setShowJiraSend(true);
   };
 
@@ -706,6 +737,7 @@ export default function Results() {
                 priority: (detail?.priority || t.item.priority) as "High" | "Med" | "Low",
                 description: detail?.description,
                 acceptanceCriteria: detail?.acceptanceCriteria,
+                shareUrl: shareUrls.get(t.item.id),
               };
             })}
           apiKey={linearApiKey}
@@ -746,6 +778,7 @@ export default function Results() {
                 priority: (detail?.priority || t.item.priority) as "High" | "Med" | "Low",
                 description: detail?.description,
                 acceptanceCriteria: detail?.acceptanceCriteria,
+                shareUrl: shareUrls.get(t.item.id),
               };
             })}
           creds={jiraCreds}

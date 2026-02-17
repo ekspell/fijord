@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
-import TopNav from "./components/top-nav";
+import AppShell from "./components/app-shell";
 import { NavProvider } from "./nav-context";
 
 const dmSans = DM_Sans({
@@ -24,10 +24,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${dmSans.variable} antialiased`}>
         <NavProvider>
-          <TopNav />
-          <main className="overflow-y-auto px-8 pt-10 pb-8">
-            {children}
-          </main>
+          <AppShell>{children}</AppShell>
         </NavProvider>
       </body>
     </html>

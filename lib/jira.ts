@@ -46,7 +46,8 @@ export const JIRA_PRIORITY_MAP: Record<string, string> = {
 /** Build an Atlassian Document Format (ADF) document from description + acceptance criteria */
 export function buildJiraDescription(
   description?: string,
-  acceptanceCriteria?: string[]
+  acceptanceCriteria?: string[],
+  shareUrl?: string
 ): Record<string, unknown> {
   const content: Record<string, unknown>[] = [];
 
@@ -74,6 +75,21 @@ export function buildJiraDescription(
           },
         ],
       })),
+    });
+  }
+
+  if (shareUrl) {
+    content.push({ type: "rule" });
+    content.push({
+      type: "paragraph",
+      content: [
+        { type: "text", text: "\ud83d\udcce " },
+        {
+          type: "text",
+          text: "View full context in Fjord",
+          marks: [{ type: "link", attrs: { href: shareUrl } }],
+        },
+      ],
     });
   }
 

@@ -9,6 +9,7 @@ export type JiraTicketToSend = {
   priority: "High" | "Med" | "Low";
   description?: string;
   acceptanceCriteria?: string[];
+  shareUrl?: string;
 };
 
 type CreatedIssue = {
@@ -123,7 +124,7 @@ export default function JiraSendModal({
           project: { id: selectedProjectId },
           summary: ticket.title,
           issuetype: { id: selectedIssueTypeId },
-          description: buildJiraDescription(ticket.description, ticket.acceptanceCriteria),
+          description: buildJiraDescription(ticket.description, ticket.acceptanceCriteria, ticket.shareUrl),
         };
 
         const priorityName = JIRA_PRIORITY_MAP[ticket.priority];

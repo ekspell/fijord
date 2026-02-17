@@ -15,6 +15,7 @@ export type TicketToSend = {
   priority: "High" | "Med" | "Low";
   description?: string;
   acceptanceCriteria?: string[];
+  shareUrl?: string;
 };
 
 type CreatedIssue = {
@@ -100,7 +101,7 @@ export default function LinearSendModal({
         const input: Record<string, unknown> = {
           teamId: selectedTeamId,
           title: ticket.title,
-          description: buildIssueDescription(ticket.description, ticket.acceptanceCriteria),
+          description: buildIssueDescription(ticket.description, ticket.acceptanceCriteria, ticket.shareUrl),
           priority: PRIORITY_MAP[ticket.priority] ?? 3,
         };
         if (selectedProjectId) {
