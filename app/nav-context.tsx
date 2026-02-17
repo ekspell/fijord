@@ -212,7 +212,6 @@ export function NavProvider({ children }: { children: ReactNode }) {
       const savedResult = sessionStorage.getItem(RESULT_KEY);
       if (savedResult) {
         setResultState(JSON.parse(savedResult));
-        setShowLanding(false);
       }
       const savedSolutions = sessionStorage.getItem(SOLUTIONS_KEY);
       if (savedSolutions) setSolutionsState(JSON.parse(savedSolutions));
