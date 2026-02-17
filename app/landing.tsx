@@ -1,5 +1,19 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
+function AnimatedStrike({ children, active, delay }: { children: React.ReactNode; active: boolean; delay: number }) {
+  return (
+    <span className="relative inline text-muted/60">
+      {children}
+      <span
+        className="absolute left-0 top-1/2 h-[1.5px] bg-muted/80 transition-all duration-500 ease-in-out"
+        style={{ width: active ? "100%" : "0%", transitionDelay: `${delay}ms` }}
+      />
+    </span>
+  );
+}
+
 const FijordLogo = () => (
   <svg width="109" height="54" viewBox="0 0 109 54" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-14 w-auto text-foreground">
     <path d="M34.6914 20.9738L31.3892 17.6658L18.9455 17.6543L16 20.6286V20.7091H29.4965L16.2244 33.9927L18.376 36.1328L25.2048 29.2868V34.6313H25.268L28.156 31.7376L28.2078 26.301L31.6538 22.8607V36.3457H31.7401L34.6914 33.3944V20.9738Z" fill="currentColor" />
@@ -95,6 +109,13 @@ function ProductPreview() {
 }
 
 export default function Landing({ onEnter }: { onEnter: () => void }) {
+  const [strikeActive, setStrikeActive] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setStrikeActive(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
       <div className="mx-auto w-full max-w-[1100px] px-6">
@@ -113,10 +134,10 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         <section className="mx-auto max-w-[700px] pb-4 pt-20 text-center sm:pt-24">
           <p className="mb-5 text-lg leading-relaxed text-muted">
             You just had a great discovery call. Now you need to{" "}
-            <s className="text-muted/60">transcribe the key points</s>,{" "}
-            <s className="text-muted/60">identify the problems</s>,{" "}
-            <s className="text-muted/60">write up solutions</s>, and{" "}
-            <s className="text-muted/60">create tickets in Linear</s>...
+            <AnimatedStrike active={strikeActive} delay={0}>transcribe the key points</AnimatedStrike>,{" "}
+            <AnimatedStrike active={strikeActive} delay={150}>identify the problems</AnimatedStrike>,{" "}
+            <AnimatedStrike active={strikeActive} delay={300}>write up solutions</AnimatedStrike>, and{" "}
+            <AnimatedStrike active={strikeActive} delay={450}>create tickets in Linear</AnimatedStrike>...
           </p>
           <h1 className="mb-6 text-[36px] font-semibold leading-[1.15] tracking-tight text-foreground sm:text-[48px]">
             Or just let Fijord do it in 30 seconds
@@ -176,8 +197,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
                   "Tickets link back to full context",
                   "Done in under a minute",
                 ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-[15px] leading-relaxed">
-                    <span className="mt-0.5 font-semibold text-accent">&check;</span>
+                  <li key={i} className="flex items-start gap-2.5 text-[15px] font-normal leading-relaxed">
+                    <span className="mt-0.5 font-semibold text-accent">{"\u2713"}</span>
                     {item}
                   </li>
                 ))}
