@@ -368,8 +368,8 @@ export default function Discovery() {
                 onClick={loadFirefliesTranscripts}
                 className="flex w-full items-center gap-3.5 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3.5 text-left transition-all hover:bg-accent/10"
               >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#F3E8FF", color: "#9333EA" }}>
-                  F
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#F3E8FF" }}>
+                  <img src="/logos/fireflies.svg" alt="Fireflies" className="h-5 w-5" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
@@ -422,8 +422,8 @@ export default function Discovery() {
               onClick={() => setShowFirefliesConnect(true)}
               className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#F3E8FF", color: "#9333EA" }}>
-                F
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#F3E8FF" }}>
+                <img src="/logos/fireflies.svg" alt="Fireflies" className="h-5 w-5" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
@@ -437,8 +437,8 @@ export default function Discovery() {
 
           {/* Granola — coming soon */}
           <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#FFF8E7", color: "#B8860B" }}>
-              G
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#FFF8E7" }}>
+              <img src="/logos/granola.svg" alt="Granola" className="h-5 w-5" />
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">Granola</p>
@@ -451,8 +451,8 @@ export default function Discovery() {
 
           {/* Otter — coming soon */}
           <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold" style={{ backgroundColor: "#E8F4FC", color: "#1E88E5" }}>
-              O
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#E8F4FC" }}>
+              <img src="/logos/otter.svg" alt="Otter" className="h-5 w-5" />
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-foreground">Otter.ai</p>
