@@ -11,6 +11,7 @@ import JiraConnectModal from "./components/jira-connect-modal";
 import JiraSendModal from "./components/jira-send-modal";
 import { createShareBundle } from "@/lib/share";
 import { ShareTicket } from "@/lib/kv";
+import { FeedbackBanner } from "./components/feedback-modal";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   High: { bg: "bg-red-50", text: "text-red-700" },
@@ -809,6 +810,9 @@ export default function Results() {
           }}
         />
       )}
+
+      {/* Post-generation feedback banner */}
+      <FeedbackBanner showToast={showToast} />
     </div>
   );
 }

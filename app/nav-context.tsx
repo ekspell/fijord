@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
 import { JiraCreds } from "@/lib/jira";
+import { FeedbackButton } from "./components/feedback-modal";
 
 export type RoadmapTicket = {
   id: string;
@@ -68,15 +69,7 @@ function persistJiraCreds(creds: JiraCreds | null) {
 function loadRoadmap(): RoadmapTicket[] {
   if (typeof window === "undefined") return [];
   try {
-    let raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      // Migrate from v2
-      raw = localStorage.getItem("fjord-roadmap-v2");
-      if (raw) {
-        localStorage.setItem(STORAGE_KEY, raw);
-        localStorage.removeItem("fjord-roadmap-v2");
-      }
-    }
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -85,7 +78,7 @@ function loadRoadmap(): RoadmapTicket[] {
 
 function persistRoadmap(items: RoadmapTicket[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
 type NavContextType = {
@@ -260,6 +253,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+
+      {/* Floating feedback button */}
+      <FeedbackButton showToast={showToast} />
 
       {/* Global toast */}
       {toast && (
