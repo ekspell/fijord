@@ -102,7 +102,7 @@ export function FeedbackModal({
                 <button
                   key={r.key}
                   onClick={() => handleSelectReaction(r.key)}
-                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-background px-6 py-4 transition-all hover:border-accent/40 hover:bg-accent/5"
+                  className="flex w-24 flex-col items-center gap-2 rounded-xl border border-border bg-background py-4 transition-all hover:border-accent/40 hover:bg-accent/5"
                 >
                   <span className="text-3xl">{r.emoji}</span>
                   <span className="text-[13px] font-medium text-foreground">{r.label}</span>

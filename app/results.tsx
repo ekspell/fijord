@@ -185,16 +185,26 @@ export default function Results() {
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
   const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
-  const feedbackTriggeredRef = useRef(false);
+  const interactionCountRef = useRef(0);
+  const feedbackShownRef = useRef(false);
 
-  // Trigger feedback on first scope generation
-  useEffect(() => {
-    if (data && solutions.length > 0 && !feedbackTriggeredRef.current) {
-      feedbackTriggeredRef.current = true;
-      const timer = setTimeout(() => triggerFeedback(), 3000);
-      return () => clearTimeout(timer);
+  const trackInteraction = () => {
+    if (feedbackShownRef.current) return;
+    interactionCountRef.current += 1;
+    if (interactionCountRef.current >= 2) {
+      feedbackShownRef.current = true;
+      triggerFeedback();
     }
-  }, [data, solutions, triggerFeedback]);
+  };
+
+  // Count scope generation as the first interaction
+  const scopeCountedRef = useRef(false);
+  useEffect(() => {
+    if (data && solutions.length > 0 && !scopeCountedRef.current) {
+      scopeCountedRef.current = true;
+      interactionCountRef.current += 1;
+    }
+  }, [data, solutions]);
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -294,7 +304,7 @@ export default function Results() {
 
       const ticketDetail: TicketDetail = await res.json();
       setGeneratedDetails((prev) => new Map(prev).set(ticketDetail.id, ticketDetail));
-      triggerFeedback();
+      trackInteraction();
       setTicketContext({
         ticket: ticketDetail,
         problem: data.problems[ticket.problemIndex],
@@ -513,13 +523,7 @@ export default function Results() {
           </div>
         </div>
       ) : (
-        <div className="mb-5 flex items-center justify-center gap-2 text-xs text-muted">
-          <span>Evidence from the call</span>
-          <span className="text-border">&rarr;</span>
-          <span>Grouped into problems</span>
-          <span className="text-border">&rarr;</span>
-          <span>Turned into work</span>
-        </div>
+        <div className="mb-5" />
       )}
 
       {/* 3-column grid */}
@@ -577,7 +581,7 @@ export default function Results() {
             <div className="mb-2 flex items-center justify-between rounded-lg bg-accent/5 px-3 py-2">
               <span className="text-[11px] text-muted">
                 {selectedTickets.size === 0
-                  ? "Select tickets to add to your roadmap"
+                  ? "Select tickets to add to staging"
                   : `${selectedTickets.size} selected`}
               </span>
               <button
@@ -709,8 +713,8 @@ export default function Results() {
               const count = newTickets.length;
               addToRoadmap(newTickets);
               setSelectedTickets(new Set());
-              setActiveTab("Roadmap");
-              triggerFeedback();
+              setActiveTab("Staging");
+              trackInteraction();
             }}
             className={`rounded-lg px-5 py-2 text-sm font-medium text-white transition-all ${
               selectedTickets.size > 0
@@ -718,7 +722,7 @@ export default function Results() {
                 : "bg-accent disabled:cursor-not-allowed disabled:opacity-40"
             }`}
           >
-            Save to roadmap &rarr;
+            Save to staging &rarr;
           </button>
         </div>
       </div>

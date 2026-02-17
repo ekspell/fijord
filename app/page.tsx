@@ -284,7 +284,7 @@ export default function Discovery() {
     return <Results />;
   }
 
-  if (activeTab === "Roadmap") {
+  if (activeTab === "Staging") {
     return <Roadmap />;
   }
 

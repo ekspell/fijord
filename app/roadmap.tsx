@@ -189,7 +189,7 @@ export default function Roadmap() {
     const missing = roadmap.filter((t) => !hasDetail(t));
 
     if (missing.length === 0) {
-      const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+      const urls = await createShareBundle("Staging", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
       setShareUrls(urls);
       setShowLinearSend(true);
       return;
@@ -246,7 +246,7 @@ export default function Roadmap() {
     }
 
     setPreparingLinear(null);
-    const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+    const urls = await createShareBundle("Staging", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
     setShareUrls(urls);
     setShowLinearSend(true);
   };
@@ -255,7 +255,7 @@ export default function Roadmap() {
     const missing = roadmap.filter((t) => !hasDetail(t));
 
     if (missing.length === 0) {
-      const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+      const urls = await createShareBundle("Staging", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
       setShareUrls(urls);
       setShowJiraSend(true);
       return;
@@ -312,7 +312,7 @@ export default function Roadmap() {
     }
 
     setPreparingJira(null);
-    const urls = await createShareBundle("Roadmap", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
+    const urls = await createShareBundle("Staging", new Date().toISOString().split("T")[0], buildRoadmapShareTickets(roadmap));
     setShareUrls(urls);
     setShowJiraSend(true);
   };
@@ -432,7 +432,7 @@ export default function Roadmap() {
         context={ctx}
         onBack={() => setSelectedTicket(null)}
         onUpdate={handleTicketUpdate}
-        breadcrumbLabel="Roadmap"
+        breadcrumbLabel="Staging"
       />
     );
   }
@@ -678,7 +678,7 @@ export default function Roadmap() {
           <div className="relative z-10 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-foreground">Delete ticket?</h3>
             <p className="mt-2 text-[13px] text-muted">
-              Are you sure you want to remove <strong className="text-foreground">{confirmDeleteId}</strong> from the roadmap? This can&apos;t be undone.
+              Are you sure you want to remove <strong className="text-foreground">{confirmDeleteId}</strong> from staging? This can&apos;t be undone.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button
