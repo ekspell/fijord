@@ -20,9 +20,12 @@ export async function createShareBundle(
       for (const t of tickets) {
         shareUrlMap.set(t.id, `${baseUrl}/share/${meetingId}/${t.id}`);
       }
+    } else {
+      const errBody = await res.text().catch(() => "");
+      console.error(`[share] API returned ${res.status}: ${errBody}`);
     }
-  } catch {
-    // Graceful fallback — proceed without backlinks
+  } catch (err) {
+    console.error("[share] Failed to create share bundle:", err);
   }
 
   return shareUrlMap;
