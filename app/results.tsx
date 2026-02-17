@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNav, RoadmapTicket } from "./nav-context";
 import { solutionResult, WorkItem, TicketDetail, TicketContext, Quote, PROBLEM_COLORS } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
@@ -11,7 +11,6 @@ import JiraConnectModal from "./components/jira-connect-modal";
 import JiraSendModal from "./components/jira-send-modal";
 import { createShareBundle } from "@/lib/share";
 import { ShareTicket } from "@/lib/kv";
-import { FeedbackBanner } from "./components/feedback-modal";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   High: { bg: "bg-red-50", text: "text-red-700" },
@@ -170,7 +169,7 @@ function TicketCard({
 }
 
 export default function Results() {
-  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds } = useNav();
+  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds, triggerFeedback } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
@@ -186,6 +185,16 @@ export default function Results() {
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
   const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
+  const feedbackTriggeredRef = useRef(false);
+
+  // Trigger feedback on first scope generation
+  useEffect(() => {
+    if (data && solutions.length > 0 && !feedbackTriggeredRef.current) {
+      feedbackTriggeredRef.current = true;
+      const timer = setTimeout(() => triggerFeedback(), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [data, solutions, triggerFeedback]);
 
   const toggleFilter = (problemId: string) => {
     setFilterProblemId((prev) => (prev === problemId ? null : problemId));
@@ -285,6 +294,7 @@ export default function Results() {
 
       const ticketDetail: TicketDetail = await res.json();
       setGeneratedDetails((prev) => new Map(prev).set(ticketDetail.id, ticketDetail));
+      triggerFeedback();
       setTicketContext({
         ticket: ticketDetail,
         problem: data.problems[ticket.problemIndex],
@@ -699,10 +709,8 @@ export default function Results() {
               const count = newTickets.length;
               addToRoadmap(newTickets);
               setSelectedTickets(new Set());
-              showToast(
-                `${count} ticket${count !== 1 ? "s" : ""} added to Roadmap`,
-                { label: "View Roadmap", onClick: () => setActiveTab("Roadmap") }
-              );
+              setActiveTab("Roadmap");
+              triggerFeedback();
             }}
             className={`rounded-lg px-5 py-2 text-sm font-medium text-white transition-all ${
               selectedTickets.size > 0
@@ -811,8 +819,6 @@ export default function Results() {
         />
       )}
 
-      {/* Post-generation feedback banner */}
-      <FeedbackBanner showToast={showToast} />
     </div>
   );
 }

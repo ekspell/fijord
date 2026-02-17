@@ -15,7 +15,7 @@ const REACTIONS: { key: Reaction; emoji: string; label: string }[] = [
 
 /* ─── Feedback Modal ─────────────────────────────────────── */
 
-function FeedbackModal({
+export function FeedbackModal({
   onClose,
   onSubmitted,
   initialReaction,

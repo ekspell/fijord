@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
 import { JiraCreds } from "@/lib/jira";
-import { FeedbackButton } from "./components/feedback-modal";
+import { FeedbackButton, FeedbackModal } from "./components/feedback-modal";
 
 export type RoadmapTicket = {
   id: string;
@@ -24,6 +24,9 @@ export type RoadmapTicket = {
 };
 
 const STORAGE_KEY = "fjord-roadmap-v3";
+const RESULT_KEY = "fjord-result";
+const SOLUTIONS_KEY = "fjord-solutions";
+const TRANSCRIPT_KEY = "fjord-transcript";
 const LINEAR_KEY_STORAGE = "fjord-linear-api-key";
 const JIRA_CREDS_STORAGE = "fjord-jira-creds";
 const FIREFLIES_KEY_STORAGE = "fjord-fireflies-api-key";
@@ -109,6 +112,7 @@ type NavContextType = {
   clearFirefliesApiKey: () => void;
   showLanding: boolean;
   setShowLanding: (v: boolean) => void;
+  triggerFeedback: () => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -139,16 +143,46 @@ const NavContext = createContext<NavContextType>({
   clearFirefliesApiKey: () => {},
   showLanding: true,
   setShowLanding: () => {},
+  triggerFeedback: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState("Discovery");
-  const [result, setResult] = useState<ProblemsResult | null>(null);
-  const [solutions, setSolutions] = useState<solutionResult[]>([]);
-  const [transcript, setTranscript] = useState("");
+  const [result, setResultState] = useState<ProblemsResult | null>(null);
+  const [solutions, setSolutionsState] = useState<solutionResult[]>([]);
+  const [transcript, setTranscriptState] = useState("");
   const [processingTime, setProcessingTime] = useState("0");
   const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
   const [showLanding, setShowLanding] = useState(true);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
+  const setResult = useCallback((r: ProblemsResult | null) => {
+    setResultState(r);
+    if (typeof window !== "undefined") {
+      if (r) sessionStorage.setItem(RESULT_KEY, JSON.stringify(r));
+      else sessionStorage.removeItem(RESULT_KEY);
+    }
+  }, []);
+
+  const setSolutions = useCallback((s: solutionResult[]) => {
+    setSolutionsState(s);
+    if (typeof window !== "undefined") {
+      if (s.length > 0) sessionStorage.setItem(SOLUTIONS_KEY, JSON.stringify(s));
+      else sessionStorage.removeItem(SOLUTIONS_KEY);
+    }
+  }, []);
+
+  const setTranscript = useCallback((t: string) => {
+    setTranscriptState(t);
+    if (typeof window !== "undefined") {
+      if (t) sessionStorage.setItem(TRANSCRIPT_KEY, t);
+      else sessionStorage.removeItem(TRANSCRIPT_KEY);
+    }
+  }, []);
+
+  const triggerFeedback = useCallback(() => {
+    setShowFeedbackModal(true);
+  }, []);
   const [toast, setToast] = useState<{ msg: string; action?: { label: string; onClick: () => void } } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -162,7 +196,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [jiraCreds, setJiraCredsState] = useState<JiraCreds | null>(null);
   const [firefliesApiKey, setFirefliesApiKeyState] = useState("");
 
-  // Load from localStorage on mount
+  // Load from storage on mount
   useEffect(() => {
     const saved = loadRoadmap();
     if (saved.length > 0) setRoadmapState(saved);
@@ -172,6 +206,19 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedJira) setJiraCredsState(savedJira);
     const savedFireflies = loadFirefliesApiKey();
     if (savedFireflies) setFirefliesApiKeyState(savedFireflies);
+
+    // Restore session data
+    try {
+      const savedResult = sessionStorage.getItem(RESULT_KEY);
+      if (savedResult) {
+        setResultState(JSON.parse(savedResult));
+        setShowLanding(false);
+      }
+      const savedSolutions = sessionStorage.getItem(SOLUTIONS_KEY);
+      if (savedSolutions) setSolutionsState(JSON.parse(savedSolutions));
+      const savedTranscript = sessionStorage.getItem(TRANSCRIPT_KEY);
+      if (savedTranscript) setTranscriptState(savedTranscript);
+    } catch { /* ignore parse errors */ }
   }, []);
 
   const setLinearApiKey = (key: string) => {
@@ -257,12 +304,24 @@ export function NavProvider({ children }: { children: ReactNode }) {
         clearFirefliesApiKey,
         showLanding,
         setShowLanding,
+        triggerFeedback,
       }}
     >
       {children}
 
       {/* Floating feedback button */}
       <FeedbackButton showToast={showToast} hidden={showLanding} />
+
+      {/* Triggered feedback modal */}
+      {showFeedbackModal && (
+        <FeedbackModal
+          onClose={() => setShowFeedbackModal(false)}
+          onSubmitted={() => {
+            setShowFeedbackModal(false);
+            showToast("Thanks for your feedback!");
+          }}
+        />
+      )}
 
       {/* Global toast */}
       {toast && (
