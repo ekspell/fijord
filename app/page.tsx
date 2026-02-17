@@ -9,8 +9,6 @@ import { firefliesFetch, FIREFLIES_QUERIES, formatTranscript, FirefliesTranscrip
 import FirefliesConnectModal from "./components/fireflies-connect-modal";
 import Landing from "./landing";
 
-const ENTERED_KEY = "fjord-entered";
-
 type Step = {
   title: string;
   detail: string;
@@ -71,13 +69,9 @@ export default function Discovery() {
     setFirefliesApiKey,
   } = useNav();
 
-  const [showLanding, setShowLanding] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return !localStorage.getItem(ENTERED_KEY);
-  });
+  const [showLanding, setShowLanding] = useState(true);
 
   const handleEnterApp = () => {
-    localStorage.setItem(ENTERED_KEY, "1");
     setShowLanding(false);
   };
 
