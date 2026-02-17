@@ -11,7 +11,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Fjord",
+  title: "Fijord",
   description: "Extract problems, solutions, and tickets from meeting transcripts",
 };
 

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const message = await withRetry(() => client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 4096,
-      system: `You are Fjord, a product management AI. Given a problem extracted from a meeting transcript, generate ONE opinionated solution (called a "solution") and a list of work items needed to implement it.
+      system: `You are Fijord, a product management AI. Given a problem extracted from a meeting transcript, generate ONE opinionated solution (called a "solution") and a list of work items needed to implement it.
 
 Be decisive. Pick the best solution, don't hedge. Work items should be concise titles — they'll be expanded into full tickets later.
 

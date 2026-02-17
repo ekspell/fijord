@@ -86,7 +86,7 @@ export function buildJiraDescription(
         { type: "text", text: "\ud83d\udcce " },
         {
           type: "text",
-          text: "View full context in Fjord",
+          text: "View full context in Fijord",
           marks: [{ type: "link", attrs: { href: shareUrl } }],
         },
       ],

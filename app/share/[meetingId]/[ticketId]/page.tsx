@@ -8,14 +8,14 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { meetingId, ticketId } = await params;
-  if (!isKVConfigured()) return { title: "Fjord" };
+  if (!isKVConfigured()) return { title: "Fijord" };
 
   const bundle = await getShareBundle(meetingId);
   const ticket = bundle?.tickets.find((t) => t.id === ticketId);
 
   return {
-    title: ticket ? `${ticket.id}: ${ticket.title} | Fjord` : "Fjord",
-    description: ticket?.description?.slice(0, 160) || "Ticket created with Fjord",
+    title: ticket ? `${ticket.id}: ${ticket.title} | Fijord` : "Fijord",
+    description: ticket?.description?.slice(0, 160) || "Ticket created with Fijord",
   };
 }
 
@@ -191,7 +191,7 @@ export default async function ShareTicketPage({ params }: Props) {
               rel="noopener noreferrer"
               className="font-medium text-accent hover:text-accent/80"
             >
-              Fjord
+              Fijord
             </a>
           </p>
           <p className="text-xs text-muted">

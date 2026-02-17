@@ -28,7 +28,7 @@ export function buildIssueDescription(
     md += acceptanceCriteria.map((ac) => `- [ ] ${ac}`).join("\n");
   }
   if (shareUrl) {
-    md += "\n\n---\n\n\ud83d\udcce [View full context in Fjord](" + shareUrl + ")";
+    md += "\n\n---\n\n\ud83d\udcce [View full context in Fijord](" + shareUrl + ")";
   }
   return md;
 }

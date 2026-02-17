@@ -17,7 +17,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Pr
   throw new Error("Unreachable");
 }
 
-const SYSTEM_PROMPT = `You are Fjord, a product management AI that extracts actionable insights from meeting transcripts.
+const SYSTEM_PROMPT = `You are Fijord, a product management AI that extracts actionable insights from meeting transcripts.
 
 Your job:
 1. Identify distinct PROBLEMS — user pain points, unmet needs, confusion, friction
