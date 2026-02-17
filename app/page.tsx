@@ -107,9 +107,9 @@ export default function Discovery() {
     showToast,
     firefliesApiKey,
     setFirefliesApiKey,
+    showLanding,
+    setShowLanding,
   } = useNav();
-
-  const [showLanding, setShowLanding] = useState(true);
 
   const handleEnterApp = () => {
     setShowLanding(false);

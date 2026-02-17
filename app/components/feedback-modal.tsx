@@ -228,13 +228,15 @@ function FeedbackModal({
 
 /* ─── Floating Feedback Button ───────────────────────────── */
 
-export function FeedbackButton({ showToast }: { showToast: (msg: string) => void }) {
+export function FeedbackButton({ showToast, hidden }: { showToast: (msg: string) => void; hidden?: boolean }) {
   const [showModal, setShowModal] = useState(false);
 
   const handleSubmitted = () => {
     setShowModal(false);
     showToast("Thanks for your feedback!");
   };
+
+  if (hidden) return null;
 
   return (
     <>

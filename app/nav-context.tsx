@@ -107,6 +107,8 @@ type NavContextType = {
   firefliesApiKey: string;
   setFirefliesApiKey: (key: string) => void;
   clearFirefliesApiKey: () => void;
+  showLanding: boolean;
+  setShowLanding: (v: boolean) => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -135,6 +137,8 @@ const NavContext = createContext<NavContextType>({
   firefliesApiKey: "",
   setFirefliesApiKey: () => {},
   clearFirefliesApiKey: () => {},
+  showLanding: true,
+  setShowLanding: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -144,6 +148,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [transcript, setTranscript] = useState("");
   const [processingTime, setProcessingTime] = useState("0");
   const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
+  const [showLanding, setShowLanding] = useState(true);
   const [toast, setToast] = useState<{ msg: string; action?: { label: string; onClick: () => void } } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -250,12 +255,14 @@ export function NavProvider({ children }: { children: ReactNode }) {
         firefliesApiKey,
         setFirefliesApiKey,
         clearFirefliesApiKey,
+        showLanding,
+        setShowLanding,
       }}
     >
       {children}
 
       {/* Floating feedback button */}
-      <FeedbackButton showToast={showToast} />
+      <FeedbackButton showToast={showToast} hidden={showLanding} />
 
       {/* Global toast */}
       {toast && (
