@@ -7,6 +7,9 @@ import { useNav } from "./nav-context";
 import { ProblemsResult, solutionResult } from "@/lib/types";
 import { firefliesFetch, FIREFLIES_QUERIES, formatTranscript, FirefliesTranscript, FirefliesError } from "@/lib/fireflies";
 import FirefliesConnectModal from "./components/fireflies-connect-modal";
+import Landing from "./landing";
+
+const ENTERED_KEY = "fjord-entered";
 
 type Step = {
   title: string;
@@ -67,6 +70,16 @@ export default function Discovery() {
     firefliesApiKey,
     setFirefliesApiKey,
   } = useNav();
+
+  const [showLanding, setShowLanding] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !localStorage.getItem(ENTERED_KEY);
+  });
+
+  const handleEnterApp = () => {
+    localStorage.setItem(ENTERED_KEY, "1");
+    setShowLanding(false);
+  };
 
   const [steps, setSteps] = useState<Step[]>([
     { title: "Reading transcript", detail: "Parsing input...", status: "pending" },
@@ -226,6 +239,11 @@ export default function Discovery() {
       setFetchingTranscriptId(null);
     }
   };
+
+  // Landing page for first-time visitors
+  if (showLanding && !result && roadmap.length === 0) {
+    return <Landing onEnter={handleEnterApp} />;
+  }
 
   // Tab-based rendering
   if (activeTab === "Scope" && result) {
