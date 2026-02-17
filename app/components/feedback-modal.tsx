@@ -240,7 +240,7 @@ export function FeedbackButton({ showToast }: { showToast: (msg: string) => void
     <>
       <button
         onClick={() => setShowModal(true)}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-[13px] font-medium text-muted shadow-md transition-all hover:border-foreground/20 hover:text-foreground hover:shadow-lg"
+        className="feedback-bounce fixed bottom-6 right-6 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-[13px] font-medium text-muted shadow-md transition-all hover:border-foreground/20 hover:text-foreground hover:shadow-lg"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
