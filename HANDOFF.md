@@ -1,96 +1,116 @@
-# Fjord — Handoff Notes (Feb 12, 2026)
+# Fjord — Handoff Notes
 
-## What We Built Today
+## Latest Session: February 17, 2026
 
-### 1. Ticket Detail Back Navigation (user feedback fix)
-- Added a left arrow icon + green accent color to the breadcrumb on ticket detail view
-- "← Scope > FJD-101" and "← Roadmap > FJD-101" are now clearly clickable
-- Pattern is consistent across both Scope and Roadmap drill-in
+### What we built today
 
-### 2. Save-to-Roadmap Flow Improvements (user feedback fix)
-- Added hint text "Select tickets to add to your roadmap" above ticket cards (disappears once a ticket is checked)
-- Enlarged checkboxes (h-4 w-4 with thicker border) for visibility
-- "Save to roadmap" button gets a green glow/shadow when tickets are selected
-- After saving: clears selection, shows toast "3 tickets added to Roadmap" with clickable **View Roadmap →** link
-- User stays on Scope page instead of being auto-switched to Roadmap
+**Landing page polish**
+- Landing page shows on every visit (not gated by localStorage)
+- Animated strikethroughs on hero text using `text-decoration-color` transition (works across line wraps)
+- Fixed checkmark rendering (`&check;` → Unicode `\u2713`)
+- Integration cards (Fireflies, Granola, Otter) in a single row with 24px gaps
+- Fijord logo click returns to landing from anywhere
+- Copy tweaks: removed em dash from testimonial, "When" → "If", "create tickets in Linear" → "create tickets"
 
-### 3. Toast System Upgrade
-- Toast now supports an optional action (label + onClick callback)
-- Action renders as a clickable green link with arrow (e.g. "View Roadmap →")
-- Toasts with actions stay visible longer (4s vs 2.5s)
-- Toast icon changed from gray to accent green
+**Demo transcript**
+- "Use a demo transcript" link inside the textarea placeholder (accent-colored, underlined)
+- Realistic PM discovery call (~3300 chars): onboarding friction, broken search, notification overload
+- Produces 3 problems, ~20 tickets
 
-## Previous Session (Feb 10, 2026)
+**Feedback system**
+- Floating "Feedback" button (bottom-right, bounce animation, hidden on landing)
+- Modal with 3 reaction paths (Useful / Meh / Confusing), each with tailored follow-up questions
+- Optional email field for follow-up
+- Stored in Upstash Redis via `POST /api/feedback` (no TTL — kept permanently)
+- Trigger-based: pops up after 2 user interactions on Scope (scope generation = 1, then ticket detail or save to staging triggers it)
 
-### Built
-- Global toast notification system for "coming soon" placeholders
-- Error recovery on failed ticket generation (click to retry)
-- Delete tickets from roadmap with confirmation modal
-- Typography & spacing polish (48px headings, 40px global gap, 120px Discovery offset, 1100px max-width)
-- UI cleanup (removed stat pills, roadmap action bars, file upload, disabled Record button)
-- Deployed to Vercel at **https://fijord.app**
-- Created `PROJECT-STATUS.md`
+**Session persistence**
+- Result, solutions, transcript persist in `sessionStorage` — Scope data survives tab switches within a session
+- Staging data also in `sessionStorage`
+- Landing page always shows on refresh
 
-## What's Working
+**Navigation changes**
+- "Roadmap" tab renamed to **"Staging"**
+- "Save to staging" navigates directly to Staging tab (no longer just a toast)
+- Removed "Evidence → Problems → Work" breadcrumb from Scope page
 
-- Full end-to-end pipeline: paste transcript → processing animation → 3-column Scope board
-- Click ticket → generate full detail (Sonnet 4.5) → two-column detail view with inline editing
-- Clear back navigation from ticket detail to parent view (Scope or Roadmap)
-- Save selected tickets to roadmap with success toast + "View Roadmap →" action
-- Roadmap: drag-and-drop kanban (Now/Next/Later), delete with confirmation, ticket detail
-- All text fields inline-editable (title, description, problem statement, acceptance criteria)
-- Acceptance criteria checkboxes with persistence
-- Transcript drawer highlighting quotes in context
-- Color-coded problem threading across Evidence/Problems/Tickets columns
-- Roadmap persisted to localStorage (`fjord-roadmap-v3`)
-- Toast system with optional action links
-- Error state with retry on failed ticket generation
+### What's working
+
+- Full flow: landing → paste/demo transcript → process → 3-column Scope → ticket detail → save to staging → export to Linear/Jira
+- Feedback collection end-to-end (modal → API → Upstash Redis)
+- Session persistence within a browser tab
+- Share links for individual tickets
+- Fireflies API integration for pulling transcripts
+- Demo transcript for users without a transcript on hand
+- Fijord logo navigates home from any page
 - Live at **https://fijord.app**
 
-## What's Next
+### What's next
 
-- **Authentication**: Supabase Auth selected as provider — needs sign-in method decision (Google, email/password, etc.) and implementation
-- **Database**: Supabase Postgres to replace localStorage — persist transcripts, tickets, roadmaps per user
-- **Multi-tenancy**: Each user sees only their own data
-- **Payments**: Stripe integration for subscriptions
-- **Linear/Jira export**: UI exists (buttons + selection), backend needs wiring
-- **File upload**: Parse .txt/.md/.pdf/.docx transcripts
-- **Recording**: Granola or similar integration
-- **Error boundaries**: React error boundaries for crash recovery
-- **Rate limiting**: Protect API routes from abuse
+- Monitor feedback in Upstash Redis dashboard as users start testing
+- `FeedbackBanner` component exists in `feedback-modal.tsx` but is unused (replaced by trigger-based approach) — can remove or repurpose
+- Untracked file `landing-v3-problem (1).html` in repo root can be cleaned up
+- Authentication (Supabase Auth), database persistence, multi-tenancy, payments — all still on the roadmap from previous sessions
 
-## Key Decisions
+### Key decisions made today
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Auth provider | **Supabase Auth** | Bundles auth + database in one platform, avoiding multiple vendor integrations |
-| Deployment | **Vercel** at fijord.app | Native Next.js support, easy domain setup, auto-SSL |
-| Heading typography | **48px / weight 300 / -1px tracking** | Clean, modern look — consistent across all pages |
-| Content max-width | **1100px** on all pages | Consistent left/right padding across Discovery, Scope, and Roadmap |
-| Coming-soon features | **Toast notifications** | Lets users know features exist without cluttering UI with disabled states |
-| Roadmap chrome | **Removed action bars** | Stripped header buttons and bottom bar to simplify the view |
-| Save-to-roadmap UX | **Toast + stay on page** | User stays on Scope after saving; toast with "View Roadmap →" link lets them navigate when ready |
+| Decision | Rationale |
+|---|---|
+| `sessionStorage` for session data | Clean slate on tab close; no stale data across visits |
+| `localStorage` for API keys | Linear/Jira/Fireflies keys should persist across sessions |
+| Landing always shows on load | This is a demo tool — every visit starts with the landing page |
+| Feedback after 2 interactions | Less intrusive; users have actually engaged before being asked |
+| "Staging" instead of "Roadmap" | Better reflects purpose — tickets sit here before export to Linear/Jira |
+| Feedback stored permanently | Every piece of feedback is valuable at this stage |
+| Demo transcript: 3 problems | Sweet spot for demonstrating value without overwhelming first-time users |
 
-## File Map
+---
+
+## Previous Sessions
+
+### February 12, 2026
+- Ticket detail back navigation with arrow icon + accent color
+- Save-to-roadmap flow: hint text, enlarged checkboxes, green glow on button
+- Toast system upgrade with optional action links
+- Error recovery on failed ticket generation
+
+### February 10, 2026
+- Global toast notification system
+- Delete tickets from roadmap with confirmation modal
+- Typography & spacing polish (48px headings, 1100px max-width)
+- Initial deploy to **https://fijord.app**
+
+## File map
 
 ```
 app/
-  page.tsx              — Discovery landing (transcript input + processing animation)
+  page.tsx              — Landing page + Discovery (transcript input + processing)
+  landing.tsx           — Landing page component (hero, features, integrations)
   results.tsx           — 3-column Scope view (Evidence, Problems, Tickets)
-  roadmap.tsx           — Now/Next/Later kanban with drag-and-drop
-  ticket-detail.tsx     — Full ticket detail view (two-column, inline editable)
-  nav-context.tsx       — React Context: tabs, results, roadmap, toast system (with action links)
-  transcript-drawer.tsx — Slide-out transcript panel with quote highlighting
+  roadmap.tsx           — Staging area: Now/Next/Later kanban with drag-and-drop
+  ticket-detail.tsx     — Full ticket detail (two-column, inline editable)
+  nav-context.tsx       — React Context: tabs, results, staging, toast, feedback, session persistence
+  transcript-drawer.tsx — Slide-out transcript with quote highlighting
   layout.tsx            — Root layout with NavProvider + TopNav
   globals.css           — Tailwind v4 theme tokens + animations
   components/
-    top-nav.tsx         — Sticky top nav (Discovery, Scope, Roadmap)
-    editable-fields.tsx — EditableText, EditableTextarea, EditableList, EditablePriority
+    top-nav.tsx           — Sticky nav (Discovery, Scope, Staging) + logo home link
+    feedback-modal.tsx    — FeedbackButton, FeedbackModal, FeedbackBanner
+    editable-fields.tsx   — EditableText, EditableTextarea, EditableList, EditablePriority
+    linear-connect-modal.tsx / linear-send-modal.tsx — Linear integration
+    jira-connect-modal.tsx / jira-send-modal.tsx     — Jira integration
   api/
-    process/route.ts         — Extract problems from transcript (Haiku 4.5)
-    generate-solution/       — Generate solution + work items per problem (Haiku 4.5)
-    generate-ticket/         — Generate full ticket detail (Sonnet 4.5)
+    process/route.ts           — Extract problems from transcript (Haiku 4.5)
+    generate-solution/route.ts — Generate solution + work items per problem (Haiku 4.5)
+    generate-ticket/route.ts   — Generate full ticket detail (Sonnet 4.5)
+    feedback/route.ts          — Store feedback in Upstash Redis
+    share/route.ts             — Create shareable ticket bundles
+    linear/route.ts            — Linear API proxy
+    jira/route.ts              — Jira API proxy
+    fireflies/route.ts         — Fireflies transcript fetch
 lib/
-  types.ts              — Shared TypeScript types
-PROJECT-STATUS.md       — Full product status inventory
+  types.ts  — Shared TypeScript types
+  kv.ts     — Upstash Redis helpers
+  jira.ts   — Jira credential types
+  share.ts  — Share bundle creation
 ```
