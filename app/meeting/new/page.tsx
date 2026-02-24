@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Results from "@/app/results";
 import Roadmap from "@/app/roadmap";
 import { useNav } from "@/app/nav-context";
@@ -83,6 +84,7 @@ const ClipboardIcon = () => (
 const STEP_ICONS = [SearchIcon, SearchIcon, BoltIcon, ClipboardIcon];
 
 export default function Discovery() {
+  const meetingRouter = useRouter();
   const [isDragOver, setIsDragOver] = useState(false);
   const [localTranscript, setLocalTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -530,6 +532,7 @@ export default function Discovery() {
           {MOCK_MEETING_RECORDS.slice(0, 6).map((meeting) => (
             <button
               key={meeting.id}
+              onClick={() => meetingRouter.push(`/meeting/${meeting.id}`)}
               className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
             >
               <div

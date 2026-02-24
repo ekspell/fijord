@@ -252,6 +252,7 @@ export default function Sidebar() {
         {MOCK_MEETING_RECORDS.map((meeting) => (
           <button
             key={meeting.id}
+            onClick={() => router.push(`/meeting/${meeting.id}`)}
             className="flex w-full items-center gap-2.5 px-5 py-2 text-left text-muted transition-all hover:bg-background hover:text-foreground"
             style={{ fontSize: 14 }}
           >
