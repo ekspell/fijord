@@ -1,8 +1,8 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { MOCK_EPICS } from "@/lib/mock-epics";
-import { MOCK_MEETING_RECORDS } from "@/lib/mock-data";
+import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
+import { MOCK_SIGNALS, MOCK_MEETING_RECORDS } from "@/lib/mock-data";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -10,6 +10,17 @@ export default function Sidebar() {
 
   const isEpicsActive =
     pathname === "/epics" || pathname.startsWith("/epic/");
+  const isSignalsActive =
+    pathname === "/signals" || pathname.startsWith("/signals/");
+
+  // Dynamic counts from data
+  const signalCount = MOCK_SIGNALS.length;
+  const newSignalCount = MOCK_SIGNALS.filter((s) => s.status === "new").length;
+
+  // Extract current epic id from path
+  const currentEpicId = pathname.startsWith("/epic/")
+    ? pathname.split("/")[2]
+    : null;
 
   return (
     <aside
@@ -22,7 +33,7 @@ export default function Sidebar() {
         style={{ paddingTop: 20, marginBottom: 24 }}
       >
         <button
-          onClick={() => router.push("/epics")}
+          onClick={() => router.push("/")}
           className="flex items-center gap-2.5 text-lg font-semibold text-foreground"
         >
           <svg
@@ -74,6 +85,7 @@ export default function Sidebar() {
 
       {/* Main nav */}
       <nav className="mb-6">
+        {/* Home */}
         <button
           onClick={() => router.push("/")}
           className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-[15px] transition-all ${
@@ -97,7 +109,16 @@ export default function Sidebar() {
           </svg>
           Home
         </button>
-        <button className="flex w-full items-center gap-2.5 px-5 py-2.5 text-[15px] text-muted transition-all hover:bg-background hover:text-foreground">
+
+        {/* Signals */}
+        <button
+          onClick={() => router.push("/signals")}
+          className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-[15px] transition-all ${
+            isSignalsActive
+              ? "bg-accent-green-light text-accent"
+              : "text-muted hover:bg-background hover:text-foreground"
+          }`}
+        >
           <svg
             width="16"
             height="16"
@@ -111,28 +132,34 @@ export default function Sidebar() {
             <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
           Signals
-          <span
-            className="ml-auto rounded-full text-xs font-semibold text-white"
-            style={{
-              background: "#3D5A3D",
-              padding: "2px 6px",
-              fontSize: 10,
-            }}
-          >
-            4
-          </span>
-          <span
-            className="rounded-full text-xs font-semibold"
-            style={{
-              background: "#E8F0E8",
-              color: "#3D5A3D",
-              padding: "2px 6px",
-              fontSize: 10,
-            }}
-          >
-            NEW
-          </span>
+          {signalCount > 0 && (
+            <span
+              className="ml-auto rounded-full text-xs font-semibold text-white"
+              style={{
+                background: "#3D5A3D",
+                padding: "2px 6px",
+                fontSize: 10,
+              }}
+            >
+              {signalCount}
+            </span>
+          )}
+          {newSignalCount > 0 && (
+            <span
+              className="rounded-full text-xs font-semibold"
+              style={{
+                background: "#E8F0E8",
+                color: "#3D5A3D",
+                padding: "2px 6px",
+                fontSize: 10,
+              }}
+            >
+              NEW
+            </span>
+          )}
         </button>
+
+        {/* Epics */}
         <button
           onClick={() => router.push("/epics")}
           className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-[15px] transition-all ${
@@ -174,24 +201,32 @@ export default function Sidebar() {
         >
           Epics
         </div>
-        {MOCK_EPICS.map((epic) => (
-          <button
-            key={epic.id}
-            onClick={() => router.push(`/epic/${epic.id}`)}
-            className="flex w-full items-center gap-2.5 px-5 py-2 text-left text-muted transition-all hover:bg-background hover:text-foreground"
-            style={{ fontSize: 14 }}
-          >
-            <span
-              className="shrink-0 rounded-full"
-              style={{
-                width: 8,
-                height: 8,
-                background: "#3D5A3D",
-              }}
-            />
-            {epic.title}
-          </button>
-        ))}
+        {MOCK_EPICS.map((epic) => {
+          const isActive = currentEpicId === epic.id;
+          const dotColor = STATUS_STYLES[epic.status].text;
+          return (
+            <button
+              key={epic.id}
+              onClick={() => router.push(`/epic/${epic.id}`)}
+              className={`flex w-full items-center gap-2.5 px-5 py-2 text-left transition-all ${
+                isActive
+                  ? "bg-accent-green-light text-accent"
+                  : "text-muted hover:bg-background hover:text-foreground"
+              }`}
+              style={{ fontSize: 14 }}
+            >
+              <span
+                className="shrink-0 rounded-full"
+                style={{
+                  width: 8,
+                  height: 8,
+                  background: dotColor,
+                }}
+              />
+              {epic.title}
+            </button>
+          );
+        })}
         <button
           className="flex w-full items-center gap-2.5 px-5 py-2 text-muted transition-all hover:text-accent"
           style={{ fontSize: 14 }}
@@ -220,6 +255,19 @@ export default function Sidebar() {
             className="flex w-full items-center gap-2.5 px-5 py-2 text-left text-muted transition-all hover:bg-background hover:text-foreground"
             style={{ fontSize: 14 }}
           >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0"
+            >
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+            </svg>
             {meeting.title} — {meeting.date}
           </button>
         ))}
@@ -227,7 +275,7 @@ export default function Sidebar() {
 
       {/* User */}
       <div
-        className="mt-auto flex items-center gap-2.5 border-t border-border px-5"
+        className="mt-auto flex items-center gap-2.5 border-t border-border"
         style={{ padding: "16px 20px" }}
       >
         <div

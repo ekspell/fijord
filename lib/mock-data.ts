@@ -8,6 +8,8 @@ export type Signal = {
   tags: string[];
   status: "new" | "stable" | "project";
   color: string; // dot + progress bar color
+  recentDelta?: string; // e.g. "+2 this week"
+  epicId?: string; // linked epic id if status === "project"
 };
 
 export type MeetingRecord = {
@@ -29,6 +31,8 @@ export const MOCK_SIGNALS: Signal[] = [
     tags: ["roles", "empty-state", "invite-flow"],
     status: "project",
     color: "#3D5A3D",
+    recentDelta: "+2 this week",
+    epicId: "onboarding-confusion",
   },
   {
     id: "ai-output-trust-signal",
@@ -40,6 +44,8 @@ export const MOCK_SIGNALS: Signal[] = [
     tags: ["confidence-score", "explainability"],
     status: "project",
     color: "#3B82F6",
+    recentDelta: "+1 this week",
+    epicId: "ai-output-trust",
   },
   {
     id: "pricing-tier-confusion",
