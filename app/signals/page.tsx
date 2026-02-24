@@ -12,7 +12,10 @@ function SignalCard({ signal }: { signal: Signal }) {
     signal.status === "stable" && signal.strength >= 50;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]">
+    <div
+      onClick={() => router.push(`/signals/${signal.id}`)}
+      className="cursor-pointer rounded-xl border border-border bg-card p-6 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+    >
       {/* Header row */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -125,7 +128,10 @@ function SignalCard({ signal }: { signal: Signal }) {
       {/* Action row */}
       {isProject && signal.epicId && (
         <button
-          onClick={() => router.push(`/epic/${signal.epicId}`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/epic/${signal.epicId}`);
+          }}
           className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
           style={{ background: "#3D5A3D" }}
         >
@@ -136,6 +142,7 @@ function SignalCard({ signal }: { signal: Signal }) {
       {showSuggestion && (
         <div className="flex items-center gap-3">
           <button
+            onClick={(e) => e.stopPropagation()}
             className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ background: "#3D5A3D" }}
           >
