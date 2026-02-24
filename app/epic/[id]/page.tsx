@@ -185,6 +185,189 @@ function DiscoveryTab({ epicId }: { epicId: string }) {
   );
 }
 
+/* ─── Ticket Accordion Row ─── */
+
+function TicketRow({ ticket }: { ticket: EpicTicket }) {
+  const [open, setOpen] = useState(false);
+  const statusStyle = TICKET_STATUS_STYLES[ticket.status];
+  const priorityStyle = PRIORITY_STYLES[ticket.priority];
+  const hasDetails = ticket.description || ticket.acceptanceCriteria || ticket.sourceQuote;
+
+  return (
+    <div
+      className="rounded-lg border border-border transition-colors hover:border-border-hover"
+    >
+      {/* Header row */}
+      <button
+        onClick={() => hasDetails && setOpen(!open)}
+        className={`flex w-full items-center gap-3 text-left transition-colors ${hasDetails ? "cursor-pointer" : "cursor-default"}`}
+        style={{ padding: "12px 16px" }}
+      >
+        {/* Chevron */}
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="shrink-0 transition-transform"
+          style={{
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            color: hasDetails ? "#9B9B9B" : "#E8E6E1",
+          }}
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+
+        {/* Checkbox */}
+        <div
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded border"
+          style={{
+            borderColor:
+              ticket.status === "shipped" ? "#3D5A3D" : "#E8E6E1",
+            background:
+              ticket.status === "shipped" ? "#3D5A3D" : "transparent",
+          }}
+        >
+          {ticket.status === "shipped" && (
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </div>
+
+        {/* Title */}
+        <span
+          className={`flex-1 ${ticket.status === "shipped" ? "text-muted line-through" : "text-foreground"}`}
+          style={{ fontSize: 14 }}
+        >
+          {ticket.title}
+        </span>
+
+        {/* Priority */}
+        <span
+          className="shrink-0 rounded font-medium"
+          style={{
+            fontSize: 11,
+            padding: "2px 6px",
+            background: priorityStyle.bg,
+            color: priorityStyle.text,
+          }}
+        >
+          {priorityStyle.label}
+        </span>
+
+        {/* Status */}
+        <span
+          className="shrink-0 rounded font-medium"
+          style={{
+            fontSize: 11,
+            padding: "2px 6px",
+            background: statusStyle.bg,
+            color: statusStyle.text,
+          }}
+        >
+          {statusStyle.label}
+        </span>
+
+        {/* Assignee */}
+        {ticket.assignee && (
+          <span className="shrink-0 text-muted" style={{ fontSize: 12 }}>
+            {ticket.assignee}
+          </span>
+        )}
+      </button>
+
+      {/* Expanded detail */}
+      {open && hasDetails && (
+        <div
+          className="border-t border-border bg-background"
+          style={{ padding: "16px 16px 16px 47px" }}
+        >
+          {/* Description */}
+          {ticket.description && (
+            <div style={{ marginBottom: ticket.acceptanceCriteria || ticket.sourceQuote ? 16 : 0 }}>
+              <div
+                className="font-medium text-foreground"
+                style={{ fontSize: 12, marginBottom: 4 }}
+              >
+                Description
+              </div>
+              <p
+                className="leading-relaxed text-muted"
+                style={{ fontSize: 13 }}
+              >
+                {ticket.description}
+              </p>
+            </div>
+          )}
+
+          {/* Acceptance criteria */}
+          {ticket.acceptanceCriteria && ticket.acceptanceCriteria.length > 0 && (
+            <div style={{ marginBottom: ticket.sourceQuote ? 16 : 0 }}>
+              <div
+                className="font-medium text-foreground"
+                style={{ fontSize: 12, marginBottom: 6 }}
+              >
+                Acceptance criteria
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {ticket.acceptanceCriteria.map((ac, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 text-muted"
+                    style={{ fontSize: 13 }}
+                  >
+                    <div
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                      style={{ background: "#D0CEC9" }}
+                    />
+                    {ac}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Source quote */}
+          {ticket.sourceQuote && (
+            <div>
+              <div
+                className="font-medium text-foreground"
+                style={{ fontSize: 12, marginBottom: 6 }}
+              >
+                Source evidence
+              </div>
+              <div
+                className="leading-relaxed text-muted"
+                style={{
+                  fontSize: 13,
+                  paddingLeft: 12,
+                  borderLeft: "3px solid #3D5A3D",
+                }}
+              >
+                &ldquo;{ticket.sourceQuote}&rdquo;
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Scope Tab ─── */
 
 function ScopeTab({ tickets }: { tickets: EpicTicket[] }) {
@@ -198,83 +381,9 @@ function ScopeTab({ tickets }: { tickets: EpicTicket[] }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {tickets.map((ticket) => {
-        const statusStyle = TICKET_STATUS_STYLES[ticket.status];
-        const priorityStyle = PRIORITY_STYLES[ticket.priority];
-        return (
-          <div
-            key={ticket.id}
-            className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 transition-colors hover:bg-background"
-          >
-            {/* Checkbox-style indicator */}
-            <div
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded border"
-              style={{
-                borderColor:
-                  ticket.status === "shipped" ? "#3D5A3D" : "#E8E6E1",
-                background:
-                  ticket.status === "shipped" ? "#3D5A3D" : "transparent",
-              }}
-            >
-              {ticket.status === "shipped" && (
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              )}
-            </div>
-
-            {/* Title */}
-            <span
-              className={`flex-1 ${ticket.status === "shipped" ? "text-muted line-through" : "text-foreground"}`}
-              style={{ fontSize: 14 }}
-            >
-              {ticket.title}
-            </span>
-
-            {/* Priority */}
-            <span
-              className="shrink-0 rounded font-medium"
-              style={{
-                fontSize: 11,
-                padding: "2px 6px",
-                background: priorityStyle.bg,
-                color: priorityStyle.text,
-              }}
-            >
-              {priorityStyle.label}
-            </span>
-
-            {/* Status */}
-            <span
-              className="shrink-0 rounded font-medium"
-              style={{
-                fontSize: 11,
-                padding: "2px 6px",
-                background: statusStyle.bg,
-                color: statusStyle.text,
-              }}
-            >
-              {statusStyle.label}
-            </span>
-
-            {/* Assignee */}
-            {ticket.assignee && (
-              <span className="shrink-0 text-muted" style={{ fontSize: 12 }}>
-                {ticket.assignee}
-              </span>
-            )}
-          </div>
-        );
-      })}
+      {tickets.map((ticket) => (
+        <TicketRow key={ticket.id} ticket={ticket} />
+      ))}
     </div>
   );
 }
