@@ -8,6 +8,12 @@
   --color-accent-light: #4a6e4a;
   --color-foreground: #1a1a1a;
   --color-muted: #6b6b6b;
+  --color-border-hover: #D0CEC9;
+  --color-accent-yellow: #D97706;
+  --color-accent-yellow-light: #FEF3C7;
+  --color-accent-red: #DC2626;
+  --color-accent-red-light: #FEE2E2;
+  --color-accent-green-light: #E8F0E8;
   --font-sans: var(--font-dm-sans);
 }
 

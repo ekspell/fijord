@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import TopNav from "./top-nav";
+import Sidebar from "./sidebar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -12,11 +12,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
-      <TopNav />
-      <main className="overflow-y-auto px-8 pt-10 pb-8">
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main
+        className="flex-1 overflow-y-auto pb-8"
+        style={{ marginLeft: 240, paddingTop: 32, paddingLeft: 48, paddingRight: 48 }}
+      >
         {children}
       </main>
-    </>
+    </div>
   );
 }

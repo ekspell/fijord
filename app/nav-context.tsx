@@ -153,7 +153,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [transcript, setTranscriptState] = useState("");
   const [processingTime, setProcessingTime] = useState("0");
   const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
-  const [showLanding, setShowLanding] = useState(true);
+  const [showLanding, setShowLanding] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   const setResult = useCallback((r: ProblemsResult | null) => {

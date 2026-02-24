@@ -1,539 +1,348 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import Results from "./results";
-import Roadmap from "./roadmap";
-import { useNav } from "./nav-context";
-import { ProblemsResult, solutionResult } from "@/lib/types";
-import { firefliesFetch, FIREFLIES_QUERIES, formatTranscript, FirefliesTranscript, FirefliesError } from "@/lib/fireflies";
-import FirefliesConnectModal from "./components/fireflies-connect-modal";
-import Landing from "./landing";
+import { useRouter } from "next/navigation";
+import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
+import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
+import type { Signal } from "@/lib/mock-data";
+import type { Epic } from "@/lib/mock-epics";
 
-const DEMO_TRANSCRIPT = `Sarah (PM): Alright, let's go through what we heard from the last round of user interviews. I talked to eight customers this week and there are some clear patterns.
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
-Mike (Engineering): Sounds good. What's the biggest thing?
+/* ─── Quick Action Cards ─── */
 
-Sarah (PM): Onboarding is still a mess. Four out of eight people said they almost gave up during signup. One person told me, "I had to click through six screens before I could even see what the product does. I almost closed the tab."
-
-Lisa (Design): That tracks with what we're seeing in the analytics. We have a 62% drop-off between the signup form and the dashboard.
-
-Mike (Engineering): Do we know where exactly they're dropping?
-
-Sarah (PM): Mostly the team invitation step. People don't want to invite their team before they've even tried the product themselves. Another user said, "Why are you asking me to invite people when I don't even know if this is useful yet?"
-
-Lisa (Design): We should make that step optional, or move it to after they've had their first success moment.
-
-Sarah (PM): Agreed. The second big theme is search. Almost everyone complained about it. One customer said, "I search for something I know exists and get completely irrelevant results. I've started just scrolling through everything manually." Another person told me their team has basically given up on search entirely and just uses browser find.
-
-Mike (Engineering): Our search is just doing basic string matching right now. We've known it's bad, but it hasn't been prioritized.
-
-Sarah (PM): Well, it's now the number one complaint. People are working around it by creating elaborate folder structures and naming conventions just to avoid having to search. A customer literally said, "We spend 30 minutes every Monday reorganizing our workspace because search doesn't work."
-
-Lisa (Design): What about the third pattern?
-
-Sarah (PM): Notifications. People are overwhelmed. Three users independently said they've turned off all notifications because there's no way to control what you get notified about. One quote that stuck with me: "I was getting 40 notifications a day and maybe two of them were actually relevant to me. I just turned them all off, and now I miss important stuff."
-
-Mike (Engineering): Right, it's all-or-nothing right now. You either get everything or nothing.
-
-Sarah (PM): Exactly. And the downstream effect is that people miss critical updates. One customer said, "My teammate made a breaking change to the API spec and I didn't find out until production broke. The notification was buried in the hundred other ones I'd muted."
-
-Lisa (Design): We need granular notification controls. Per-project, per-type, that kind of thing.
-
-Mike (Engineering): That's a decent amount of work on the backend. We'd need to build a preferences system.
-
-Sarah (PM): I think it's worth it. The notification problem is causing real trust issues. People don't feel like they can rely on the product to tell them what matters.
-
-Lisa (Design): Any other themes?
-
-Sarah (PM): Those are the big three. Onboarding friction, broken search, and notification overload. Each one came up with multiple customers unprompted, so I'm confident these are real problems, not edge cases.
-
-Mike (Engineering): Makes sense. Let's figure out how to tackle these.`;
-
-type Step = {
-  title: string;
-  detail: string;
-  status: "done" | "active" | "pending";
-};
-
-const CheckIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-const SearchIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" />
-    <path d="M21 21l-4.35-4.35" />
-  </svg>
-);
-
-const BoltIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-  </svg>
-);
-
-const ClipboardIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-  </svg>
-);
-
-const STEP_ICONS = [SearchIcon, SearchIcon, BoltIcon, ClipboardIcon];
-
-export default function Discovery() {
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [localTranscript, setLocalTranscript] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const startTime = useRef<number>(0);
-
-  const [showFirefliesConnect, setShowFirefliesConnect] = useState(false);
-  const [firefliesTranscripts, setFirefliesTranscripts] = useState<FirefliesTranscript[]>([]);
-  const [loadingTranscripts, setLoadingTranscripts] = useState(false);
-  const [fetchingTranscriptId, setFetchingTranscriptId] = useState<string | null>(null);
-
-  const {
-    activeTab,
-    setActiveTab,
-    result,
-    setResult,
-    solutions,
-    setSolutions,
-    setTranscript,
-    setProcessingTime,
-    roadmap,
-    showToast,
-    firefliesApiKey,
-    setFirefliesApiKey,
-    showLanding,
-    setShowLanding,
-  } = useNav();
-
-  const handleEnterApp = () => {
-    setShowLanding(false);
-  };
-
-  const [steps, setSteps] = useState<Step[]>([
-    { title: "Reading transcript", detail: "Parsing input...", status: "pending" },
-    { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
-    { title: "Designing solutions", detail: "Connecting problems to fixes...", status: "pending" },
-    { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
-  ]);
-
-  const updateStep = (index: number, status: Step["status"], detail?: string) => {
-    setSteps((prev) =>
-      prev.map((s, i) => {
-        if (i < index) return { ...s, status: "done" };
-        if (i === index) return { ...s, status, detail: detail || s.detail };
-        return s;
-      })
-    );
-  };
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  }, []);
-
-  const handleProcess = async () => {
-    if (!localTranscript.trim()) return;
-    setIsProcessing(true);
-    setError(null);
-    startTime.current = Date.now();
-
-    try {
-      updateStep(0, "active", "Parsing input...");
-
-      const res = await fetch("/api/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcript: localTranscript }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Processing failed");
-      }
-
-      const problemsData: ProblemsResult = await res.json();
-
-      updateStep(1, "active", `Found ${problemsData.problems.length} problems`);
-      updateStep(2, "active", `Generating for ${problemsData.problems.length} problems...`);
-
-      const solutionPromises = problemsData.problems.map((problem) =>
-        fetch("/api/generate-solution", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript: localTranscript, problem }),
-        }).then(async (r) => {
-          if (!r.ok) throw new Error("Failed to generate solution");
-          return r.json() as Promise<solutionResult>;
-        })
-      );
-
-      const solutionResults = await Promise.all(solutionPromises);
-
-      // Assign sequential IDs, continuing from the highest existing roadmap ticket
-      const maxExisting = roadmap.reduce((max, t) => {
-        const match = t.id.match(/^FJD-(\d+)$/);
-        return match ? Math.max(max, parseInt(match[1], 10)) : max;
-      }, 100);
-      let ticketNum = maxExisting + 1;
-      solutionResults.forEach((sol) => {
-        sol.workItems.forEach((item) => {
-          item.id = `FJD-${ticketNum++}`;
-        });
-      });
-
-      const totalTickets = solutionResults.reduce((sum, s) => sum + s.workItems.length, 0);
-      updateStep(3, "done", `${totalTickets} tickets created`);
-
-      const elapsed = ((Date.now() - startTime.current) / 1000).toFixed(1);
-
-      // Store in shared context
-      setResult(problemsData);
-      setSolutions(solutionResults);
-      setTranscript(localTranscript);
-      setProcessingTime(elapsed);
-      setActiveTab("Scope");
-      setIsProcessing(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setIsProcessing(false);
-      setSteps([
-        { title: "Reading transcript", detail: "Parsing input...", status: "pending" },
-        { title: "Detecting problems", detail: "Finding pain points...", status: "pending" },
-        { title: "Generating solutions", detail: "Creating solutions...", status: "pending" },
-        { title: "Writing tickets", detail: "Structuring work items...", status: "pending" },
-      ]);
-    }
-  };
-
-  // Load Fireflies transcripts when connected
-  const loadFirefliesTranscripts = useCallback(async () => {
-    if (!firefliesApiKey) return;
-    setLoadingTranscripts(true);
-    try {
-      const data = await firefliesFetch(FIREFLIES_QUERIES.transcripts, undefined, firefliesApiKey);
-      const transcripts = data.data?.transcripts || [];
-      setFirefliesTranscripts(transcripts.slice(0, 5));
-    } catch {
-      // Silently fail — user can still paste manually
-    } finally {
-      setLoadingTranscripts(false);
-    }
-  }, [firefliesApiKey]);
-
-  useEffect(() => {
-    if (firefliesApiKey) loadFirefliesTranscripts();
-  }, [firefliesApiKey, loadFirefliesTranscripts]);
-
-  const handleFirefliesConnect = (key: string) => {
-    setFirefliesApiKey(key);
-    setShowFirefliesConnect(false);
-    showToast("Fireflies connected — select a transcript to import");
-  };
-
-  const handleSelectTranscript = async (transcript: FirefliesTranscript) => {
-    if (!firefliesApiKey) return;
-    setFetchingTranscriptId(transcript.id);
-    try {
-      const data = await firefliesFetch(
-        FIREFLIES_QUERIES.transcript,
-        { id: transcript.id },
-        firefliesApiKey
-      );
-      const sentences = data.data?.transcript?.sentences || [];
-      if (sentences.length === 0) {
-        showToast("No transcript content found for this meeting");
-        return;
-      }
-      const formatted = formatTranscript(sentences);
-      setLocalTranscript(formatted);
-      showToast(`Imported "${transcript.title}" — click Process to continue`);
-    } catch (err) {
-      if (err instanceof FirefliesError) {
-        showToast(err.message);
-      } else {
-        showToast("Failed to load transcript — try again");
-      }
-    } finally {
-      setFetchingTranscriptId(null);
-    }
-  };
-
-  // Landing page for first-time visitors
-  if (showLanding) {
-    return <Landing onEnter={handleEnterApp} />;
-  }
-
-  // Tab-based rendering
-  if (activeTab === "Scope" && result) {
-    return <Results />;
-  }
-
-  if (activeTab === "Staging") {
-    return <Roadmap />;
-  }
-
-  if (isProcessing) {
-    return (
-      <div className="flex min-h-[80vh] flex-col">
-        <main className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
-          <div className="w-full max-w-md text-center">
-            <div className="relative mx-auto mb-8 h-20 w-20">
-              <div className="h-20 w-20 animate-spin rounded-full border-[3px] border-border border-t-accent" />
-              <svg
-                className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-accent"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-
-            <h1 className="mb-3 text-2xl font-medium text-foreground">
-              Analyzing transcript...
-            </h1>
-            <p className="mb-12 text-[15px] leading-relaxed text-muted">
-              Extracting problems, generating solutions, and writing
-              tickets. This usually takes 10&ndash;20 seconds.
-            </p>
-
-            <div className="rounded-xl border border-border bg-card p-6 text-left">
-              {steps.map((step, i) => {
-                const Icon = STEP_ICONS[i];
-                return (
-                  <div
-                    key={step.title}
-                    className={`flex items-start gap-4 py-3 ${
-                      i < steps.length - 1 ? "border-b border-border" : ""
-                    }`}
-                  >
-                    <div
-                      className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                        step.status === "done"
-                          ? "bg-accent text-white"
-                          : step.status === "active"
-                            ? "animate-pulse bg-accent/15 text-accent"
-                            : "bg-border text-muted/70"
-                      }`}
-                    >
-                      {step.status === "done" ? <CheckIcon /> : <Icon />}
-                    </div>
-                    <div>
-                      <p
-                        className={`text-sm font-medium ${
-                          step.status === "pending" ? "text-muted/70" : "text-foreground"
-                        }`}
-                      >
-                        {step.title}
-                      </p>
-                      <p
-                        className={`text-[13px] ${
-                          step.status === "pending" ? "text-muted/50" : "text-muted"
-                        }`}
-                      >
-                        {step.detail}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+function QuickActions() {
+  const router = useRouter();
 
   return (
-    <div className="mx-auto max-w-[1100px]" style={{ paddingTop: 80 }}>
-      <div className="mb-2">
-        <h1
-          className="text-foreground"
+    <div className="mb-10 grid grid-cols-2 gap-4">
+      <button
+        onClick={() => router.push("/meeting/new")}
+        className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+      >
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          style={{ background: "#E8F0E8" }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#3D5A3D"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+          </svg>
+        </div>
+        <div>
+          <div className="font-medium text-foreground" style={{ fontSize: 15 }}>
+            Process a new meeting
+          </div>
+          <div className="text-muted" style={{ fontSize: 13 }}>
+            Paste a transcript or begin recording
+          </div>
+        </div>
+      </button>
+
+      <button
+        className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+      >
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          style={{ background: "#EDE9FE" }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#7C3AED"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="12" y1="18" x2="12" y2="12" />
+            <line x1="9" y1="15" x2="15" y2="15" />
+          </svg>
+        </div>
+        <div>
+          <div className="font-medium text-foreground" style={{ fontSize: 15 }}>
+            Upload docs
+          </div>
+          <div className="text-muted" style={{ fontSize: 13 }}>
+            4 signals detected across 6 meetings
+          </div>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+/* ─── Signal Card ─── */
+
+function SignalCard({ signal }: { signal: Signal }) {
+  const router = useRouter();
+  const status = SIGNAL_STATUS_STYLES[signal.status];
+  const showRecurringBanner =
+    signal.status === "stable" && signal.strength >= 50;
+
+  return (
+    <div
+      onClick={() => router.push(`/signals/${signal.id}`)}
+      className="cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+    >
+      {/* Header */}
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            className="rounded-full"
+            style={{
+              width: 8,
+              height: 8,
+              background: signal.color,
+            }}
+          />
+          <span className="font-medium text-foreground" style={{ fontSize: 14 }}>
+            {signal.title}
+          </span>
+        </div>
+        <span
+          className="rounded-md font-medium"
           style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '48px',
-            letterSpacing: '-1px',
-            lineHeight: '74.4px',
-            fontWeight: 300,
+            fontSize: 12,
+            padding: "2px 8px",
+            background: status.bg,
+            color: status.text,
           }}
         >
-          Process a Transcript
-        </h1>
-        <p className="mt-2 text-sm text-muted">
-          Record a meeting or upload a transcript to extract issues, evidence,
-          and suggested work.
-        </p>
+          {status.label}
+        </span>
       </div>
 
-      <div className="mt-8 flex flex-col items-center">
-        <div className="w-full">
-          {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-          <div className="relative">
-            <textarea
-              value={localTranscript}
-              onChange={(e) => setLocalTranscript(e.target.value)}
-              className="h-40 w-full resize-none rounded-xl border border-border bg-card p-4 text-sm text-foreground focus:border-accent/40 focus:outline-none"
-            />
-            {!localTranscript && (
-              <div className="pointer-events-none absolute left-4 top-4 text-sm text-muted/60">
-                Paste a meeting transcript here, or{" "}
-                <button
-                  onClick={() => setLocalTranscript(DEMO_TRANSCRIPT)}
-                  className="pointer-events-auto text-accent underline transition-colors hover:text-accent/80"
-                >
-                  use a demo transcript
-                </button>
-              </div>
-            )}
-          </div>
-          <button
-            onClick={handleProcess}
-            disabled={!localTranscript.trim()}
-            className="mt-3 w-full rounded-lg bg-foreground px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
+      {/* Mention count */}
+      <div className="mb-3 text-muted" style={{ fontSize: 13 }}>
+        Mentioned in {signal.meetingCount} of {signal.totalMeetings} meetings
+        {" \u00b7 "}
+        {signal.quoteCount} quotes
+      </div>
+
+      {/* Progress bar */}
+      <div
+        className="mb-3 overflow-hidden rounded-full bg-border"
+        style={{ height: 4 }}
+      >
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${signal.strength}%`,
+            background: signal.color,
+          }}
+        />
+      </div>
+
+      {/* Tags */}
+      <div className="flex flex-wrap gap-1.5">
+        {signal.tags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-md border border-border text-muted"
+            style={{ fontSize: 12, padding: "2px 8px" }}
           >
-            Process transcript
-          </button>
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Recurring pattern banner */}
+      {showRecurringBanner && (
+        <div
+          className="mt-3 rounded-lg px-3 py-2"
+          style={{
+            background: "#FEF3C7",
+            color: "#92400E",
+            fontSize: 13,
+          }}
+        >
+          ⚡ Recurring pattern — consider creating a project
         </div>
+      )}
+    </div>
+  );
+}
 
-        <div className="my-8 flex w-full items-center gap-4">
-          <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted">or import from</span>
-          <div className="h-px flex-1 bg-border" />
+/* ─── Epic Preview Card ─── */
+
+function EpicPreviewCard({ epic }: { epic: Epic }) {
+  const router = useRouter();
+  const status = STATUS_STYLES[epic.status];
+  const startDate = epic.dateLabel.match(/Started (.+?)( ·|$)/)?.[1] || "";
+  const now = new Date();
+  const start = new Date(`${startDate}, 2026`);
+  const days = Math.max(
+    1,
+    Math.round((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  return (
+    <div
+      onClick={() => router.push(`/epic/${epic.id}`)}
+      className="cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+    >
+      {/* Header */}
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-medium text-foreground" style={{ fontSize: 14 }}>
+          {epic.title}
+        </span>
+        <div
+          className="flex items-center gap-1.5 rounded-md font-medium"
+          style={{
+            fontSize: 11,
+            padding: "2px 8px",
+            background: status.bg,
+            color: status.text,
+          }}
+        >
+          <span
+            className="rounded-full"
+            style={{
+              width: 5,
+              height: 5,
+              background: "currentColor",
+            }}
+          />
+          {status.label}
         </div>
+      </div>
 
-        {/* Integration cards — single row */}
-        <div className="flex w-full gap-6">
-          {/* Fireflies */}
-          {firefliesApiKey ? (
-            <button
-              onClick={loadFirefliesTranscripts}
-              className="flex flex-1 items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3.5 text-left transition-all hover:bg-accent/10"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#F3E8FF" }}>
-                <img src="/logos/fireflies.svg" alt="Fireflies" className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
-                <p className="text-[12px] text-accent">Connected</p>
-              </div>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowFirefliesConnect(true)}
-              className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-left transition-all hover:border-border/80 hover:bg-[#F9F8F6]"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#F3E8FF" }}>
-                <img src="/logos/fireflies.svg" alt="Fireflies" className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-foreground">Fireflies.ai</p>
-                <p className="text-[12px] text-muted">Connect &rarr;</p>
-              </div>
-            </button>
-          )}
+      {/* Description */}
+      <p
+        className="mb-4 leading-relaxed text-muted"
+        style={{ fontSize: 13 }}
+      >
+        {epic.description}
+      </p>
 
-          {/* Granola — coming soon */}
-          <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#FFF8E7" }}>
-              <img src="/logos/granola.svg" alt="Granola" className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground">Granola</p>
-              <p className="text-[12px] text-muted">Coming soon</p>
-            </div>
+      {/* Footer */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div
+            className="rounded-full"
+            style={{
+              width: 22,
+              height: 22,
+              background: "#D0CEC9",
+            }}
+          />
+          <span className="text-foreground" style={{ fontSize: 13 }}>
+            {epic.owner.name}
+          </span>
+        </div>
+        <span className="text-muted" style={{ fontSize: 12 }}>
+          Duration: {days} days
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Section Header ─── */
+
+function SectionHeader({
+  title,
+  href,
+}: {
+  title: string;
+  href: string;
+}) {
+  const router = useRouter();
+
+  return (
+    <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+      <h2 className="font-medium text-foreground" style={{ fontSize: 18 }}>
+        {title}
+      </h2>
+      <button
+        onClick={() => router.push(href)}
+        className="text-muted transition-colors hover:text-foreground"
+        style={{ fontSize: 13 }}
+      >
+        View all →
+      </button>
+    </div>
+  );
+}
+
+/* ─── Home Dashboard ─── */
+
+export default function Home() {
+  const greeting = getGreeting();
+
+  return (
+    <div className="mx-auto" style={{ maxWidth: 900 }}>
+      {/* Greeting */}
+      <h1
+        className="mb-1 text-foreground"
+        style={{
+          fontSize: 32,
+          fontWeight: 500,
+          letterSpacing: "-0.5px",
+        }}
+      >
+        {greeting}, Kate
+      </h1>
+      <p className="mb-8 text-muted" style={{ fontSize: 15 }}>
+        Here&apos;s what&apos;s happening across your discovery meetings.
+      </p>
+
+      {/* Quick actions */}
+      <QuickActions />
+
+      {/* Emerging signals */}
+      <section className="mb-10">
+        <SectionHeader title="Emerging signals" href="/signals" />
+        {MOCK_SIGNALS.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
+            <p className="text-sm text-muted">
+              No patterns detected yet. Process a few meetings to see emerging
+              themes.
+            </p>
           </div>
-
-          {/* Otter — coming soon */}
-          <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 opacity-60">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: "#E8F4FC" }}>
-              <img src="/logos/otter.svg" alt="Otter" className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-foreground">Otter.ai</p>
-              <p className="text-[12px] text-muted">Coming soon</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Fireflies transcript list (when connected) */}
-        {firefliesApiKey && (
-          <div className="mt-3 rounded-lg border border-border bg-card px-4 py-3">
-            <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Recent from Fireflies</p>
-            {loadingTranscripts ? (
-              <div className="flex items-center gap-2 py-2 text-[13px] text-muted">
-                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
-                Loading transcripts...
-              </div>
-            ) : firefliesTranscripts.length === 0 ? (
-              <p className="py-2 text-[13px] text-muted">No recent transcripts found</p>
-            ) : (
-              firefliesTranscripts.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => handleSelectTranscript(t)}
-                  disabled={fetchingTranscriptId !== null}
-                  className="flex w-full items-center justify-between border-b border-border py-2 text-left last:border-b-0 hover:text-accent disabled:opacity-50"
-                >
-                  <span className="text-[13px] font-medium">
-                    {fetchingTranscriptId === t.id ? (
-                      <span className="flex items-center gap-2 text-muted">
-                        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-muted/30 border-t-muted" />
-                        Importing...
-                      </span>
-                    ) : (
-                      t.title || "Untitled meeting"
-                    )}
-                  </span>
-                  <span className="text-[12px] text-muted">
-                    {t.date ? new Date(parseInt(t.date)).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
-                  </span>
-                </button>
-              ))
-            )}
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {MOCK_SIGNALS.slice(0, 4).map((signal) => (
+              <SignalCard key={signal.id} signal={signal} />
+            ))}
           </div>
         )}
+      </section>
 
-        {/* Tip box */}
-        <div className="mt-8 flex w-full items-start gap-2.5 rounded-xl bg-accent/5 px-4 py-3.5">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-accent">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
-          <p className="text-[13px] leading-relaxed text-accent">
-            Don&apos;t have a transcript tool? No problem — just paste any text from your notes, Google Docs, or email thread.
-          </p>
-        </div>
-      </div>
-
-      {/* Fireflies connect modal */}
-      {showFirefliesConnect && (
-        <FirefliesConnectModal
-          onClose={() => setShowFirefliesConnect(false)}
-          onConnected={handleFirefliesConnect}
-        />
-      )}
+      {/* Epics */}
+      <section className="mb-10">
+        <SectionHeader title="Epics" href="/epics" />
+        {MOCK_EPICS.length === 0 ? (
+          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
+            <p className="text-sm text-muted">
+              No projects yet. Create one manually or wait for signals to
+              emerge.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {MOCK_EPICS.slice(0, 4).map((epic) => (
+              <EpicPreviewCard key={epic.id} epic={epic} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
