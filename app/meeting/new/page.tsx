@@ -109,6 +109,7 @@ export default function Discovery() {
     showToast,
     firefliesApiKey,
     setFirefliesApiKey,
+    demoMode,
   } = useNav();
 
   const [steps, setSteps] = useState<Step[]>([
@@ -524,12 +525,20 @@ export default function Discovery() {
           <h2 className="font-medium text-foreground" style={{ fontSize: 18 }}>
             Meetings
           </h2>
-          <button className="text-muted transition-colors hover:text-foreground" style={{ fontSize: 13 }}>
+          <button onClick={() => meetingRouter.push("/")} className="text-muted transition-colors hover:text-foreground" style={{ fontSize: 13 }}>
             View all →
           </button>
         </div>
+        {(demoMode ? [] : MOCK_MEETING_RECORDS).length === 0 ? (
+          <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+            <p className="mb-1 text-sm font-medium text-foreground">No meetings yet</p>
+            <p className="text-sm text-muted">
+              Process your first transcript above to see it here.
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-3 gap-3">
-          {MOCK_MEETING_RECORDS.slice(0, 6).map((meeting) => (
+          {(demoMode ? [] : MOCK_MEETING_RECORDS).slice(0, 6).map((meeting) => (
             <button
               key={meeting.id}
               onClick={() => meetingRouter.push(`/meeting/${meeting.id}`)}
@@ -576,6 +585,7 @@ export default function Discovery() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* Fireflies connect modal */}

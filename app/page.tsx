@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useNav } from "@/app/nav-context";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
-import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
+import { MOCK_SIGNALS, MOCK_MEETING_RECORDS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 import type { Epic } from "@/lib/mock-epics";
 
@@ -17,6 +18,7 @@ function getGreeting(): string {
 
 function QuickActions() {
   const router = useRouter();
+  const { showToast, demoMode } = useNav();
 
   return (
     <div className="mb-10 grid grid-cols-2 gap-4">
@@ -55,6 +57,7 @@ function QuickActions() {
       </button>
 
       <button
+        onClick={() => showToast("Document upload coming soon")}
         className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
       >
         <div
@@ -82,7 +85,7 @@ function QuickActions() {
             Upload docs
           </div>
           <div className="text-muted" style={{ fontSize: 13 }}>
-            4 signals detected across 6 meetings
+            {demoMode ? "Upload documents to get started" : `${MOCK_SIGNALS.length} signals detected across ${MOCK_MEETING_RECORDS.length} meetings`}
           </div>
         </div>
       </button>
@@ -287,7 +290,10 @@ function SectionHeader({
 /* ─── Home Dashboard ─── */
 
 export default function Home() {
+  const { demoMode } = useNav();
   const greeting = getGreeting();
+  const signals = demoMode ? [] : MOCK_SIGNALS;
+  const epics = demoMode ? [] : MOCK_EPICS;
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900, paddingTop: 36 }}>
@@ -313,7 +319,7 @@ export default function Home() {
       {/* Emerging signals */}
       <section className="mb-10">
         <SectionHeader title="Emerging signals" href="/signals" />
-        {MOCK_SIGNALS.length === 0 ? (
+        {signals.length === 0 ? (
           <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
             <p className="text-sm text-muted">
               No patterns detected yet. Process a few meetings to see emerging
@@ -322,7 +328,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {MOCK_SIGNALS.slice(0, 4).map((signal) => (
+            {signals.slice(0, 4).map((signal) => (
               <SignalCard key={signal.id} signal={signal} />
             ))}
           </div>
@@ -332,7 +338,7 @@ export default function Home() {
       {/* Epics */}
       <section className="mb-10">
         <SectionHeader title="Epics" href="/epics" />
-        {MOCK_EPICS.length === 0 ? (
+        {epics.length === 0 ? (
           <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
             <p className="text-sm text-muted">
               No projects yet. Create one manually or wait for signals to
@@ -341,7 +347,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
-            {MOCK_EPICS.slice(0, 4).map((epic) => (
+            {epics.slice(0, 4).map((epic) => (
               <EpicPreviewCard key={epic.id} epic={epic} />
             ))}
           </div>

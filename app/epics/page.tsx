@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useNav } from "@/app/nav-context";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import type { Epic } from "@/lib/mock-epics";
 
@@ -120,7 +121,13 @@ function EpicCard({ epic }: { epic: Epic }) {
   );
 }
 
-function CreateEpicModal({ onClose }: { onClose: () => void }) {
+function CreateEpicModal({
+  onClose,
+  onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (title: string) => void;
+}) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [owner, setOwner] = useState("");
@@ -186,7 +193,9 @@ function CreateEpicModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             disabled={!title.trim()}
-            className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => onCreate(title)}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ background: "#3D5A3D" }}
           >
             Create epic
           </button>
@@ -197,13 +206,16 @@ function CreateEpicModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function EpicsPage() {
+  const router = useRouter();
+  const { showToast, demoMode } = useNav();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const epics = demoMode ? [] : MOCK_EPICS;
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
       {/* Breadcrumb */}
       <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <span className="cursor-pointer hover:text-foreground">Home</span>
+        <button onClick={() => router.push("/")} className="hover:text-foreground">Home</button>
         {" › "}
         <span className="text-accent">Epics</span>
       </div>
@@ -226,23 +238,50 @@ export default function EpicsPage() {
       </p>
 
       {/* Epic cards */}
-      <div className="flex flex-col gap-3">
-        {MOCK_EPICS.map((epic) => (
-          <EpicCard key={epic.id} epic={epic} />
-        ))}
-
-        {/* Create new */}
-        <div
-          onClick={() => setShowCreateModal(true)}
-          className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border font-medium text-muted transition-all hover:border-accent hover:bg-accent-green-light hover:text-accent"
-          style={{ padding: 28, fontSize: 14 }}
-        >
-          + Create new epic
+      {epics.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-border">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+              <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+            </svg>
+          </div>
+          <p className="mb-1 text-sm font-medium text-foreground">No epics yet</p>
+          <p className="mb-6 text-sm text-muted">
+            Create your first epic or wait for signals to emerge from meetings.
+          </p>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: "#3D5A3D" }}
+          >
+            + Create epic
+          </button>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {epics.map((epic) => (
+            <EpicCard key={epic.id} epic={epic} />
+          ))}
+
+          {/* Create new */}
+          <div
+            onClick={() => setShowCreateModal(true)}
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border font-medium text-muted transition-all hover:border-accent hover:bg-accent-green-light hover:text-accent"
+            style={{ padding: 28, fontSize: 14 }}
+          >
+            + Create new epic
+          </div>
+        </div>
+      )}
 
       {showCreateModal && (
-        <CreateEpicModal onClose={() => setShowCreateModal(false)} />
+        <CreateEpicModal
+          onClose={() => setShowCreateModal(false)}
+          onCreate={(epicTitle) => {
+            setShowCreateModal(false);
+            showToast(`Epic "${epicTitle}" created`);
+          }}
+        />
       )}
     </div>
   );

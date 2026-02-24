@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useNav } from "@/app/nav-context";
 import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 
@@ -142,7 +143,10 @@ function SignalCard({ signal }: { signal: Signal }) {
       {showSuggestion && (
         <div className="flex items-center gap-3">
           <button
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/signals/${signal.id}`);
+            }}
             className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ background: "#3D5A3D" }}
           >
@@ -164,11 +168,15 @@ function SignalCard({ signal }: { signal: Signal }) {
 }
 
 export default function SignalsPage() {
+  const router = useRouter();
+  const { demoMode } = useNav();
+  const signals = demoMode ? [] : MOCK_SIGNALS;
+
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
       {/* Breadcrumb */}
       <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <span className="cursor-pointer hover:text-foreground">Home</span>
+        <button onClick={() => router.push("/")} className="hover:text-foreground">Home</button>
         {" › "}
         <span className="text-accent">Emerging signals</span>
       </div>
@@ -203,7 +211,7 @@ export default function SignalsPage() {
       </p>
 
       {/* Signal cards */}
-      {MOCK_SIGNALS.length === 0 ? (
+      {signals.length === 0 ? (
         <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
           <p className="text-sm text-muted">
             No patterns detected yet. Process a few meetings to see emerging
@@ -212,7 +220,7 @@ export default function SignalsPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {MOCK_SIGNALS.map((signal) => (
+          {signals.map((signal) => (
             <SignalCard key={signal.id} signal={signal} />
           ))}
         </div>

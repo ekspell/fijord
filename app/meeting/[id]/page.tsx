@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useNav } from "@/app/nav-context";
 import {
   MOCK_MEETING_RECORDS,
   MOCK_MEETING_DETAILS,
@@ -12,7 +13,13 @@ import type { MeetingProblem, TranscriptLine } from "@/lib/mock-data";
 
 /* ─── Assign Epic Modal ─── */
 
-function AssignEpicModal({ onClose }: { onClose: () => void }) {
+function AssignEpicModal({
+  onClose,
+  onAssign,
+}: {
+  onClose: () => void;
+  onAssign: (epicTitle: string) => void;
+}) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
@@ -31,6 +38,7 @@ function AssignEpicModal({ onClose }: { onClose: () => void }) {
             return (
               <button
                 key={epic.id}
+                onClick={() => onAssign(epic.title)}
                 className="flex items-center gap-3 rounded-lg border border-border px-4 py-3 text-left transition-colors hover:bg-accent-green-light"
               >
                 <div
@@ -77,7 +85,13 @@ function AssignEpicModal({ onClose }: { onClose: () => void }) {
 
 /* ─── Delete Confirmation Modal ─── */
 
-function DeleteModal({ onClose }: { onClose: () => void }) {
+function DeleteModal({
+  onClose,
+  onDelete,
+}: {
+  onClose: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
@@ -102,7 +116,7 @@ function DeleteModal({ onClose }: { onClose: () => void }) {
             Cancel
           </button>
           <button
-            onClick={onClose}
+            onClick={onDelete}
             className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ background: "#DC2626" }}
           >
@@ -213,14 +227,8 @@ function TranscriptDrawer({
 function ProblemCard({ problem }: { problem: MeetingProblem }) {
   return (
     <div
-      className="cursor-pointer rounded-xl border border-border bg-card transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
-      style={{ padding: 20, transform: "translateY(0)" }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
-      }}
+      className="rounded-xl border border-border bg-card"
+      style={{ padding: 20 }}
     >
       {/* Header */}
       <div className="mb-3 flex items-start justify-between">
@@ -278,6 +286,7 @@ function ProblemCard({ problem }: { problem: MeetingProblem }) {
 export default function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { showToast } = useNav();
   const [showTranscript, setShowTranscript] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -399,6 +408,7 @@ export default function MeetingDetailPage() {
               </button>
             )}
             <button
+              onClick={() => showToast("Reprocessing coming soon")}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card text-muted transition-colors hover:border-border-hover hover:text-foreground"
               style={{ padding: "10px 16px", fontSize: 13, fontWeight: 500 }}
             >
@@ -648,12 +658,25 @@ export default function MeetingDetailPage() {
 
       {/* Assign epic modal */}
       {showAssignModal && (
-        <AssignEpicModal onClose={() => setShowAssignModal(false)} />
+        <AssignEpicModal
+          onClose={() => setShowAssignModal(false)}
+          onAssign={(epicTitle) => {
+            setShowAssignModal(false);
+            showToast(`Assigned to "${epicTitle}"`);
+          }}
+        />
       )}
 
       {/* Delete modal */}
       {showDeleteModal && (
-        <DeleteModal onClose={() => setShowDeleteModal(false)} />
+        <DeleteModal
+          onClose={() => setShowDeleteModal(false)}
+          onDelete={() => {
+            setShowDeleteModal(false);
+            showToast("Meeting deleted");
+            router.push("/");
+          }}
+        />
       )}
     </div>
   );

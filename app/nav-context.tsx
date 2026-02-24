@@ -23,6 +23,7 @@ export type RoadmapTicket = {
   quotes?: Quote[];
 };
 
+const DEMO_MODE_KEY = "fjord-demo-mode";
 const STORAGE_KEY = "fjord-roadmap-v3";
 const RESULT_KEY = "fjord-result";
 const SOLUTIONS_KEY = "fjord-solutions";
@@ -113,6 +114,8 @@ type NavContextType = {
   showLanding: boolean;
   setShowLanding: (v: boolean) => void;
   triggerFeedback: () => void;
+  demoMode: boolean;
+  toggleDemoMode: () => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -144,6 +147,8 @@ const NavContext = createContext<NavContextType>({
   showLanding: true,
   setShowLanding: () => {},
   triggerFeedback: () => {},
+  demoMode: false,
+  toggleDemoMode: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -155,6 +160,18 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
   const [showLanding, setShowLanding] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
+
+  const toggleDemoMode = useCallback(() => {
+    setDemoMode((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        if (next) localStorage.setItem(DEMO_MODE_KEY, "1");
+        else localStorage.removeItem(DEMO_MODE_KEY);
+      }
+      return next;
+    });
+  }, []);
 
   const setResult = useCallback((r: ProblemsResult | null) => {
     setResultState(r);
@@ -206,6 +223,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedJira) setJiraCredsState(savedJira);
     const savedFireflies = loadFirefliesApiKey();
     if (savedFireflies) setFirefliesApiKeyState(savedFireflies);
+    const savedDemo = localStorage.getItem(DEMO_MODE_KEY);
+    if (savedDemo === "1") setDemoMode(true);
 
     // Restore session data
     try {
@@ -304,6 +323,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
         showLanding,
         setShowLanding,
         triggerFeedback,
+        demoMode,
+        toggleDemoMode,
       }}
     >
       {children}

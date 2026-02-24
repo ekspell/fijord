@@ -1,21 +1,45 @@
 "use client";
 
+import { useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useNav } from "@/app/nav-context";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import { MOCK_SIGNALS, MOCK_MEETING_RECORDS } from "@/lib/mock-data";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { showToast, demoMode, toggleDemoMode } = useNav();
+  const logoClickCount = useRef(0);
+  const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleLogoClick() {
+    router.push("/");
+    logoClickCount.current++;
+    if (logoClickTimer.current) clearTimeout(logoClickTimer.current);
+    logoClickTimer.current = setTimeout(() => {
+      logoClickCount.current = 0;
+    }, 2000);
+    if (logoClickCount.current >= 5) {
+      logoClickCount.current = 0;
+      toggleDemoMode();
+      // After toggle, demoMode flips — show what the new state will be
+      showToast(demoMode ? "Mock data restored" : "Empty state mode — no data shown");
+    }
+  }
 
   const isEpicsActive =
     pathname === "/epics" || pathname.startsWith("/epic/");
   const isSignalsActive =
     pathname === "/signals" || pathname.startsWith("/signals/");
 
+  const epics = demoMode ? [] : MOCK_EPICS;
+  const signals = demoMode ? [] : MOCK_SIGNALS;
+  const meetings = demoMode ? [] : MOCK_MEETING_RECORDS;
+
   // Dynamic counts from data
-  const signalCount = MOCK_SIGNALS.length;
-  const newSignalCount = MOCK_SIGNALS.filter((s) => s.status === "new").length;
+  const signalCount = signals.length;
+  const newSignalCount = signals.filter((s) => s.status === "new").length;
 
   // Extract current epic id from path
   const currentEpicId = pathname.startsWith("/epic/")
@@ -33,7 +57,7 @@ export default function Sidebar() {
         style={{ paddingTop: 20, marginBottom: 24 }}
       >
         <button
-          onClick={() => router.push("/")}
+          onClick={handleLogoClick}
           className="flex items-center gap-2.5 text-lg font-semibold text-foreground"
         >
           <svg
@@ -57,8 +81,9 @@ export default function Sidebar() {
       </div>
 
       {/* Search */}
-      <div
-        className="mx-4 mb-5 flex items-center gap-2 rounded-lg bg-background text-[15px] text-muted"
+      <button
+        onClick={() => showToast("Search coming soon")}
+        className="mx-4 mb-5 flex w-[calc(100%-32px)] items-center gap-2 rounded-lg bg-background text-left text-[15px] text-muted transition-colors hover:bg-border/50"
         style={{ padding: "10px 12px" }}
       >
         <svg
@@ -81,7 +106,7 @@ export default function Sidebar() {
         >
           ⌘K
         </span>
-      </div>
+      </button>
 
       {/* Main nav */}
       <nav className="mb-6">
@@ -201,7 +226,7 @@ export default function Sidebar() {
         >
           Epics
         </div>
-        {MOCK_EPICS.map((epic) => {
+        {epics.map((epic) => {
           const isActive = currentEpicId === epic.id;
           const dotColor = STATUS_STYLES[epic.status].text;
           return (
@@ -228,6 +253,7 @@ export default function Sidebar() {
           );
         })}
         <button
+          onClick={() => router.push("/epics")}
           className="flex w-full items-center gap-2.5 px-5 py-2 text-muted transition-all hover:text-accent"
           style={{ fontSize: 14 }}
         >
@@ -249,7 +275,7 @@ export default function Sidebar() {
         >
           Recent Meetings
         </div>
-        {MOCK_MEETING_RECORDS.map((meeting) => (
+        {meetings.map((meeting) => (
           <button
             key={meeting.id}
             onClick={() => router.push(`/meeting/${meeting.id}`)}

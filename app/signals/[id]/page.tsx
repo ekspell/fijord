@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useNav } from "@/app/nav-context";
 import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Quote } from "@/lib/mock-data";
 
@@ -10,9 +11,11 @@ import type { Quote } from "@/lib/mock-data";
 function CreateEpicModal({
   defaultTitle,
   onClose,
+  onCreate,
 }: {
   defaultTitle: string;
   onClose: () => void;
+  onCreate: (title: string) => void;
 }) {
   const [title, setTitle] = useState(defaultTitle);
   const [description, setDescription] = useState("");
@@ -79,6 +82,7 @@ function CreateEpicModal({
           </button>
           <button
             disabled={!title.trim()}
+            onClick={() => onCreate(title)}
             className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             style={{ background: "#3D5A3D" }}
           >
@@ -242,6 +246,7 @@ function MeetingGroup({
 export default function SignalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { showToast } = useNav();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [tags, setTags] = useState<string[] | null>(null);
   const [addingTag, setAddingTag] = useState(false);
@@ -570,6 +575,10 @@ export default function SignalDetailPage() {
         <CreateEpicModal
           defaultTitle={signal.title}
           onClose={() => setShowCreateModal(false)}
+          onCreate={(epicTitle) => {
+            setShowCreateModal(false);
+            showToast(`Epic "${epicTitle}" created`);
+          }}
         />
       )}
     </div>
