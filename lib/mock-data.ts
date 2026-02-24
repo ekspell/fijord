@@ -16,6 +16,9 @@ export type MeetingRecord = {
   id: string;
   title: string;
   date: string;
+  time?: string;
+  participant: string;
+  color: string; // avatar color
   epicIds: string[];
   processedAt: string;
 };
@@ -74,29 +77,94 @@ export const MOCK_SIGNALS: Signal[] = [
 export const MOCK_MEETING_RECORDS: MeetingRecord[] = [
   {
     id: "meeting-1",
+    title: "LinkedIn Outreach Sync",
+    date: "Today",
+    time: "3:32 pm",
+    participant: "Me",
+    color: "#3D5A3D",
+    epicIds: [],
+    processedAt: "2026-02-23T15:32:00Z",
+  },
+  {
+    id: "meeting-2",
+    title: "Discovery with Susan",
+    date: "Today",
+    time: "8:12 pm",
+    participant: "Kate S.",
+    color: "#7C6CA5",
+    epicIds: ["onboarding-confusion"],
+    processedAt: "2026-02-23T20:12:00Z",
+  },
+  {
+    id: "meeting-3",
+    title: "All hands standup",
+    date: "Today",
+    time: "9:16 am",
+    participant: "Me",
+    color: "#3A8A7C",
+    epicIds: [],
+    processedAt: "2026-02-23T09:16:00Z",
+  },
+  {
+    id: "meeting-4",
+    title: "Darren Meeting",
+    date: "Yesterday",
+    participant: "Me",
+    color: "#C17D4A",
+    epicIds: ["pricing-page-redesign"],
+    processedAt: "2026-02-22T14:00:00Z",
+  },
+  {
+    id: "meeting-5",
+    title: "Working Session",
+    date: "Yesterday",
+    participant: "Kate S.",
+    color: "#5B82B5",
+    epicIds: ["ai-output-trust"],
+    processedAt: "2026-02-22T11:00:00Z",
+  },
+  {
+    id: "meeting-6",
+    title: "Figma Plugin Issue",
+    date: "Wed, Feb 4",
+    participant: "Me",
+    color: "#B56B6B",
+    epicIds: [],
+    processedAt: "2026-02-04T16:00:00Z",
+  },
+  {
+    id: "meeting-7",
     title: "Onboarding call",
     date: "Feb 4",
+    participant: "Kate S.",
+    color: "#3D5A3D",
     epicIds: ["onboarding-confusion"],
     processedAt: "2026-02-04T10:30:00Z",
   },
   {
-    id: "meeting-2",
+    id: "meeting-8",
     title: "Pricing feedback",
     date: "Jan 28",
+    participant: "Mike C.",
+    color: "#7C6CA5",
     epicIds: ["pricing-page-redesign"],
     processedAt: "2026-01-28T14:00:00Z",
   },
   {
-    id: "meeting-3",
+    id: "meeting-9",
     title: "AI trust interview",
     date: "Jan 22",
+    participant: "Sarah K.",
+    color: "#3A8A7C",
     epicIds: ["ai-output-trust"],
     processedAt: "2026-01-22T11:00:00Z",
   },
   {
-    id: "meeting-4",
+    id: "meeting-10",
     title: "Churn exit call",
     date: "Jan 15",
+    participant: "Me",
+    color: "#C17D4A",
     epicIds: [],
     processedAt: "2026-01-15T16:00:00Z",
   },

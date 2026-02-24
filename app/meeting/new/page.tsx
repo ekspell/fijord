@@ -7,6 +7,7 @@ import { useNav } from "@/app/nav-context";
 import { ProblemsResult, solutionResult } from "@/lib/types";
 import { firefliesFetch, FIREFLIES_QUERIES, formatTranscript, FirefliesTranscript, FirefliesError } from "@/lib/fireflies";
 import FirefliesConnectModal from "@/app/components/fireflies-connect-modal";
+import { MOCK_MEETING_RECORDS } from "@/lib/mock-data";
 
 const DEMO_TRANSCRIPT = `Sarah (PM): Alright, let's go through what we heard from the last round of user interviews. I talked to eight customers this week and there are some clear patterns.
 
@@ -512,6 +513,62 @@ export default function Discovery() {
           <p className="text-[13px] leading-relaxed text-accent">
             Don&apos;t have a transcript tool? No problem — just paste any text from your notes, Google Docs, or email thread.
           </p>
+        </div>
+      </div>
+
+      {/* Meetings section */}
+      <div className="mt-12">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-medium text-foreground" style={{ fontSize: 18 }}>
+            Meetings
+          </h2>
+          <button className="text-muted transition-colors hover:text-foreground" style={{ fontSize: 13 }}>
+            View all →
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {MOCK_MEETING_RECORDS.slice(0, 6).map((meeting) => (
+            <button
+              key={meeting.id}
+              className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+            >
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+                style={{ background: meeting.color, fontSize: 11, fontWeight: 600 }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-foreground" style={{ fontSize: 13 }}>
+                  {meeting.title}
+                </div>
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  {meeting.participant}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  {meeting.date}
+                </div>
+                {meeting.time && (
+                  <div className="text-muted" style={{ fontSize: 11 }}>
+                    {meeting.time}
+                  </div>
+                )}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
