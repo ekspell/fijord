@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNav, RoadmapTicket } from "./nav-context";
 import { TicketDetail, TicketContext, Quote } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
@@ -162,6 +162,16 @@ export default function Roadmap() {
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
   const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
   const draggedId = useRef<string | null>(null);
+
+  // Escape key closes delete confirmation
+  useEffect(() => {
+    if (!confirmDeleteId) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setConfirmDeleteId(null);
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [confirmDeleteId]);
 
   const handleDelete = () => {
     if (!confirmDeleteId) return;
