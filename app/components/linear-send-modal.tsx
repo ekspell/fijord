@@ -45,6 +45,15 @@ export default function LinearSendModal({
   const [progress, setProgress] = useState({ sent: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
 
+  // Escape key
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
   // Fetch teams on mount
   useEffect(() => {
     (async () => {

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fijord — Stop writing tickets by hand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-cream: #FAF9F6;
+      --bg-card: #FFFFFF;
+      --border: #E8E6E1;
+      --text-primary: #1A1A1A;
+      --text-secondary: #6B6B6B;
+      --text-muted: #9B9B9B;
+      --accent-green: #3D5A3D;
+      --accent-green-light: #E8F0E8;
+      --accent-green-hover: #2E472E;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-cream);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Nav */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .nav-cta {
+      padding: 10px 20px;
+      background: var(--accent-green);
+      color: white;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-green-hover);
+    }
+
+    /* Hero */
+    .hero {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 100px 24px 60px;
+      text-align: center;
+    }
+
+    .hero-problem {
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .hero-problem s {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .hero-title {
+      font-size: 48px;
+      font-weight: 600;
+      line-height: 1.15;
+      margin-bottom: 24px;
+    }
+
+    .hero-subtitle {
+      font-size: 18px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 36px;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      background: var(--accent-green);
+      color: white;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .hero-cta:hover {
+      background: var(--accent-green-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Before/After */
+    .comparison {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr;
+      gap: 0;
+      align-items: stretch;
+    }
+
+    .comparison-card {
+      padding: 32px;
+      border-radius: 16px;
+    }
+
+    .comparison-card.before {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+    }
+
+    .comparison-card.after {
+      background: var(--accent-green-light);
+      border: 1px solid #C6DEC6;
+    }
+
+    .comparison-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+
+    .comparison-card.before .comparison-label {
+      color: #991B1B;
+    }
+
+    .comparison-card.after .comparison-label {
+      color: var(--accent-green);
+    }
+
+    .comparison-list {
+      list-style: none;
+    }
+
+    .comparison-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 15px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .comparison-card.before .comparison-list li::before {
+      content: "✕";
+      color: #DC2626;
+      font-weight: 600;
+    }
+
+    .comparison-card.after .comparison-list li::before {
+      content: "✓";
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .comparison-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: var(--text-muted);
+    }
+
+    /* Social proof */
+    .social-proof {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 60px 24px;
+      text-align: center;
+    }
+
+    .quote {
+      font-size: 24px;
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+
+    .quote-author {
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+
+    .quote-author strong {
+      color: var(--text-primary);
+    }
+
+    /* How it works */
+    .how-it-works {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 80px 24px;
+    }
+
+    .how-inner {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .how-title {
+      font-size: 28px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .how-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .how-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 24px;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .how-step:last-child {
+      border-bottom: none;
+    }
+
+    .how-number {
+      width: 48px;
+      height: 48px;
+      background: var(--accent-green);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .how-step-content h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .how-step-content p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Final CTA */
+    .final-cta {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .final-cta-title {
+      font-size: 32px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .final-cta-subtitle {
+      font-size: 17px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .final-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 36px;
+      background: var(--accent-green);
+      color: white;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .final-cta-btn:hover {
+      background: var(--accent-green-hover);
+      transform: translateY(-2px);
+    }
+
+    .final-cta-note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    .footer {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="logo">
+      <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 8L24 8L16 24L8 8Z" fill="#3D5A3D"/>
+      </svg>
+      Fijord
+    </div>
+    <a href="#" class="nav-cta">Try it free</a>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <p class="hero-problem">
+      You just had a great discovery call. Now you need to <s>transcribe the key points</s>, <s>identify the problems</s>, <s>write up solutions</s>, and <s>create tickets in Linear</s>...
+    </p>
+    <h1 class="hero-title">Or just let Fijord do it in 30 seconds</h1>
+    <p class="hero-subtitle">
+      Paste your transcript. Get problems backed by evidence, solutions, and ready-to-ship tickets. Export to Linear or Jira with one click.
+    </p>
+    <a href="#" class="hero-cta">Try Fijord free →</a>
+  </section>
+
+  <!-- Before/After -->
+  <section class="comparison">
+    <div class="comparison-grid">
+      <div class="comparison-card before">
+        <div class="comparison-label">Before Fijord</div>
+        <ul class="comparison-list">
+          <li>Re-watch call to find key moments</li>
+          <li>Copy quotes into a doc</li>
+          <li>Synthesize into problem statements</li>
+          <li>Write up potential solutions</li>
+          <li>Create tickets manually in Linear</li>
+          <li>Teammates ask "why are we doing this?"</li>
+        </ul>
+      </div>
+      <div class="comparison-arrow">→</div>
+      <div class="comparison-card after">
+        <div class="comparison-label">With Fijord</div>
+        <ul class="comparison-list">
+          <li>Paste transcript</li>
+          <li>Review AI-extracted problems</li>
+          <li>Check the evidence quotes</li>
+          <li>Export tickets to Linear</li>
+          <li>Tickets link back to full context</li>
+          <li>Done in under a minute</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quote -->
+  <section class="social-proof">
+    <blockquote class="quote">
+      "What speaks to me is the full lineage — from messy call data all the way to the ticket. When I wasn't in the meeting, I finally have context on why we're doing this."
+    </blockquote>
+    <p class="quote-author"><strong>PM at Amazon</strong> · Early beta user</p>
+  </section>
+
+  <!-- How it works -->
+  <section class="how-it-works">
+    <div class="how-inner">
+      <h2 class="how-title">How it works</h2>
+      <div class="how-steps">
+        <div class="how-step">
+          <div class="how-number">1</div>
+          <div class="how-step-content">
+            <h3>Paste your transcript</h3>
+            <p>From Granola, Otter, Fireflies, or just paste your notes. Any text works.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-number">2</div>
+          <div class="how-step-content">
+            <h3>Review problems & evidence</h3>
+            <p>Fijord extracts distinct problems and backs each one with direct quotes from the call.</p>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-number">3</div>
+          <div class="how-step-content">
+            <h3>Ship tickets</h3>
+            <p>Export to Linear or Jira. Each ticket links back to Fijord so your team sees the full context.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final-cta">
+    <h2 class="final-cta-title">Stop doing busywork</h2>
+    <p class="final-cta-subtitle">
+      Your job is to make good decisions, not transcribe calls and write tickets. Let Fijord handle the paperwork.
+    </p>
+    <a href="#" class="final-cta-btn">Try Fijord free →</a>
+    <p class="final-cta-note">No signup required · Works with any transcript</p>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    © 2025 Fijord · Built by a designer who got tired of writing tickets
+  </footer>
+</body>
+</html>

@@ -16,6 +16,59 @@ export type EpicTicket = {
   sourceQuote?: string;
 };
 
+export type BriefPersona = {
+  avatar: string;
+  title: string;
+  description: string;
+  goal: string;
+  frustration: string;
+  keyQuote: string;
+};
+
+export type ExperienceStep = {
+  emoji: string;
+  title: string;
+  description: string;
+  emotionTag: string;
+  emotionColor: "red" | "yellow" | "green";
+};
+
+export type DesignPrinciple = {
+  title: string;
+  description: string;
+  quote: string;
+};
+
+export type WireframeCard = {
+  title: string;
+  items: string[];
+};
+
+export type EpicBrief = {
+  generatedFrom: string;
+  generatedDate: string;
+  sourceCount: number;
+  persona: BriefPersona;
+  currentExperience: {
+    subtitle: string;
+    steps: ExperienceStep[];
+  };
+  desiredExperience: {
+    subtitle: string;
+    steps: ExperienceStep[];
+  };
+  designPrinciples: DesignPrinciple[];
+  wireframeSketch: {
+    subtitle: string;
+    cards: WireframeCard[];
+  };
+  openQuestions: string[];
+  problem: string;
+  goal: string;
+  approach: string;
+  successMetrics: string[];
+};
+
 export type Epic = {
   id: string;
   title: string;
@@ -37,12 +90,7 @@ export type Epic = {
   };
   dateLabel: string;
   tickets?: EpicTicket[];
-  brief?: {
-    problem: string;
-    goal: string;
-    approach: string;
-    successMetrics: string[];
-  };
+  brief?: EpicBrief;
 };
 
 export type Meeting = {
@@ -77,6 +125,53 @@ export const MOCK_EPICS: Epic[] = [
       { id: "t12", title: "A/B test onboarding flows", priority: "low", status: "backlog", lane: "later", description: "Set up infrastructure to A/B test different onboarding flows and measure impact on retention.", acceptanceCriteria: ["Feature flag system for onboarding variants", "Statistical significance calculator", "Results dashboard"] },
     ],
     brief: {
+      generatedFrom: "5 discovery calls",
+      generatedDate: "Feb 10, 2026",
+      sourceCount: 5,
+      persona: {
+        avatar: "TL",
+        title: "Team Lead at a Mid-Size Company",
+        description: "Manages a cross-functional team of 8–12, evaluates new tools for adoption, and needs to show quick wins to justify the switch.",
+        goal: "Get their team set up and productive within 30 minutes of signing up.",
+        frustration: "Spends 20+ minutes configuring roles and invites before anyone can do real work.",
+        keyQuote: "We almost didn\u2019t make it past the first week because nobody knew how to set up their workspace.",
+      },
+      currentExperience: {
+        subtitle: "What users go through today",
+        steps: [
+          { emoji: "\uD83D\uDE15", title: "Signs up, sees empty dashboard", description: "New user lands on a blank screen with no guidance on what to do first.", emotionTag: "Confused", emotionColor: "red" },
+          { emoji: "\uD83D\uDE35\u200D\uD83D\uDCAB", title: "Tries to invite team, gets lost", description: "Role names are confusing, invites don\u2019t arrive, and permissions are unclear.", emotionTag: "Lost", emotionColor: "red" },
+          { emoji: "\uD83D\uDE24", title: "Gives up or asks for help", description: "After 5+ minutes of confusion, 40% of users drop off entirely.", emotionTag: "Frustrated", emotionColor: "red" },
+        ],
+      },
+      desiredExperience: {
+        subtitle: "What we want users to feel",
+        steps: [
+          { emoji: "\uD83D\uDE0A", title: "Guided welcome with checklist", description: "A clear step-by-step checklist shows exactly what to do and how long it takes.", emotionTag: "Confident", emotionColor: "green" },
+          { emoji: "\uD83E\uDDED", title: "Sample data shows the value", description: "Pre-populated workspace demonstrates what a completed setup looks like.", emotionTag: "Oriented", emotionColor: "green" },
+          { emoji: "\uD83D\uDCAA", title: "Team invited and working in minutes", description: "Simple 3-role model and reliable invites get the whole team onboard fast.", emotionTag: "In control", emotionColor: "green" },
+        ],
+      },
+      designPrinciples: [
+        { title: "Show, don\u2019t tell", description: "Use sample data and interactive tours instead of documentation walls. Let users learn by doing.", quote: "I signed up and then I was just staring at a blank screen." },
+        { title: "Minimize time-to-value", description: "Users should see their first meaningful output within 3 minutes. Remove every unnecessary step.", quote: "The empty dashboard didn\u2019t give me any hints." },
+        { title: "Simplify permissions", description: "Consolidate complex role systems into 3 clear roles. Most teams don\u2019t need granular control.", quote: "Roles and permissions are a mess right now." },
+      ],
+      wireframeSketch: {
+        subtitle: "Key screens and components",
+        cards: [
+          { title: "Welcome Checklist", items: ["Progress bar (3 steps)", "Step 1: Profile setup", "Step 2: Invite team", "Step 3: First project"] },
+          { title: "Sample Workspace", items: ["Demo project card", "Sample channels list", "'This is demo data' banner", "Dismiss / Keep toggle"] },
+          { title: "Simplified Invite", items: ["Email input field", "3-role dropdown (Admin, Member, Viewer)", "Role description tooltip", "Send invites button"] },
+        ],
+      },
+      openQuestions: [
+        "Should the checklist be dismissible before completion, or should it persist until all steps are done?",
+        "Do we pre-select a workspace template or let the user choose?",
+        "Should the interactive tour be opt-in or automatic on first login?",
+        "How do we handle users who signed up but never completed onboarding — re-trigger the flow?",
+        "What\u2019s the fallback if invite emails fail — in-app link, QR code, or both?",
+      ],
       problem: "New users don\u2019t know what to do after signing up. The empty dashboard provides no guidance, leading to a 40% drop-off rate within the first 5 minutes. Users struggle with role assignments, invite flows, and workspace setup.",
       goal: "Reduce first-session drop-off from 40% to under 15% by guiding new users through a structured onboarding experience that demonstrates value within the first 3 minutes.",
       approach: "Implement a multi-step onboarding wizard with a welcome checklist, pre-populated sample data, interactive tour, and simplified role model. Focus on time-to-first-value by showing users their first meaningful output immediately.",
@@ -110,6 +205,51 @@ export const MOCK_EPICS: Epic[] = [
       { id: "t20", title: "Competitor pricing comparison widget", priority: "low", status: "backlog", lane: "later", description: "Add a section showing how our pricing compares to key competitors, highlighting value advantages." },
     ],
     brief: {
+      generatedFrom: "3 discovery calls",
+      generatedDate: "Feb 5, 2026",
+      sourceCount: 3,
+      persona: {
+        avatar: "BU",
+        title: "Buyer Evaluating SaaS Tools",
+        description: "Director of ops responsible for tool procurement. Compares 3\u20134 vendors, needs to justify spend to finance, and hates hidden costs.",
+        goal: "Understand exact cost for their team size and pick the right plan in under 2 minutes.",
+        frustration: "Can\u2019t tell the difference between plans, and per-seat pricing is buried below the fold.",
+        keyQuote: "I can\u2019t tell the difference between the Pro and Business plans.",
+      },
+      currentExperience: {
+        subtitle: "What buyers experience today",
+        steps: [
+          { emoji: "\uD83E\uDD14", title: "Lands on pricing page, scans plans", description: "Three plans with similar names and long feature lists that blur together.", emotionTag: "Uncertain", emotionColor: "yellow" },
+          { emoji: "\uD83D\uDE29", title: "Scrolls through feature matrix", description: "Dense comparison table with 30+ rows. Can\u2019t find per-seat cost or team-size pricing.", emotionTag: "Overwhelmed", emotionColor: "red" },
+          { emoji: "\uD83D\uDEB6", title: "Leaves to check competitor pricing", description: "Unable to make a confident decision, bounces to a competitor with clearer pricing.", emotionTag: "Gone", emotionColor: "red" },
+        ],
+      },
+      desiredExperience: {
+        subtitle: "What we want buyers to feel",
+        steps: [
+          { emoji: "\uD83D\uDCA1", title: "Instantly sees plan differences", description: "Clear visual hierarchy highlights what makes each plan unique in seconds.", emotionTag: "Informed", emotionColor: "green" },
+          { emoji: "\uD83E\uDDEE", title: "Calculates exact cost for their team", description: "Interactive calculator shows monthly/annual price based on team size.", emotionTag: "Confident", emotionColor: "green" },
+          { emoji: "\u2705", title: "Picks a plan and starts trial", description: "FAQ answers remaining objections. One-click to start free trial.", emotionTag: "Decided", emotionColor: "green" },
+        ],
+      },
+      designPrinciples: [
+        { title: "Clarity over completeness", description: "Show the 5 differences that matter, not 30 features that are the same. Highlight what\u2019s unique per plan.", quote: "I can\u2019t tell the difference between the Pro and Business plans." },
+        { title: "Price transparency", description: "Show exact costs upfront. No hidden fees, no 'contact us' for basic pricing. Build trust through honesty.", quote: "The per-seat pricing is buried." },
+        { title: "Reduce decision fatigue", description: "Recommend a plan based on team size. Use visual cues to guide users toward the right choice.", quote: "Just tell me which plan is right for a team of 10." },
+      ],
+      wireframeSketch: {
+        subtitle: "Pricing page structure",
+        cards: [
+          { title: "Plan Comparison", items: ["3-column plan cards", "Highlighted 'Most popular' badge", "Key differentiators only", "Price per seat / month"] },
+          { title: "Cost Calculator", items: ["Team size slider (1\u2013100)", "Monthly / Annual toggle", "Real-time price display", "Annual savings callout"] },
+          { title: "FAQ Section", items: ["Top 10 questions accordion", "Enterprise CTA block", "'Still not sure?' chat link", "Trust badges row"] },
+        ],
+      },
+      openQuestions: [
+        "Should we show a 'recommended' plan based on the user\u2019s team size input?",
+        "Do enterprise prospects need a separate page or an inline contact form?",
+        "How do we handle non-profit or education pricing — separate tier or discount code?",
+      ],
       problem: "The pricing page conversion rate is 40% below industry benchmark. Users can\u2019t differentiate between Pro and Business plans, per-seat pricing is buried, and 3 enterprise prospects dropped off at plan selection this month.",
       goal: "Increase pricing page conversion rate by 40% by making plan differences, pricing, and value proposition immediately clear.",
       approach: "Redesign the pricing comparison table with clearer feature differentiation, add an interactive per-seat calculator, simplify plan naming, and add a FAQ section addressing common objections.",
@@ -141,6 +281,52 @@ export const MOCK_EPICS: Epic[] = [
       { id: "t26", title: "Fine-tune extraction model on verified data", priority: "low", status: "backlog", lane: "later", description: "Use verified/rejected extraction data to fine-tune the AI model for better accuracy on this team\u2019s domain." },
     ],
     brief: {
+      generatedFrom: "4 discovery calls",
+      generatedDate: "Feb 8, 2026",
+      sourceCount: 4,
+      persona: {
+        avatar: "PM",
+        title: "PM Adopting AI Tools",
+        description: "Senior product manager responsible for synthesis and prioritization. Interested in AI but burned by tools that hallucinate or oversimplify.",
+        goal: "Trust AI extractions enough to present them to stakeholders without manually re-checking every output.",
+        frustration: "No way to see how the AI reached its conclusions. Feels like a black box.",
+        keyQuote: "Right now it feels like a black box. I need to see the reasoning.",
+      },
+      currentExperience: {
+        subtitle: "How users interact with AI today",
+        steps: [
+          { emoji: "\uD83E\uDD28", title: "Sees AI output, no explanation", description: "AI generates summaries and tickets, but there\u2019s no source or confidence info.", emotionTag: "Skeptical", emotionColor: "red" },
+          { emoji: "\uD83D\uDD0D", title: "Manually checks every extraction", description: "Goes back to the transcript to verify each AI output, doubling their work.", emotionTag: "Tedious", emotionColor: "yellow" },
+          { emoji: "\uD83D\uDEAB", title: "Stops using AI features entirely", description: "After finding a few errors, loses trust and reverts to manual synthesis.", emotionTag: "Distrustful", emotionColor: "red" },
+        ],
+      },
+      desiredExperience: {
+        subtitle: "What we want users to feel",
+        steps: [
+          { emoji: "\uD83D\uDCCA", title: "Confidence scores at a glance", description: "Every AI output shows high/medium/low confidence with color-coded badges.", emotionTag: "Informed", emotionColor: "green" },
+          { emoji: "\uD83D\uDD17", title: "Source quotes linked to insights", description: "Click any AI extraction to see the exact quotes that informed it.", emotionTag: "Reassured", emotionColor: "green" },
+          { emoji: "\u2705", title: "Verify or reject to improve the model", description: "One-click approve/reject trains the AI on this team\u2019s domain over time.", emotionTag: "Empowered", emotionColor: "green" },
+        ],
+      },
+      designPrinciples: [
+        { title: "Transparency by default", description: "Every AI output must show its sources and confidence level. No black boxes.", quote: "Right now it feels like a black box. I need to see the reasoning." },
+        { title: "Trust through verification", description: "Make it easy to verify AI outputs against source material. The AI should invite scrutiny, not avoid it.", quote: "A confidence score would help. Even just \u2018high/medium/low\u2019 would be better than nothing." },
+        { title: "Progressive disclosure", description: "Show confidence badges at the summary level, full reasoning on demand. Don\u2019t overwhelm with info upfront.", quote: "We need explainability. Show me the source quotes that led to each insight." },
+      ],
+      wireframeSketch: {
+        subtitle: "Trust and explainability components",
+        cards: [
+          { title: "Confidence Badges", items: ["High/Med/Low pill on each card", "Color: green / yellow / red", "Tooltip with reasoning summary", "Aggregate score per epic"] },
+          { title: "Explainability Panel", items: ["Side panel slide-out", "Step-by-step reasoning chain", "Source quotes with highlights", "Collapsible sections"] },
+          { title: "Verification Actions", items: ["Approve / Reject buttons", "Optional correction text input", "Verification progress bar", "Team accuracy dashboard link"] },
+        ],
+      },
+      openQuestions: [
+        "Should confidence scores be computed client-side or returned from the API?",
+        "How do we handle AI extractions that have no clear source quote — flag as 'unverified'?",
+        "Should rejected extractions be deleted or archived for model training?",
+        "What\u2019s the minimum verification threshold before we show accuracy metrics to users?",
+      ],
       problem: "Users don\u2019t trust AI-generated summaries and extractions because there\u2019s no way to see how the AI reached its conclusions. Teams refuse to adopt the tool until they can verify reasoning, and the AI sometimes produces incorrect outputs with no indication of confidence.",
       goal: "Increase AI feature adoption from 30% to 70% of active users by making AI outputs transparent, verifiable, and trustworthy.",
       approach: "Add confidence scores (high/medium/low) to every AI extraction, link each insight back to source quotes, build an explainability panel showing reasoning chains, and allow users to verify or reject extractions to improve the model.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { linearFetch, LINEAR_QUERIES, LinearError } from "@/lib/linear";
 
 export default function LinearConnectModal({
@@ -13,6 +13,14 @@ export default function LinearConnectModal({
   const [apiKey, setApiKey] = useState("");
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   const handleConnect = async () => {
     const key = apiKey.trim();

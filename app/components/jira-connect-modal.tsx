@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { jiraFetch, JiraCreds, JiraError } from "@/lib/jira";
 
 export default function JiraConnectModal({
@@ -15,6 +15,14 @@ export default function JiraConnectModal({
   const [apiToken, setApiToken] = useState("");
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   const cleanDomain = (raw: string) =>
     raw.trim()

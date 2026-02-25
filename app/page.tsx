@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
+import { useAuth } from "@/app/auth-context";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import { MOCK_SIGNALS, MOCK_MEETING_RECORDS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
@@ -291,7 +292,9 @@ function SectionHeader({
 
 export default function Home() {
   const { demoMode } = useNav();
+  const { user } = useAuth();
   const greeting = getGreeting();
+  const userName = user?.name?.split(" ")[0] ?? "Kate";
   const signals = demoMode ? [] : MOCK_SIGNALS;
   const epics = demoMode ? [] : MOCK_EPICS;
 
@@ -307,7 +310,7 @@ export default function Home() {
           fontWeight: 300,
         }}
       >
-        {greeting}, Kate
+        {greeting}, {userName}
       </h1>
       <p className="mb-8 text-muted" style={{ fontSize: 15 }}>
         Here&apos;s what&apos;s happening across your discovery meetings.
@@ -320,10 +323,13 @@ export default function Home() {
       <section className="mb-10">
         <SectionHeader title="Emerging signals" href="/signals" />
         {signals.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
+          <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-border">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">No signals detected yet</p>
             <p className="text-sm text-muted">
-              No patterns detected yet. Process a few meetings to see emerging
-              themes.
+              Signals will appear as patterns emerge across your meetings.
             </p>
           </div>
         ) : (
@@ -339,10 +345,13 @@ export default function Home() {
       <section className="mb-10">
         <SectionHeader title="Epics" href="/epics" />
         {epics.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
+          <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-border">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">No epics yet</p>
             <p className="text-sm text-muted">
-              No projects yet. Create one manually or wait for signals to
-              emerge.
+              Create your first epic or wait for a signal to grow.
             </p>
           </div>
         ) : (

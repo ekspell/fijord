@@ -33,6 +33,14 @@ export function FeedbackModal({
   const [useAgain, setUseAgain] = useState<string | null>(null);
   const [email, setEmail] = useState("");
 
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
   const handleSelectReaction = (r: Reaction) => {
     setReaction(r);
     setStep("questions");

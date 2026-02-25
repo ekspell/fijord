@@ -1,17 +1,22 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
+import { useAuth } from "@/app/auth-context";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import { MOCK_SIGNALS, MOCK_MEETING_RECORDS } from "@/lib/mock-data";
+import CreateEpicModal from "./create-epic-modal";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { showToast, demoMode, toggleDemoMode } = useNav();
+  const { user, logout } = useAuth();
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showCreateEpic, setShowCreateEpic] = useState(false);
 
   function handleLogoClick() {
     router.push("/");
@@ -253,7 +258,7 @@ export default function Sidebar() {
           );
         })}
         <button
-          onClick={() => router.push("/epics")}
+          onClick={() => setShowCreateEpic(true)}
           className="flex w-full items-center gap-2.5 px-5 py-2 text-muted transition-all hover:text-accent"
           style={{ fontSize: 14 }}
         >
@@ -304,31 +309,77 @@ export default function Sidebar() {
       </div>
 
       {/* User */}
-      <div
-        className="mt-auto flex items-center gap-2.5 border-t border-border"
-        style={{ padding: "16px 20px" }}
-      >
-        <div
-          className="flex shrink-0 items-center justify-center rounded-full font-semibold"
-          style={{
-            width: 32,
-            height: 32,
-            background: "#E8F0E8",
-            color: "#3D5A3D",
-            fontSize: 12,
-          }}
+      <div className="relative mt-auto border-t border-border">
+        <button
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          className="flex w-full items-center gap-2.5 transition-colors hover:bg-background"
+          style={{ padding: "16px 20px" }}
         >
-          KS
-        </div>
-        <div>
-          <div className="font-medium" style={{ fontSize: 15 }}>
-            Kate S.
+          <div
+            className="flex shrink-0 items-center justify-center rounded-full font-semibold"
+            style={{
+              width: 32,
+              height: 32,
+              background: "#E8F0E8",
+              color: "#3D5A3D",
+              fontSize: 12,
+            }}
+          >
+            {user?.initials ?? "KS"}
           </div>
-          <div className="text-muted" style={{ fontSize: 12 }}>
-            PM · Fijord AI
+          <div className="text-left">
+            <div className="font-medium" style={{ fontSize: 15 }}>
+              {user?.name ?? "Kate S."}
+            </div>
+            <div className="text-muted" style={{ fontSize: 12 }}>
+              PM · Fijord AI
+            </div>
           </div>
-        </div>
+        </button>
+
+        {showUserMenu && (
+          <div
+            className="absolute bottom-full left-3 right-3 mb-1 rounded-lg border border-border bg-card shadow-lg"
+            style={{ padding: 4 }}
+          >
+            <button
+              onClick={() => { showToast("Settings coming soon"); setShowUserMenu(false); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-background"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+              </svg>
+              Settings
+            </button>
+            <button
+              onClick={() => { router.push("/pricing"); setShowUserMenu(false); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-background"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+              </svg>
+              Pricing
+            </button>
+            <div className="my-1 h-px bg-border" />
+            <button
+              onClick={() => { logout(); setShowUserMenu(false); router.push("/login"); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-accent-red transition-colors hover:bg-accent-red-light"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
+      {showCreateEpic && (
+        <CreateEpicModal onClose={() => setShowCreateEpic(false)} />
+      )}
     </aside>
   );
 }

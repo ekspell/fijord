@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useNav } from "@/app/nav-context";
 import {
   MOCK_EPICS,
   STATUS_STYLES,
   TICKET_STATUS_STYLES,
   PRIORITY_STYLES,
 } from "@/lib/mock-epics";
-import type { EpicTicket } from "@/lib/mock-epics";
+import type { EpicTicket, EpicBrief, ExperienceStep } from "@/lib/mock-epics";
 import {
   MOCK_SIGNALS,
   MOCK_MEETING_RECORDS,
@@ -482,99 +483,644 @@ function RoadmapTab({ tickets }: { tickets: EpicTicket[] }) {
   );
 }
 
+/* ─── Brief Tab Sub-Components ─── */
+
+const EMOTION_COLORS: Record<string, { bg: string; text: string }> = {
+  red: { bg: "#FEE2E2", text: "#DC2626" },
+  yellow: { bg: "#FEF3C7", text: "#D97706" },
+  green: { bg: "#E8F0E8", text: "#3D5A3D" },
+};
+
+function BriefHeader({
+  brief,
+  epicTitle,
+  onSwitchTab,
+  onRegenerate,
+  onCopy,
+}: {
+  brief: EpicBrief;
+  epicTitle: string;
+  onSwitchTab: (tab: (typeof TABS)[number]) => void;
+  onRegenerate: () => void;
+  onCopy: () => void;
+}) {
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+        <span
+          className="rounded-full font-medium"
+          style={{
+            fontSize: 11,
+            padding: "3px 10px",
+            background: "#E8F0E8",
+            color: "#3D5A3D",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          Design Brief
+        </span>
+        <span className="text-muted" style={{ fontSize: 12 }}>
+          Auto-generated from transcript
+        </span>
+      </div>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-medium text-foreground" style={{ fontSize: 22, marginBottom: 4 }}>
+            {epicTitle}
+          </h2>
+          <p className="text-muted" style={{ fontSize: 13 }}>
+            Generated from {brief.generatedFrom} · {brief.generatedDate}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            onClick={onRegenerate}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-background hover:text-foreground"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+            </svg>
+            Regenerate
+          </button>
+          <button
+            onClick={onCopy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-background hover:text-foreground"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+            Copy
+          </button>
+          <button
+            onClick={() => onSwitchTab("Scope")}
+            className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent-green-light"
+          >
+            View tickets
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PersonaCard({ persona }: { persona: EpicBrief["persona"] }) {
+  return (
+    <div
+      className="rounded-xl"
+      style={{
+        background: "#2a2a2a",
+        padding: 24,
+        marginBottom: 32,
+      }}
+    >
+      <div className="flex items-center gap-3" style={{ marginBottom: 16 }}>
+        <div
+          className="flex shrink-0 items-center justify-center rounded-full font-medium"
+          style={{
+            width: 40,
+            height: 40,
+            background: "#4a4a4a",
+            color: "#e0e0e0",
+            fontSize: 14,
+          }}
+        >
+          {persona.avatar}
+        </div>
+        <div>
+          <div className="font-medium" style={{ fontSize: 15, color: "#FFFFFF" }}>
+            {persona.title}
+          </div>
+          <div style={{ fontSize: 13, color: "#A0A0A0" }}>
+            {persona.description}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3" style={{ marginBottom: 16 }}>
+        <div className="rounded-lg" style={{ background: "#353535", padding: 14 }}>
+          <div
+            className="rounded font-medium"
+            style={{
+              fontSize: 10,
+              padding: "2px 6px",
+              background: "rgba(61,90,61,0.3)",
+              color: "#7CB97C",
+              display: "inline-block",
+              marginBottom: 6,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Goal
+          </div>
+          <div style={{ fontSize: 13, color: "#D0D0D0", lineHeight: 1.5 }}>
+            {persona.goal}
+          </div>
+        </div>
+        <div className="rounded-lg" style={{ background: "#353535", padding: 14 }}>
+          <div
+            className="rounded font-medium"
+            style={{
+              fontSize: 10,
+              padding: "2px 6px",
+              background: "rgba(220,38,38,0.2)",
+              color: "#F87171",
+              display: "inline-block",
+              marginBottom: 6,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            Frustration
+          </div>
+          <div style={{ fontSize: 13, color: "#D0D0D0", lineHeight: 1.5 }}>
+            {persona.frustration}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          fontSize: 13,
+          color: "#A0A0A0",
+          fontStyle: "italic",
+          borderLeft: "3px solid #4a4a4a",
+          paddingLeft: 12,
+        }}
+      >
+        &ldquo;{persona.keyQuote}&rdquo;
+      </div>
+    </div>
+  );
+}
+
+function ExperienceStepCard({ step, index }: { step: ExperienceStep; index: number }) {
+  const colors = EMOTION_COLORS[step.emotionColor];
+  return (
+    <div className="rounded-lg border border-border" style={{ padding: 16 }}>
+      <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
+        <span style={{ fontSize: 20 }}>{step.emoji}</span>
+        <span
+          className="font-medium"
+          style={{ fontSize: 10, color: "#9B9B9B", textTransform: "uppercase", letterSpacing: "0.05em" }}
+        >
+          Step {index + 1}
+        </span>
+      </div>
+      <div className="font-medium text-foreground" style={{ fontSize: 14, marginBottom: 4 }}>
+        {step.title}
+      </div>
+      <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
+        {step.description}
+      </p>
+      <span
+        className="rounded-full font-medium"
+        style={{
+          fontSize: 11,
+          padding: "2px 8px",
+          background: colors.bg,
+          color: colors.text,
+        }}
+      >
+        {step.emotionTag}
+      </span>
+    </div>
+  );
+}
+
+function ExperienceSection({
+  title,
+  subtitle,
+  steps,
+}: {
+  title: string;
+  subtitle: string;
+  steps: ExperienceStep[];
+}) {
+  return (
+    <div>
+      <h3
+        className="font-medium text-foreground"
+        style={{
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          marginBottom: 4,
+        }}
+      >
+        {title}
+      </h3>
+      <p className="text-muted" style={{ fontSize: 13, marginBottom: 14 }}>
+        {subtitle}
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        {steps.map((step, i) => (
+          <ExperienceStepCard key={i} step={step} index={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ArrowSeparator() {
+  return (
+    <div className="flex items-center justify-center" style={{ padding: "16px 0" }}>
+      <div
+        className="flex items-center justify-center rounded-full"
+        style={{ width: 32, height: 32, background: "#F5F4F0" }}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#9B9B9B"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <polyline points="19 12 12 19 5 12" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function DesignPrinciplesSection({ principles }: { principles: EpicBrief["designPrinciples"] }) {
+  return (
+    <div style={{ marginTop: 32 }}>
+      <h3
+        className="font-medium text-foreground"
+        style={{
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          marginBottom: 16,
+        }}
+      >
+        Design Principles
+      </h3>
+      <div className="flex flex-col gap-5">
+        {principles.map((p, i) => (
+          <div key={i} className="flex gap-3">
+            <div
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-medium"
+              style={{ background: "#E8F0E8", color: "#3D5A3D", fontSize: 12 }}
+            >
+              {i + 1}
+            </div>
+            <div className="flex-1">
+              <div className="font-medium text-foreground" style={{ fontSize: 14, marginBottom: 2 }}>
+                {p.title}
+              </div>
+              <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>
+                {p.description}
+              </p>
+              <div
+                className="text-muted"
+                style={{
+                  fontSize: 13,
+                  fontStyle: "italic",
+                  borderLeft: "3px solid #3D5A3D",
+                  paddingLeft: 10,
+                }}
+              >
+                &ldquo;{p.quote}&rdquo;
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WireframeSketchSection({ wireframe }: { wireframe: EpicBrief["wireframeSketch"] }) {
+  return (
+    <div style={{ marginTop: 32 }}>
+      <h3
+        className="font-medium text-foreground"
+        style={{
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          marginBottom: 4,
+        }}
+      >
+        Wireframe Sketch
+      </h3>
+      <p className="text-muted" style={{ fontSize: 13, marginBottom: 14 }}>
+        {wireframe.subtitle}
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        {wireframe.cards.map((card, i) => (
+          <div
+            key={i}
+            className="rounded-lg border border-border"
+            style={{ padding: 16 }}
+          >
+            <div className="flex items-center gap-2" style={{ marginBottom: 12 }}>
+              <div
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-medium"
+                style={{ background: "#E8F0E8", color: "#3D5A3D", fontSize: 10 }}
+              >
+                {i + 1}
+              </div>
+              <div className="font-medium text-foreground" style={{ fontSize: 13 }}>
+                {card.title}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {card.items.map((item, j) => (
+                <div
+                  key={j}
+                  className="rounded-md"
+                  style={{
+                    fontSize: 12,
+                    padding: "6px 10px",
+                    background: "#F5F4F0",
+                    border: "1px solid #E8E6E1",
+                    color: "#6B6B6B",
+                  }}
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OpenQuestionsSection({ questions }: { questions: string[] }) {
+  return (
+    <div style={{ marginTop: 32 }}>
+      <h3
+        className="font-medium text-foreground"
+        style={{
+          fontSize: 12,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          marginBottom: 14,
+        }}
+      >
+        Open Questions
+      </h3>
+      <div className="flex flex-col gap-3">
+        {questions.map((q, i) => (
+          <div key={i} className="flex items-start gap-3">
+            <div
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-medium"
+              style={{ background: "#F3E8FF", color: "#7C3AED", fontSize: 12 }}
+            >
+              ?
+            </div>
+            <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, paddingTop: 2 }}>
+              {q}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EditableField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div className="mb-1.5 flex items-center justify-between">
+        <h3 className="font-medium text-foreground" style={{ fontSize: 14 }}>
+          {label}
+        </h3>
+        <button
+          onClick={() => setEditing(!editing)}
+          className="text-muted transition-colors hover:text-foreground"
+          style={{ fontSize: 12 }}
+        >
+          {editing ? "Done" : "Edit"}
+        </button>
+      </div>
+      {editing ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full resize-none rounded-lg border border-border bg-background p-3 text-sm leading-relaxed text-foreground focus:border-accent/40 focus:outline-none"
+          rows={4}
+        />
+      ) : (
+        <p className="leading-relaxed text-muted" style={{ fontSize: 14 }}>
+          {value}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function BriefFooter({
+  brief,
+  onSwitchTab,
+  onExport,
+}: {
+  brief: EpicBrief;
+  onSwitchTab: (tab: (typeof TABS)[number]) => void;
+  onExport: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center justify-between rounded-lg"
+      style={{
+        marginTop: 32,
+        padding: "14px 16px",
+        background: "#F5F4F0",
+        border: "1px solid #E8E6E1",
+      }}
+    >
+      <span className="text-muted" style={{ fontSize: 13 }}>
+        Generated from {brief.sourceCount} discovery call{brief.sourceCount !== 1 ? "s" : ""}
+      </span>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onExport}
+          className="inline-flex items-center gap-1.5 text-muted transition-colors hover:text-foreground"
+          style={{ fontSize: 13 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Export
+        </button>
+        <button
+          onClick={() => onSwitchTab("Scope")}
+          className="text-muted transition-colors hover:text-foreground"
+          style={{ fontSize: 13 }}
+        >
+          View tickets
+        </button>
+        <button
+          onClick={() => onSwitchTab("Roadmap")}
+          className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+          style={{ background: "#3D5A3D" }}
+        >
+          Go to roadmap &rarr;
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Brief Tab ─── */
 
 function BriefTab({
   brief,
   epicTitle,
+  onSwitchTab,
 }: {
-  brief: NonNullable<(typeof MOCK_EPICS)[number]["brief"]>;
+  brief: EpicBrief;
   epicTitle: string;
+  onSwitchTab: (tab: (typeof TABS)[number]) => void;
 }) {
+  const { showToast } = useNav();
+  const [problem, setProblem] = useState(brief.problem);
+  const [goal, setGoal] = useState(brief.goal);
+  const [approach, setApproach] = useState(brief.approach);
+
+  const handleRegenerate = useCallback(() => {
+    setProblem(brief.problem);
+    setGoal(brief.goal);
+    setApproach(brief.approach);
+    showToast("Brief regenerated from latest evidence");
+  }, [brief, showToast]);
+
+  const handleCopy = useCallback(() => {
+    const text = [
+      `# ${epicTitle} — Design Brief`,
+      "",
+      `## Problem`,
+      problem,
+      "",
+      `## Goal`,
+      goal,
+      "",
+      `## Approach`,
+      approach,
+      "",
+      `## Success Metrics`,
+      ...brief.successMetrics.map((m) => `- ${m}`),
+      "",
+      `## Persona: ${brief.persona.title}`,
+      brief.persona.description,
+      `- Goal: ${brief.persona.goal}`,
+      `- Frustration: ${brief.persona.frustration}`,
+      `- Key quote: "${brief.persona.keyQuote}"`,
+      "",
+      `## Design Principles`,
+      ...brief.designPrinciples.map((p, i) => `${i + 1}. **${p.title}**: ${p.description}\n   > "${p.quote}"`),
+      "",
+      `## Open Questions`,
+      ...brief.openQuestions.map((q) => `- ${q}`),
+      "",
+      `---`,
+      `Generated from ${brief.generatedFrom} · ${brief.generatedDate}`,
+    ].join("\n");
+
+    navigator.clipboard.writeText(text).then(
+      () => showToast("Brief copied to clipboard"),
+      () => showToast("Failed to copy — try again")
+    );
+  }, [epicTitle, problem, goal, approach, brief, showToast]);
+
+  const handleExport = useCallback(() => {
+    showToast("Export coming soon");
+  }, [showToast]);
+
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <h3
-          className="font-medium text-foreground"
-          style={{ fontSize: 14, marginBottom: 8 }}
-        >
-          Problem
-        </h3>
-        <p
-          className="leading-relaxed text-muted"
-          style={{ fontSize: 14 }}
-        >
-          {brief.problem}
-        </p>
-      </div>
+      <BriefHeader
+        brief={brief}
+        epicTitle={epicTitle}
+        onSwitchTab={onSwitchTab}
+        onRegenerate={handleRegenerate}
+        onCopy={handleCopy}
+      />
+      <PersonaCard persona={brief.persona} />
 
-      <div style={{ marginBottom: 24 }}>
-        <h3
-          className="font-medium text-foreground"
-          style={{ fontSize: 14, marginBottom: 8 }}
-        >
-          Goal
-        </h3>
-        <p
-          className="leading-relaxed text-muted"
-          style={{ fontSize: 14 }}
-        >
-          {brief.goal}
-        </p>
-      </div>
-
-      <div style={{ marginBottom: 24 }}>
-        <h3
-          className="font-medium text-foreground"
-          style={{ fontSize: 14, marginBottom: 8 }}
-        >
-          Approach
-        </h3>
-        <p
-          className="leading-relaxed text-muted"
-          style={{ fontSize: 14 }}
-        >
-          {brief.approach}
-        </p>
-      </div>
-
-      <div>
-        <h3
-          className="font-medium text-foreground"
-          style={{ fontSize: 14, marginBottom: 8 }}
-        >
-          Success metrics
-        </h3>
-        <div className="flex flex-col gap-2">
-          {brief.successMetrics.map((metric, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2.5 rounded-lg border border-border px-4 py-2.5"
-            >
+      {/* Editable summary fields */}
+      <div
+        className="rounded-xl border border-border"
+        style={{ padding: 20, marginBottom: 32 }}
+      >
+        <div className="mb-2 flex items-center gap-2">
+          <h3
+            className="font-medium text-foreground"
+            style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}
+          >
+            Summary
+          </h3>
+          <span className="text-muted" style={{ fontSize: 11 }}>
+            Last updated {brief.generatedDate}
+          </span>
+        </div>
+        <EditableField label="Problem" value={problem} onChange={setProblem} />
+        <EditableField label="Goal" value={goal} onChange={setGoal} />
+        <EditableField label="Approach" value={approach} onChange={setApproach} />
+        <div>
+          <h3 className="font-medium text-foreground" style={{ fontSize: 14, marginBottom: 8 }}>
+            Success Metrics
+          </h3>
+          <div className="flex flex-col gap-2">
+            {brief.successMetrics.map((metric, i) => (
               <div
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-                style={{ background: "#E8F0E8" }}
+                key={i}
+                className="flex items-center gap-2.5 rounded-lg border border-border px-4 py-2.5"
               >
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#3D5A3D"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <div
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: "#E8F0E8" }}
                 >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <span className="text-muted" style={{ fontSize: 13 }}>{metric}</span>
               </div>
-              <span className="text-muted" style={{ fontSize: 13 }}>
-                {metric}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
+
+      <ExperienceSection
+        title="Current Experience"
+        subtitle={brief.currentExperience.subtitle}
+        steps={brief.currentExperience.steps}
+      />
+      <ArrowSeparator />
+      <ExperienceSection
+        title="Desired Experience"
+        subtitle={brief.desiredExperience.subtitle}
+        steps={brief.desiredExperience.steps}
+      />
+      <DesignPrinciplesSection principles={brief.designPrinciples} />
+      <WireframeSketchSection wireframe={brief.wireframeSketch} />
+      <OpenQuestionsSection questions={brief.openQuestions} />
+      <BriefFooter brief={brief} onSwitchTab={onSwitchTab} onExport={handleExport} />
     </div>
   );
 }
@@ -739,7 +1285,7 @@ export default function EpicDetailPage() {
         {activeTab === "Scope" && <ScopeTab tickets={tickets} />}
         {activeTab === "Roadmap" && <RoadmapTab tickets={tickets} />}
         {activeTab === "Brief" && epic.brief ? (
-          <BriefTab brief={epic.brief} epicTitle={epic.title} />
+          <BriefTab brief={epic.brief} epicTitle={epic.title} onSwitchTab={setActiveTab} />
         ) : (
           activeTab === "Brief" && (
             <div className="px-6 py-10 text-center text-sm text-muted">

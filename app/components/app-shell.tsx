@@ -1,13 +1,37 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useAuth } from "@/app/auth-context";
 import Sidebar from "./sidebar";
+
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password"];
+const NO_SHELL_PATHS = ["/share", "/login", "/signup", "/forgot-password"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isSharePage = pathname.startsWith("/share");
+  const router = useRouter();
+  const { user, loading } = useAuth();
 
-  if (isSharePage) {
+  const isNoShell = NO_SHELL_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+  const isPublic =
+    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    pathname.startsWith("/share");
+
+  // Redirect to login if not authenticated on protected routes
+  useEffect(() => {
+    if (loading) return;
+    if (!user && !isPublic && pathname !== "/") {
+      router.replace("/login");
+    }
+    if (user && PUBLIC_PATHS.some((p) => pathname === p)) {
+      router.replace("/");
+    }
+  }, [user, loading, pathname, isPublic, router]);
+
+  if (isNoShell) {
     return <>{children}</>;
   }
 

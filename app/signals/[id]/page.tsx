@@ -5,94 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Quote } from "@/lib/mock-data";
-
-/* ─── Create Epic Modal ─── */
-
-function CreateEpicModal({
-  defaultTitle,
-  onClose,
-  onCreate,
-}: {
-  defaultTitle: string;
-  onClose: () => void;
-  onCreate: (title: string) => void;
-}) {
-  const [title, setTitle] = useState(defaultTitle);
-  const [description, setDescription] = useState("");
-  const [owner, setOwner] = useState("");
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="mb-4 text-lg font-medium text-foreground">
-          Create epic from signal
-        </h2>
-
-        <div className="mb-4">
-          <label className="mb-1.5 block text-sm font-medium text-foreground">
-            Title
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Onboarding redesign"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-accent/40 focus:outline-none"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="mb-1.5 block text-sm font-medium text-foreground">
-            Description
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What problem does this epic address?"
-            rows={3}
-            className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-accent/40 focus:outline-none"
-          />
-        </div>
-
-        <div className="mb-6">
-          <label className="mb-1.5 block text-sm font-medium text-foreground">
-            Owner
-          </label>
-          <input
-            type="text"
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
-            placeholder="e.g. Kate S."
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-accent/40 focus:outline-none"
-          />
-        </div>
-
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-background"
-          >
-            Cancel
-          </button>
-          <button
-            disabled={!title.trim()}
-            onClick={() => onCreate(title)}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ background: "#3D5A3D" }}
-          >
-            Create epic
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+import CreateEpicModal from "@/app/components/create-epic-modal";
 
 /* ─── Meeting Group ─── */
 
@@ -575,10 +488,6 @@ export default function SignalDetailPage() {
         <CreateEpicModal
           defaultTitle={signal.title}
           onClose={() => setShowCreateModal(false)}
-          onCreate={(epicTitle) => {
-            setShowCreateModal(false);
-            showToast(`Epic "${epicTitle}" created`);
-          }}
         />
       )}
     </div>

@@ -3,6 +3,7 @@ import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import AppShell from "./components/app-shell";
 import { NavProvider } from "./nav-context";
+import { AuthProvider } from "./auth-context";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${dmSans.variable} antialiased`}>
-        <NavProvider>
-          <AppShell>{children}</AppShell>
-        </NavProvider>
+        <AuthProvider>
+          <NavProvider>
+            <AppShell>{children}</AppShell>
+          </NavProvider>
+        </AuthProvider>
       </body>
     </html>
   );
