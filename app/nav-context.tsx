@@ -31,6 +31,24 @@ const TRANSCRIPT_KEY = "fjord-transcript";
 const LINEAR_KEY_STORAGE = "fjord-linear-api-key";
 const JIRA_CREDS_STORAGE = "fjord-jira-creds";
 const FIREFLIES_KEY_STORAGE = "fjord-fireflies-api-key";
+const CONVERTED_SIGNALS_KEY = "fjord-converted-signals";
+
+export type ConvertedSignalInfo = { epicId: string; epicTitle: string };
+
+function loadConvertedSignals(): Record<string, ConvertedSignalInfo> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CONVERTED_SIGNALS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistConvertedSignals(data: Record<string, ConvertedSignalInfo>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(CONVERTED_SIGNALS_KEY, JSON.stringify(data));
+}
 
 function loadLinearApiKey(): string {
   if (typeof window === "undefined") return "";
@@ -116,6 +134,9 @@ type NavContextType = {
   triggerFeedback: () => void;
   demoMode: boolean;
   toggleDemoMode: () => void;
+  convertedSignals: Record<string, ConvertedSignalInfo>;
+  convertSignal: (signalId: string, epicId: string, epicTitle: string) => void;
+  isSignalConverted: (signalId: string) => boolean;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -149,6 +170,9 @@ const NavContext = createContext<NavContextType>({
   triggerFeedback: () => {},
   demoMode: false,
   toggleDemoMode: () => {},
+  convertedSignals: {},
+  convertSignal: () => {},
+  isSignalConverted: () => false,
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -161,6 +185,20 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [showLanding, setShowLanding] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  const [convertedSignals, setConvertedSignals] = useState<Record<string, ConvertedSignalInfo>>({});
+
+  const convertSignal = useCallback((signalId: string, epicId: string, epicTitle: string) => {
+    setConvertedSignals((prev) => {
+      const next = { ...prev, [signalId]: { epicId, epicTitle } };
+      persistConvertedSignals(next);
+      return next;
+    });
+  }, []);
+
+  const isSignalConverted = useCallback(
+    (signalId: string) => signalId in convertedSignals,
+    [convertedSignals]
+  );
 
   const toggleDemoMode = useCallback(() => {
     setDemoMode((prev) => {
@@ -225,6 +263,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedFireflies) setFirefliesApiKeyState(savedFireflies);
     const savedDemo = localStorage.getItem(DEMO_MODE_KEY);
     if (savedDemo === "1") setDemoMode(true);
+    const savedConverted = loadConvertedSignals();
+    if (Object.keys(savedConverted).length > 0) setConvertedSignals(savedConverted);
 
     // Restore session data
     try {
@@ -325,6 +365,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
         triggerFeedback,
         demoMode,
         toggleDemoMode,
+        convertedSignals,
+        convertSignal,
+        isSignalConverted,
       }}
     >
       {children}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useCallback, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Results from "@/app/results";
 import Roadmap from "@/app/roadmap";
 import { useNav } from "@/app/nav-context";
@@ -83,8 +83,18 @@ const ClipboardIcon = () => (
 
 const STEP_ICONS = [SearchIcon, SearchIcon, BoltIcon, ClipboardIcon];
 
-export default function Discovery() {
+export default function DiscoveryPage() {
+  return (
+    <Suspense>
+      <Discovery />
+    </Suspense>
+  );
+}
+
+function Discovery() {
   const meetingRouter = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
   const [isDragOver, setIsDragOver] = useState(false);
   const [localTranscript, setLocalTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -356,12 +366,14 @@ export default function Discovery() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
-      {/* Breadcrumb */}
-      <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <button onClick={() => meetingRouter.push("/")} className="hover:text-foreground">Home</button>
-        {" › "}
-        <span className="text-accent">Process a Transcript</span>
-      </div>
+      {/* Breadcrumb — only shown when navigating from a list/page */}
+      {from && (
+        <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
+          <button onClick={() => meetingRouter.push("/")} className="hover:text-foreground">Home</button>
+          {" › "}
+          <span className="text-accent">Process a Transcript</span>
+        </div>
+      )}
 
       <div className="mb-2">
         <h1

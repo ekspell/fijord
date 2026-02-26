@@ -14,15 +14,19 @@ const STATUS_OPTIONS: { value: EpicStatus; label: string }[] = [
 
 export default function CreateEpicModal({
   defaultTitle,
+  defaultDescription,
   onClose,
+  onCreated,
 }: {
   defaultTitle?: string;
+  defaultDescription?: string;
   onClose: () => void;
+  onCreated?: (epicId: string, epicTitle: string) => void;
 }) {
   const router = useRouter();
   const { showToast } = useNav();
   const [title, setTitle] = useState(defaultTitle ?? "");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<EpicStatus>("on-track");
   const [owner, setOwner] = useState("");
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
@@ -50,6 +54,7 @@ export default function CreateEpicModal({
       .replace(/(^-|-$)/g, "");
     onClose();
     showToast(`Epic "${title}" created`);
+    onCreated?.(slug, title);
     router.push(`/epic/${slug}`);
   }
 

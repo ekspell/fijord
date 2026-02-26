@@ -24,7 +24,7 @@ function QuickActions() {
   return (
     <div className="mb-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
       <button
-        onClick={() => router.push("/meeting/new")}
+        onClick={() => router.push("/meeting/new?from=home")}
         className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
       >
         <div
@@ -105,7 +105,7 @@ function SignalCard({ signal }: { signal: Signal }) {
 
   return (
     <div
-      onClick={() => router.push(`/signals/${signal.id}`)}
+      onClick={() => router.push(`/signals/${signal.id}?from=home`)}
       className="cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
     >
       {/* Header */}
@@ -202,7 +202,7 @@ function EpicPreviewCard({ epic }: { epic: Epic }) {
 
   return (
     <div
-      onClick={() => router.push(`/epic/${epic.id}`)}
+      onClick={() => router.push(`/epic/${epic.id}?from=home`)}
       className="cursor-pointer rounded-xl border border-border bg-card p-5 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
     >
       {/* Header */}
@@ -292,11 +292,11 @@ function SectionHeader({
 /* ─── Home Dashboard ─── */
 
 export default function Home() {
-  const { demoMode } = useNav();
+  const { demoMode, isSignalConverted } = useNav();
   const { user } = useAuth();
   const greeting = getGreeting();
   const userName = user?.name?.split(" ")[0] ?? "Kate";
-  const signals = demoMode ? [] : MOCK_SIGNALS;
+  const signals = demoMode ? [] : MOCK_SIGNALS.filter((s) => !isSignalConverted(s.id));
   const epics = demoMode ? [] : MOCK_EPICS;
 
   return (

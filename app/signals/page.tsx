@@ -8,16 +8,17 @@ import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 import UpgradeModal from "@/app/components/upgrade-modal";
 
-function SignalCard({ signal }: { signal: Signal }) {
+function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; converted?: boolean; conversionEpicId?: string }) {
   const router = useRouter();
-  const status = SIGNAL_STATUS_STYLES[signal.status];
+  const effectiveStatus = converted ? "converted" as const : signal.status;
+  const status = SIGNAL_STATUS_STYLES[effectiveStatus];
   const isProject = signal.status === "project";
   const showSuggestion =
-    signal.status === "stable" && signal.strength >= 50;
+    !converted && signal.status === "stable" && signal.strength >= 50;
 
   return (
     <div
-      onClick={() => router.push(`/signals/${signal.id}`)}
+      onClick={() => router.push(`/signals/${signal.id}?from=signals`)}
       className="cursor-pointer rounded-xl border border-border bg-card p-6 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
     >
       {/* Header row */}
@@ -130,11 +131,24 @@ function SignalCard({ signal }: { signal: Signal }) {
       </div>
 
       {/* Action row */}
-      {isProject && signal.epicId && (
+      {converted && conversionEpicId && (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            router.push(`/epic/${signal.epicId}`);
+            router.push(`/epic/${conversionEpicId}?from=signals`);
+          }}
+          className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+          style={{ background: "#3D5A3D" }}
+        >
+          Open epic →
+        </button>
+      )}
+
+      {!converted && isProject && signal.epicId && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/epic/${signal.epicId}?from=signals`);
           }}
           className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
           style={{ background: "#3D5A3D" }}
@@ -148,7 +162,7 @@ function SignalCard({ signal }: { signal: Signal }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/signals/${signal.id}`);
+              router.push(`/signals/${signal.id}?from=signals`);
             }}
             className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ background: "#3D5A3D" }}
@@ -161,7 +175,7 @@ function SignalCard({ signal }: { signal: Signal }) {
         </div>
       )}
 
-      {signal.status === "new" && !showSuggestion && (
+      {!converted && signal.status === "new" && !showSuggestion && (
         <div className="text-muted" style={{ fontSize: 13 }}>
           Tracking — needs more data to confirm pattern
         </div>
@@ -172,10 +186,15 @@ function SignalCard({ signal }: { signal: Signal }) {
 
 export default function SignalsPage() {
   const router = useRouter();
-  const { demoMode } = useNav();
+  const { demoMode, isSignalConverted, convertedSignals } = useNav();
   const { isPro } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const signals = demoMode ? [] : MOCK_SIGNALS;
+  const [showConverted, setShowConverted] = useState(false);
+  const allSignals = demoMode ? [] : MOCK_SIGNALS;
+  const convertedCount = allSignals.filter((s) => isSignalConverted(s.id)).length;
+  const signals = showConverted
+    ? allSignals
+    : allSignals.filter((s) => !isSignalConverted(s.id));
 
   if (!isPro) {
     return (
@@ -249,10 +268,29 @@ export default function SignalsPage() {
         </svg>
         Signals
       </h1>
-      <p className="mb-8 text-muted" style={{ fontSize: 15 }}>
+      <p className="mb-6 text-muted" style={{ fontSize: 15 }}>
         Recurring themes detected across your meetings. When a pattern has
         enough signal, turn it into an epic.
       </p>
+
+      {/* Converted toggle */}
+      {convertedCount > 0 && (
+        <div className="mb-6 flex items-center gap-3">
+          <button
+            onClick={() => setShowConverted(!showConverted)}
+            className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
+            style={{ background: showConverted ? "#3D5A3D" : "#D0CEC9" }}
+          >
+            <span
+              className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
+              style={{ transform: showConverted ? "translateX(18px)" : "translateX(3px)" }}
+            />
+          </button>
+          <span className="text-sm text-muted">
+            Show converted signals ({convertedCount})
+          </span>
+        </div>
+      )}
 
       {/* Signal cards */}
       {signals.length === 0 ? (
@@ -267,7 +305,7 @@ export default function SignalsPage() {
             Process a few meetings and we&apos;ll find the patterns.
           </p>
           <button
-            onClick={() => router.push("/meeting/new")}
+            onClick={() => router.push("/meeting/new?from=signals")}
             className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ background: "#3D5A3D" }}
           >
@@ -277,7 +315,12 @@ export default function SignalsPage() {
       ) : (
         <div className="flex flex-col gap-4">
           {signals.map((signal) => (
-            <SignalCard key={signal.id} signal={signal} />
+            <SignalCard
+              key={signal.id}
+              signal={signal}
+              converted={isSignalConverted(signal.id)}
+              conversionEpicId={convertedSignals[signal.id]?.epicId}
+            />
           ))}
         </div>
       )}

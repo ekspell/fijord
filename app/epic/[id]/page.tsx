@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
 import UpgradeModal from "@/app/components/upgrade-modal";
@@ -65,7 +65,7 @@ function DiscoveryTab({ epicId }: { epicId: string }) {
             {linkedSignals.map((signal) => (
               <button
                 key={signal.id}
-                onClick={() => router.push(`/signals/${signal.id}`)}
+                onClick={() => router.push(`/signals/${signal.id}?from=epics`)}
                 className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-accent-green-light"
               >
                 <span
@@ -112,7 +112,7 @@ function DiscoveryTab({ epicId }: { epicId: string }) {
                 className="rounded-lg border border-border"
               >
                 <button
-                  onClick={() => router.push(`/meeting/${meeting.id}`)}
+                  onClick={() => router.push(`/meeting/${meeting.id}?from=epics`)}
                   className="flex w-full items-center gap-2.5 border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent-green-light"
                 >
                   <svg
@@ -1132,6 +1132,8 @@ function BriefTab({
 export default function EpicDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
   const { isPro } = useAuth();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("Discovery");
@@ -1168,24 +1170,42 @@ export default function EpicDetailPage() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
-      {/* Breadcrumb */}
-      <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <button
-          onClick={() => router.push("/")}
-          className="hover:text-foreground"
-        >
-          Home
-        </button>
-        {" › "}
-        <button
-          onClick={() => router.push("/epics")}
-          className="hover:text-foreground"
-        >
-          Epics
-        </button>
-        {" › "}
-        <span className="text-accent">{epic.title}</span>
-      </div>
+      {/* Breadcrumb — only shown when navigating from a list/page */}
+      {from && (
+        <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
+          <button
+            onClick={() => router.push("/")}
+            className="hover:text-foreground"
+          >
+            Home
+          </button>
+          {from !== "home" && (
+            <>
+              {" › "}
+              <button
+                onClick={() =>
+                  router.push(
+                    from === "signals"
+                      ? "/signals"
+                      : from === "meetings"
+                        ? "/meeting/new"
+                        : "/epics"
+                  )
+                }
+                className="hover:text-foreground"
+              >
+                {from === "signals"
+                  ? "Signals"
+                  : from === "meetings"
+                    ? "Meetings"
+                    : "Epics"}
+              </button>
+            </>
+          )}
+          {" › "}
+          <span className="text-accent">{epic.title}</span>
+        </div>
+      )}
 
       {/* Header */}
       <div className="mb-1.5 flex items-center gap-3">

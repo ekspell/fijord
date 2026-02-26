@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import {
   MOCK_MEETING_RECORDS,
@@ -302,6 +302,8 @@ function ProblemCard({ problem }: { problem: MeetingProblem }) {
 export default function MeetingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
   const { showToast } = useNav();
   const [showTranscript, setShowTranscript] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -363,24 +365,42 @@ export default function MeetingDetailPage() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
-      {/* Breadcrumb */}
-      <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <button
-          onClick={() => router.push("/")}
-          className="hover:text-foreground"
-        >
-          Home
-        </button>
-        {" › "}
-        <button
-          onClick={() => router.push("/meeting/new")}
-          className="hover:text-foreground"
-        >
-          Meetings
-        </button>
-        {" › "}
-        <span className="text-accent">{title}</span>
-      </div>
+      {/* Breadcrumb — only shown when navigating from a list/page */}
+      {from && (
+        <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
+          <button
+            onClick={() => router.push("/")}
+            className="hover:text-foreground"
+          >
+            Home
+          </button>
+          {from !== "home" && (
+            <>
+              {" › "}
+              <button
+                onClick={() =>
+                  router.push(
+                    from === "signals"
+                      ? "/signals"
+                      : from === "epics"
+                        ? "/epics"
+                        : "/meeting/new"
+                  )
+                }
+                className="hover:text-foreground"
+              >
+                {from === "signals"
+                  ? "Signals"
+                  : from === "epics"
+                    ? "Epics"
+                    : "Meetings"}
+              </button>
+            </>
+          )}
+          {" › "}
+          <span className="text-accent">{title}</span>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
@@ -556,7 +576,7 @@ export default function MeetingDetailPage() {
               contributingSignals.map((signal) => (
                 <button
                   key={signal.id}
-                  onClick={() => router.push(`/signals/${signal.id}`)}
+                  onClick={() => router.push(`/signals/${signal.id}?from=meetings`)}
                   className="mb-2 flex w-full items-start gap-2.5 rounded-lg text-left transition-colors hover:bg-accent-green-light"
                   style={{ padding: "10px 12px", background: "#FAF9F6" }}
                 >
@@ -618,7 +638,7 @@ export default function MeetingDetailPage() {
                 return (
                   <button
                     key={epic.id}
-                    onClick={() => router.push(`/epic/${epic.id}`)}
+                    onClick={() => router.push(`/epic/${epic.id}?from=meetings`)}
                     className="mb-2 flex w-full items-center gap-2.5 rounded-lg text-left transition-colors hover:bg-accent-green-light"
                     style={{ padding: "10px 12px", background: "#FAF9F6" }}
                   >

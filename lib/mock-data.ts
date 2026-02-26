@@ -21,7 +21,7 @@ export type Signal = {
   quoteCount: number;
   strength: number; // 0-100
   tags: string[];
-  status: "new" | "stable" | "project";
+  status: "new" | "stable" | "project" | "converted";
   color: string; // dot + progress bar color
   recentDelta?: string; // e.g. "+2 this week"
   epicId?: string; // linked epic id if status === "project"
@@ -915,4 +915,5 @@ export const SIGNAL_STATUS_STYLES: Record<
   project: { bg: "#E8F0E8", text: "#3D5A3D", label: "Project" },
   stable: { bg: "#FEF3C7", text: "#D97706", label: "stable" },
   new: { bg: "#FFEDD5", text: "#EA580C", label: "new" },
+  converted: { bg: "#E8F0E8", text: "#3D5A3D", label: "Converted to Epic" },
 };

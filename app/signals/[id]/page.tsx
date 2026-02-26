@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Quote } from "@/lib/mock-data";
@@ -137,7 +137,7 @@ function MeetingGroup({
 
           {/* Navigate to meeting link */}
           <button
-            onClick={() => router.push(`/meeting/${meetingId}`)}
+            onClick={() => router.push(`/meeting/${meetingId}?from=signals`)}
             className="w-full bg-card text-left text-muted transition-colors hover:text-foreground"
             style={{
               padding: "10px 20px",
@@ -159,7 +159,9 @@ function MeetingGroup({
 export default function SignalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { showToast } = useNav();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
+  const { showToast, convertSignal, isSignalConverted, convertedSignals } = useNav();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [tags, setTags] = useState<string[] | null>(null);
   const [addingTag, setAddingTag] = useState(false);
@@ -187,7 +189,10 @@ export default function SignalDetailPage() {
     );
   }
 
-  const status = SIGNAL_STATUS_STYLES[signal.status];
+  const converted = isSignalConverted(signal.id);
+  const conversionInfo = convertedSignals[signal.id];
+  const effectiveStatus = converted ? "converted" as const : signal.status;
+  const status = SIGNAL_STATUS_STYLES[effectiveStatus];
   const activeTags = tags ?? signal.tags;
   const quotes = signal.quotes ?? [];
   const timeline = signal.timeline ?? [];
@@ -230,24 +235,42 @@ export default function SignalDetailPage() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
-      {/* Breadcrumb */}
-      <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <button
-          onClick={() => router.push("/")}
-          className="hover:text-foreground"
-        >
-          Home
-        </button>
-        {" › "}
-        <button
-          onClick={() => router.push("/signals")}
-          className="hover:text-foreground"
-        >
-          Signals
-        </button>
-        {" › "}
-        <span className="text-accent">{signal.title}</span>
-      </div>
+      {/* Breadcrumb — only shown when navigating from a list/page */}
+      {from && (
+        <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
+          <button
+            onClick={() => router.push("/")}
+            className="hover:text-foreground"
+          >
+            Home
+          </button>
+          {from !== "home" && (
+            <>
+              {" › "}
+              <button
+                onClick={() =>
+                  router.push(
+                    from === "epics"
+                      ? "/epics"
+                      : from === "meetings"
+                        ? "/meeting/new"
+                        : "/signals"
+                  )
+                }
+                className="hover:text-foreground"
+              >
+                {from === "epics"
+                  ? "Epics"
+                  : from === "meetings"
+                    ? "Meetings"
+                    : "Signals"}
+              </button>
+            </>
+          )}
+          {" › "}
+          <span className="text-accent">{signal.title}</span>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
@@ -279,18 +302,30 @@ export default function SignalDetailPage() {
             </div>
           </div>
 
-          {signal.status !== "project" && (
+          {/* CTA: Create Epic (not already project/converted) */}
+          {!converted && signal.status !== "project" && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
               style={{ background: "#3D5A3D" }}
             >
-              + Create Epic
+              Create Epic from Signal
             </button>
           )}
-          {signal.status === "project" && signal.epicId && (
+          {/* CTA: Open existing epic (mock "project" status) */}
+          {!converted && signal.status === "project" && signal.epicId && (
             <button
-              onClick={() => router.push(`/epic/${signal.epicId}`)}
+              onClick={() => router.push(`/epic/${signal.epicId}?from=signals`)}
+              className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
+              style={{ background: "#3D5A3D" }}
+            >
+              Open epic →
+            </button>
+          )}
+          {/* CTA: Open converted epic */}
+          {converted && conversionInfo && (
+            <button
+              onClick={() => router.push(`/epic/${conversionInfo.epicId}?from=signals`)}
               className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
               style={{ background: "#3D5A3D" }}
             >
@@ -321,6 +356,28 @@ export default function SignalDetailPage() {
           </span>
         </div>
       </div>
+
+      {/* Converted banner */}
+      {converted && conversionInfo && (
+        <div
+          className="flex items-center gap-3 rounded-xl border border-border bg-card"
+          style={{ padding: "16px 20px", marginBottom: 16 }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <span className="text-sm text-foreground">
+            This signal was converted to an epic:{" "}
+            <button
+              onClick={() => router.push(`/epic/${conversionInfo.epicId}?from=signals`)}
+              className="font-medium text-accent hover:underline"
+            >
+              {conversionInfo.epicTitle}
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* Stats row */}
       <div
@@ -487,7 +544,11 @@ export default function SignalDetailPage() {
       {showCreateModal && (
         <CreateEpicModal
           defaultTitle={signal.title}
+          defaultDescription={`Signal detected across ${signal.meetingCount} meetings with ${signal.quoteCount} supporting quotes (${signal.strength}% strength). Tags: ${signal.tags.join(", ")}.`}
           onClose={() => setShowCreateModal(false)}
+          onCreated={(epicId, epicTitle) => {
+            convertSignal(signal.id, epicId, epicTitle);
+          }}
         />
       )}
     </div>
