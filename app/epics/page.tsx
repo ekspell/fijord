@@ -65,7 +65,7 @@ function EpicCard({ epic }: { epic: Epic }) {
       </p>
 
       {/* Metrics */}
-      <div className="mb-3 flex gap-4">
+      <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1">
         <div className="flex items-center gap-1.5 text-muted" style={{ fontSize: 13 }}>
           <span className="font-medium text-foreground">
             {epic.metrics.tickets}
@@ -166,7 +166,7 @@ export default function EpicsPage() {
       </div>
 
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-background pb-0">
+      <div className="sticky top-0 z-10 bg-background pt-2 pb-0">
         {/* Title row + Create button */}
         <div className="flex items-center justify-between">
           <h1
@@ -205,7 +205,9 @@ export default function EpicsPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className="relative pb-3 text-sm font-medium transition-colors"
+                className={`relative pb-3 text-sm font-medium transition-colors ${
+                  isActive ? "" : "hover:text-foreground"
+                }`}
                 style={{
                   color: isActive ? "var(--color-foreground)" : "var(--color-muted)",
                 }}
@@ -219,8 +221,8 @@ export default function EpicsPage() {
                 </span>
                 {isActive && (
                   <span
-                    className="absolute bottom-0 left-0 right-0"
-                    style={{ height: 2, background: "var(--color-foreground)" }}
+                    className="absolute left-0 right-0"
+                    style={{ height: 2, bottom: -1, background: "var(--color-foreground)" }}
                   />
                 )}
               </button>
@@ -252,9 +254,15 @@ export default function EpicsPage() {
           </div>
         ) : epics.length === 0 ? (
           <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
-            <p className="text-sm text-muted">
-              No epics matching &ldquo;{activeTab}&rdquo;.
+            <p className="mb-1 text-sm text-muted">
+              No {activeTab.toLowerCase()} epics.
             </p>
+            <button
+              onClick={() => setActiveTab("All")}
+              className="text-sm font-medium text-accent transition-colors hover:text-accent/80"
+            >
+              View all epics →
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
