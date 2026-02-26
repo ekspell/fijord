@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/app/auth-context";
 import Sidebar from "./sidebar";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/terms", "/privacy"];
 const NO_SHELL_PATHS = ["/share", "/login", "/signup", "/forgot-password", "/onboarding"];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

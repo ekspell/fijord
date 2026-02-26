@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
+import { useAuth } from "@/app/auth-context";
 
 const STARTER_FEATURES = [
   "Unlimited meeting recordings",
@@ -48,8 +49,38 @@ const FAQ = [
 export default function PricingPage() {
   const router = useRouter();
   const { showToast } = useNav();
+  const { user } = useAuth();
   const [annual, setAnnual] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
+
+  async function handleUpgrade() {
+    if (!user?.email) {
+      router.push("/login");
+      return;
+    }
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "price_1T4tzgRthYZazJEOWPZ4zSDp",
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        showToast("Something went wrong. Try again.");
+      }
+    } catch {
+      showToast("Something went wrong. Try again.");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   const proPrice = annual ? 10 : 14;
   const savingsLabel = annual ? "Save 29%" : null;
@@ -172,11 +203,12 @@ export default function PricingPage() {
           <p className="mb-6 text-sm text-muted">For teams who ship faster with AI</p>
 
           <button
-            onClick={() => showToast("Stripe checkout coming soon")}
-            className="mb-6 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+            onClick={handleUpgrade}
+            disabled={upgrading}
+            className="mb-6 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
             style={{ background: "#3D5A3D" }}
           >
-            Upgrade to Pro
+            {upgrading ? "Redirecting..." : "Upgrade to Pro"}
           </button>
 
           <div className="flex flex-col gap-2.5">

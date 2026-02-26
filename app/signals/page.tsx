@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
+import { useAuth } from "@/app/auth-context";
 import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
+import UpgradeModal from "@/app/components/upgrade-modal";
 
 function SignalCard({ signal }: { signal: Signal }) {
   const router = useRouter();
@@ -170,7 +173,48 @@ function SignalCard({ signal }: { signal: Signal }) {
 export default function SignalsPage() {
   const router = useRouter();
   const { demoMode } = useNav();
+  const { isPro } = useAuth();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const signals = demoMode ? [] : MOCK_SIGNALS;
+
+  if (!isPro) {
+    return (
+      <>
+        <div className="mx-auto" style={{ maxWidth: 900 }}>
+          <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
+            <button onClick={() => router.push("/")} className="hover:text-foreground">Home</button>
+            {" › "}
+            <span className="text-accent">Emerging signals</span>
+          </div>
+          <h1
+            className="mb-1.5 flex items-center gap-3 text-foreground"
+            style={{ fontSize: 48, letterSpacing: "-1px", lineHeight: "74.4px", fontWeight: 300 }}
+          >
+            Signals
+          </h1>
+          <div className="mt-8 rounded-xl border border-border bg-card px-6 py-16 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">Signals is a Pro feature</p>
+            <p className="mb-6 text-sm text-muted">
+              Upgrade to detect recurring themes across your meetings automatically.
+            </p>
+            <button
+              onClick={() => setShowUpgrade(true)}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+              style={{ background: "#3D5A3D" }}
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        </div>
+        {showUpgrade && <UpgradeModal feature="Signals" onClose={() => setShowUpgrade(false)} />}
+      </>
+    );
+  }
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>

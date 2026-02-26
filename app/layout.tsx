@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import AppShell from "./components/app-shell";
+import ErrorBoundary from "./components/error-boundary";
+import AnalyticsProvider from "./components/analytics-provider";
 import { NavProvider } from "./nav-context";
 import { AuthProvider } from "./auth-context";
 
@@ -25,9 +27,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${dmSans.variable} antialiased`}>
         <AuthProvider>
-          <NavProvider>
-            <AppShell>{children}</AppShell>
-          </NavProvider>
+          <AnalyticsProvider>
+            <NavProvider>
+              <ErrorBoundary>
+                <AppShell>{children}</AppShell>
+              </ErrorBoundary>
+            </NavProvider>
+          </AnalyticsProvider>
         </AuthProvider>
       </body>
     </html>

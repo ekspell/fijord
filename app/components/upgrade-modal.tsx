@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/auth-context";
+import { track, AnalyticsEvents } from "@/lib/analytics";
 
 export default function UpgradeModal({
   feature,
@@ -11,14 +13,44 @@ export default function UpgradeModal({
   onClose: () => void;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
+  const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
+    track(AnalyticsEvents.UPGRADE_MODAL_SHOWN, { feature });
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  }, [onClose, feature]);
+
+  async function handleUpgrade() {
+    if (!user?.email) {
+      onClose();
+      router.push("/pricing");
+      return;
+    }
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID || "price_1T4tzgRthYZazJEOWPZ4zSDp",
+        }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else { onClose(); router.push("/pricing"); }
+    } catch {
+      onClose();
+      router.push("/pricing");
+    } finally {
+      setUpgrading(false);
+    }
+  }
 
   return (
     <div
@@ -80,11 +112,12 @@ export default function UpgradeModal({
             Maybe later
           </button>
           <button
-            onClick={() => { onClose(); router.push("/pricing"); }}
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+            onClick={handleUpgrade}
+            disabled={upgrading}
+            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
             style={{ background: "#3D5A3D" }}
           >
-            Upgrade to Pro
+            {upgrading ? "Redirecting..." : "Upgrade to Pro"}
           </button>
         </div>
       </div>

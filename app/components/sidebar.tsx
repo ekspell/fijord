@@ -12,7 +12,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { showToast, demoMode, toggleDemoMode } = useNav();
-  const { user, logout } = useAuth();
+  const { user, logout, trialDaysLeft, isPro, tierInfo } = useAuth();
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -308,8 +308,40 @@ export default function Sidebar() {
         ))}
       </div>
 
+      {/* Trial badge */}
+      {tierInfo.tier === "pro" && tierInfo.trialStartedAt && trialDaysLeft > 0 && (
+        <div className="mx-3 mt-auto mb-2">
+          <button
+            onClick={() => router.push("/pricing")}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent-green-light"
+            style={{ background: "#E8F0E8" }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span className="text-xs font-medium" style={{ color: "#3D5A3D" }}>
+              {trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} left in trial
+            </span>
+          </button>
+        </div>
+      )}
+      {tierInfo.tier === "starter" && (
+        <div className="mx-3 mt-auto mb-2">
+          <button
+            onClick={() => router.push("/pricing")}
+            className="flex w-full items-center gap-2 rounded-lg border border-accent px-3 py-2 text-left transition-colors hover:bg-accent-green-light"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <span className="text-xs font-medium text-accent">Upgrade to Pro</span>
+          </button>
+        </div>
+      )}
+
       {/* User */}
-      <div className="relative mt-auto border-t border-border">
+      <div className={`relative ${tierInfo.tier !== "pro" || !tierInfo.trialStartedAt || trialDaysLeft <= 0 ? "mt-auto" : ""} border-t border-border`}>
         <button
           onClick={() => setShowUserMenu(!showUserMenu)}
           className="flex w-full items-center gap-2.5 transition-colors hover:bg-background"

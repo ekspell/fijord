@@ -268,8 +268,12 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 text-center text-[13px] text-muted">
-        &copy; 2025 Fijord
+      <footer className="flex items-center justify-center gap-4 py-8 text-[13px] text-muted">
+        <span>&copy; 2026 Fijord</span>
+        <span className="text-border">·</span>
+        <a href="/terms" className="transition-colors hover:text-foreground">Terms</a>
+        <span className="text-border">·</span>
+        <a href="/privacy" className="transition-colors hover:text-foreground">Privacy</a>
       </footer>
     </div>
   );

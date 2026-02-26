@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
+import { useAuth } from "@/app/auth-context";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import type { Epic } from "@/lib/mock-epics";
 import CreateEpicModal from "@/app/components/create-epic-modal";
+import UpgradeModal from "@/app/components/upgrade-modal";
 
 function EpicCard({ epic }: { epic: Epic }) {
   const router = useRouter();
@@ -125,8 +127,18 @@ function EpicCard({ epic }: { epic: Epic }) {
 export default function EpicsPage() {
   const router = useRouter();
   const { demoMode } = useNav();
+  const { isPro } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const epics = demoMode ? [] : MOCK_EPICS;
+
+  function handleCreateEpic() {
+    if (!isPro && epics.length >= 3) {
+      setShowUpgrade(true);
+    } else {
+      setShowCreateModal(true);
+    }
+  }
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
@@ -167,7 +179,7 @@ export default function EpicsPage() {
             Create your first epic or wait for signals to emerge from meetings.
           </p>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={handleCreateEpic}
             className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
             style={{ background: "#3D5A3D" }}
           >
@@ -182,7 +194,7 @@ export default function EpicsPage() {
 
           {/* Create new */}
           <div
-            onClick={() => setShowCreateModal(true)}
+            onClick={handleCreateEpic}
             className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border font-medium text-muted transition-all hover:border-accent hover:bg-accent-green-light hover:text-accent"
             style={{ padding: 28, fontSize: 14 }}
           >
@@ -193,6 +205,9 @@ export default function EpicsPage() {
 
       {showCreateModal && (
         <CreateEpicModal onClose={() => setShowCreateModal(false)} />
+      )}
+      {showUpgrade && (
+        <UpgradeModal feature="unlimited epics" onClose={() => setShowUpgrade(false)} />
       )}
     </div>
   );

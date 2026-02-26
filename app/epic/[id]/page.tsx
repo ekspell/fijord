@@ -3,6 +3,8 @@
 import { useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
+import { useAuth } from "@/app/auth-context";
+import UpgradeModal from "@/app/components/upgrade-modal";
 import {
   MOCK_EPICS,
   STATUS_STYLES,
@@ -1130,8 +1132,10 @@ function BriefTab({
 export default function EpicDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { isPro } = useAuth();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("Discovery");
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const epic = MOCK_EPICS.find((e) => e.id === id);
 
@@ -1284,7 +1288,24 @@ export default function EpicDetailPage() {
         {activeTab === "Discovery" && <DiscoveryTab epicId={epic.id} />}
         {activeTab === "Scope" && <ScopeTab tickets={tickets} />}
         {activeTab === "Roadmap" && <RoadmapTab tickets={tickets} />}
-        {activeTab === "Brief" && epic.brief ? (
+        {activeTab === "Brief" && !isPro ? (
+          <div className="px-6 py-10 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <p className="mb-1 text-sm font-medium text-foreground">Briefs is a Pro feature</p>
+            <p className="mb-4 text-sm text-muted">Upgrade to auto-generate product briefs from your discovery evidence.</p>
+            <button
+              onClick={() => setShowUpgrade(true)}
+              className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+              style={{ background: "#3D5A3D" }}
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        ) : activeTab === "Brief" && epic.brief ? (
           <BriefTab brief={epic.brief} epicTitle={epic.title} onSwitchTab={setActiveTab} />
         ) : (
           activeTab === "Brief" && (
@@ -1294,6 +1315,7 @@ export default function EpicDetailPage() {
           )
         )}
       </div>
+      {showUpgrade && <UpgradeModal feature="Briefs" onClose={() => setShowUpgrade(false)} />}
     </div>
   );
 }
