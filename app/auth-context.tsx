@@ -19,6 +19,7 @@ type AuthContextType = {
   signup: (email: string, password: string, name: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   loginWithMagicLink: (email: string) => Promise<void>;
+  verifyCode: (email: string, code: string) => Promise<void>;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
 };
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   signup: async () => {},
   loginWithGoogle: async () => {},
   loginWithMagicLink: async () => {},
+  verifyCode: async () => {},
   logout: () => {},
   resetPassword: async () => {},
 });
@@ -83,6 +85,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await new Promise((r) => setTimeout(r, 400));
   }, []);
 
+  const verifyCode = useCallback(async (email: string, _code: string) => {
+    // Mock — accepts any 6-digit code. In production, verify with Supabase OTP.
+    await new Promise((r) => setTimeout(r, 600));
+    const name = email.split("@")[0].replace(/[^a-zA-Z ]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    persist({ id: crypto.randomUUID(), email, name, initials: initials(name) });
+  }, [persist]);
+
   const logout = useCallback(() => {
     persist(null);
   }, [persist]);
@@ -92,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, loginWithMagicLink, logout, resetPassword }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, loginWithMagicLink, verifyCode, logout, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
