@@ -54,7 +54,7 @@ export default function LoginPage() {
     setError("");
     try {
       await loginWithGoogle();
-      router.push("/");
+      router.push("/onboarding");
     } catch {
       setError("Google sign-in failed");
     } finally {
@@ -82,7 +82,7 @@ export default function LoginPage() {
     setError("");
     try {
       await verifyCode(email.trim(), code);
-      router.push("/");
+      router.push("/onboarding");
     } catch {
       setError("Verification failed. Please try again.");
     } finally {
