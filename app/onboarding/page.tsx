@@ -346,7 +346,7 @@ export default function OnboardingPage() {
               Connect your tools
             </h1>
 
-            <div className="mb-5 grid w-full grid-cols-3 gap-2">
+            <div className="mb-5 grid w-full grid-cols-2 sm:grid-cols-3 gap-2">
               {INTEGRATIONS.map((intg) => {
                 const selected = integrations.includes(intg.id);
                 return (

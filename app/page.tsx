@@ -22,7 +22,7 @@ function QuickActions() {
   const { showToast, demoMode } = useNav();
 
   return (
-    <div className="mb-10 grid grid-cols-2 gap-4">
+    <div className="mb-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
       <button
         onClick={() => router.push("/meeting/new")}
         className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
@@ -57,9 +57,9 @@ function QuickActions() {
         </div>
       </button>
 
-      <button
-        onClick={() => showToast("Document upload coming soon")}
-        className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+      <div
+        className="relative flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4 text-left opacity-60"
+        title="Coming soon"
       >
         <div
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -86,10 +86,11 @@ function QuickActions() {
             Upload docs
           </div>
           <div className="text-muted" style={{ fontSize: 13 }}>
-            {demoMode ? "Upload documents to get started" : `${MOCK_SIGNALS.length} signals detected across ${MOCK_MEETING_RECORDS.length} meetings`}
+            Coming soon
           </div>
         </div>
-      </button>
+        <span className="absolute top-2 right-2 rounded-full bg-border px-2 py-0.5 text-[10px] font-medium text-muted">Soon</span>
+      </div>
     </div>
   );
 }
@@ -333,7 +334,7 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {signals.slice(0, 4).map((signal) => (
               <SignalCard key={signal.id} signal={signal} />
             ))}
@@ -355,7 +356,7 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {epics.slice(0, 4).map((epic) => (
               <EpicPreviewCard key={epic.id} epic={epic} />
             ))}

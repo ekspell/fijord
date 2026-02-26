@@ -569,7 +569,7 @@ export default function Roadmap() {
       </div>
 
       {/* 3-column kanban */}
-      <div className="mb-8 grid grid-cols-3 gap-5">
+      <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5">
         {columns.map((col) => (
           <div
             key={col.key}

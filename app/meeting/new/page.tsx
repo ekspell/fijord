@@ -422,8 +422,8 @@ export default function Discovery() {
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Integration cards — single row */}
-        <div className="flex w-full gap-6">
+        {/* Integration cards */}
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:gap-6">
           {/* Fireflies */}
           {firefliesApiKey ? (
             <button
@@ -544,7 +544,7 @@ export default function Discovery() {
             </p>
           </div>
         ) : (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {(demoMode ? [] : MOCK_MEETING_RECORDS).slice(0, 6).map((meeting) => (
             <button
               key={meeting.id}

@@ -139,7 +139,7 @@ export default function PricingPage() {
       </div>
 
       {/* Plans */}
-      <div className="mb-16 grid grid-cols-2 gap-4">
+      <div className="mb-16 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Starter */}
         <div className="rounded-xl border border-border bg-card" style={{ padding: 28 }}>
           <div className="mb-1 text-sm font-medium text-muted" style={{ textTransform: "uppercase", letterSpacing: "0.5px" }}>

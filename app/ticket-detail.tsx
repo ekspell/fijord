@@ -71,9 +71,9 @@ export default function TicketDetailView({
       )}
 
       {/* Two-column layout */}
-      <div className="flex gap-6 pb-24">
+      <div className="flex flex-col gap-6 pb-24 lg:flex-row">
         {/* Main content card */}
-        <div className="w-2/3">
+        <div className="w-full lg:w-2/3">
           <div className="rounded-xl border border-border bg-card p-8">
             {/* Header: ID, priority badge, status badge */}
             <div className="mb-4 flex items-center gap-3">
@@ -177,7 +177,7 @@ export default function TicketDetailView({
         </div>
 
         {/* Right sidebar */}
-        <div className="w-1/3 flex flex-col gap-4">
+        <div className="w-full lg:w-1/3 flex flex-col gap-4">
           {/* User Quotes */}
           <div className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">

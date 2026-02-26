@@ -302,8 +302,8 @@ export default function SignalDetailPage() {
         {/* Strength bar */}
         <div className="flex items-center">
           <div
-            className="overflow-hidden rounded-full bg-border"
-            style={{ height: 8, width: 300 }}
+            className="w-full max-w-[300px] overflow-hidden rounded-full bg-border"
+            style={{ height: 8 }}
           >
             <div
               className="h-full rounded-full"

@@ -42,8 +42,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen">
       <Sidebar />
       <main
-        className="flex-1 overflow-y-auto pb-8"
-        style={{ marginLeft: 240, paddingTop: 32, paddingLeft: 48, paddingRight: 48 }}
+        className="flex-1 overflow-y-auto pb-8 pt-8 px-5 md:pl-12 md:pr-12 md:ml-[240px]"
       >
         {children}
       </main>

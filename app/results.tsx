@@ -527,7 +527,7 @@ export default function Results() {
       )}
 
       {/* 3-column grid */}
-      <div className="mb-8 grid grid-cols-3 gap-5">
+      <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Evidence column */}
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <ColHeader
