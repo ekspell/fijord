@@ -356,6 +356,13 @@ export default function Discovery() {
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
+      {/* Breadcrumb */}
+      <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
+        <button onClick={() => meetingRouter.push("/")} className="hover:text-foreground">Home</button>
+        {" › "}
+        <span className="text-accent">Process a Transcript</span>
+      </div>
+
       <div className="mb-2">
         <h1
           className="text-foreground"
