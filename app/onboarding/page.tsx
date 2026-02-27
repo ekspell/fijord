@@ -38,12 +38,12 @@ type OnboardingData = {
 
 /* ─── Constants ─── */
 
-const ROLES = ["PM", "Eng Lead", "Designer", "Founder", "Other"] as const;
+const ROLES = ["Product Manager", "Founder", "Designer", "Engineering Lead", "Other"] as const;
 
 const TICKET_TOOLS = [
-  { id: "jira", label: "Jira" },
   { id: "linear", label: "Linear" },
-  { id: "none", label: "I don't use one" },
+  { id: "jira", label: "Jira" },
+  { id: "none", label: "Set up later" },
 ] as const;
 
 const INTEGRATIONS = [
@@ -156,7 +156,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-      <div className={`w-full px-6 ${step >= 5 && step <= 6 ? "max-w-lg" : "max-w-sm"}`}>
+      <div className={`w-full px-6 ${step === 5 ? "max-w-lg" : step === 6 ? "max-w-xl" : "max-w-sm"}`}>
 
         {/* ─── Step 1: Welcome ─── */}
         {step === 1 && (
@@ -235,19 +235,22 @@ export default function OnboardingPage() {
         {step === 3 && (
           <div className="flex flex-col items-center">
             <FijordMark size={36} />
-            <h1 className="mt-5 mb-6 text-xl font-medium text-foreground">
+            <h1 className="mt-5 mb-1.5 text-xl font-medium text-foreground">
               What&apos;s your role?
             </h1>
+            <p className="mb-6 text-sm text-muted">
+              This helps tailor briefs and structure.
+            </p>
 
-            <div className="mb-5 flex w-full flex-wrap justify-center gap-2">
+            <div className="mb-5 w-full">
               {ROLES.map((r) => (
                 <button
                   key={r}
                   onClick={() => setRole(r)}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`flex w-full items-center text-left text-sm transition-colors ${
                     role === r
-                      ? "border-accent bg-accent-green-light text-accent"
-                      : "border-border bg-card text-foreground hover:border-border-hover"
+                      ? "rounded-lg border border-foreground/20 bg-card px-4 py-3 font-medium text-foreground"
+                      : "px-4 py-3 text-foreground hover:text-foreground/70"
                   }`}
                 >
                   {r}
@@ -276,13 +279,6 @@ export default function OnboardingPage() {
             >
               Continue
             </button>
-
-            <button
-              onClick={back}
-              className="mt-5 text-sm text-muted transition-colors hover:text-foreground"
-            >
-              &larr; Go back
-            </button>
           </div>
         )}
 
@@ -290,32 +286,48 @@ export default function OnboardingPage() {
         {step === 4 && (
           <div className="flex flex-col items-center">
             <FijordMark size={36} />
-            <h1 className="mt-5 mb-6 text-xl font-medium text-foreground">
+            <h1 className="mt-5 mb-1.5 text-xl font-medium text-foreground">
               Where do you manage tickets?
             </h1>
+            <p className="mb-6 text-sm text-muted">
+              Fjord can sync structured tickets directly.
+            </p>
 
-            <div className="mb-5 w-full space-y-2">
+            <div className="mb-5 w-full space-y-3">
               {TICKET_TOOLS.map((tool) => (
                 <button
                   key={tool.id}
                   onClick={() => setTicketTool(tool.id)}
-                  className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors ${
+                  className={`flex w-full items-center gap-3.5 rounded-xl border px-5 py-4 text-left text-sm font-medium transition-colors ${
                     ticketTool === tool.id
-                      ? "border-accent bg-accent-green-light text-accent"
+                      ? "border-foreground/30 bg-card text-foreground"
                       : "border-border bg-card text-foreground hover:border-border-hover"
                   }`}
                 >
-                  <div
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-                      ticketTool === tool.id
-                        ? "border-accent"
-                        : "border-border"
-                    }`}
-                  >
-                    {ticketTool === tool.id && (
-                      <div className="h-2 w-2 rounded-full bg-accent" />
-                    )}
-                  </div>
+                  {tool.id === "linear" && (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "#5E6AD2" }}>
+                      <svg width="16" height="16" viewBox="0 0 100 100" fill="white">
+                        <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+                      </svg>
+                    </div>
+                  )}
+                  {tool.id === "jira" && (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "#0052CC" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" />
+                        <path d="M11.575 0H0a5.217 5.217 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 12.487V1.005A1.005 1.005 0 0011.575 0z" opacity=".65" transform="translate(5.714 5.713)" />
+                      </svg>
+                    </div>
+                  )}
+                  {tool.id === "none" && (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-border">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C978E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c1.3 0 1.9.5 2.5 1" />
+                        <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+                        <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+                      </svg>
+                    </div>
+                  )}
                   {tool.label}
                 </button>
               ))}
@@ -327,13 +339,6 @@ export default function OnboardingPage() {
               className="w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Continue
-            </button>
-
-            <button
-              onClick={back}
-              className="mt-5 text-sm text-muted transition-colors hover:text-foreground"
-            >
-              &larr; Go back
             </button>
           </div>
         )}
@@ -403,59 +408,122 @@ export default function OnboardingPage() {
         {/* ─── Step 6: Select a plan ─── */}
         {step === 6 && (
           <div className="flex flex-col items-center">
-            <FijordMark size={36} />
-            <h1 className="mt-5 mb-6 text-xl font-medium text-foreground">
+            <h1 className="mb-6 text-xl font-medium text-foreground">
               Select a plan
             </h1>
 
-            <div className="mb-5 grid w-full grid-cols-2 gap-3">
+            <div className="mb-0 grid w-full grid-cols-2 gap-4">
               {/* Starter */}
-              <button
+              <div
                 onClick={() => setPlan("starter")}
-                className={`relative flex flex-col rounded-lg border p-4 text-left transition-colors ${
+                className={`flex cursor-pointer flex-col items-center rounded-2xl border p-6 text-center transition-colors ${
                   plan === "starter"
-                    ? "border-accent bg-accent-green-light"
+                    ? "border-foreground/20 bg-card"
                     : "border-border bg-card hover:border-border-hover"
                 }`}
               >
-                <span className="text-sm font-medium text-foreground">Starter</span>
-                <span className="mt-1 text-xl font-semibold text-foreground">Free</span>
-                <span className="mt-2 text-xs text-muted">For individuals getting started</span>
-              </button>
+                <span className="text-lg font-semibold text-foreground">Starter</span>
+                <span className="mt-1 text-sm text-muted">$0/user/mo</span>
+
+                <div className="mt-5 flex flex-col gap-2">
+                  <span className="text-xs text-muted">Unlimited meeting recordings</span>
+                  <span className="text-xs text-muted">2 weeks product memory</span>
+                  <span className="flex items-center justify-center gap-1 text-xs text-foreground">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    AI chat
+                  </span>
+                  <span className="text-xs text-muted">3 epics</span>
+                </div>
+
+                <div className="mt-4 flex items-center justify-center gap-1.5">
+                  <div className="flex h-5 w-5 items-center justify-center rounded" style={{ background: "#5E6AD2" }}>
+                    <svg width="10" height="10" viewBox="0 0 100 100" fill="white"><path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" /></svg>
+                  </div>
+                  <div className="flex h-5 w-5 items-center justify-center rounded" style={{ background: "#0052CC" }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" /><path d="M11.575 0H0a5.217 5.217 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 12.487V1.005A1.005 1.005 0 0011.575 0z" opacity=".65" transform="translate(5.714 5.713)" /></svg>
+                  </div>
+                  <div className="flex h-5 w-5 items-center justify-center rounded" style={{ background: "#F24E1E" }}>
+                    <span className="text-[8px] font-bold text-white">F</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2">
+                  <span className="flex items-center justify-center gap-1 text-xs text-muted">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    Briefs
+                  </span>
+                  <span className="flex items-center justify-center gap-1 text-xs text-muted">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    Signals
+                  </span>
+                </div>
+
+                <button
+                  className="mt-5 w-full rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted cursor-default"
+                >
+                  Your current plan
+                </button>
+              </div>
 
               {/* Pro */}
-              <button
+              <div
                 onClick={() => setPlan("pro")}
-                className={`relative flex flex-col rounded-lg p-4 text-left transition-colors ${
+                className={`flex cursor-pointer flex-col items-center rounded-2xl border p-6 text-center transition-colors ${
                   plan === "pro"
-                    ? "border-2 border-accent bg-accent-green-light"
-                    : "border-2 border-accent bg-card hover:bg-accent-green-light/50"
+                    ? "border-accent/30"
+                    : "border-border hover:border-border-hover"
                 }`}
+                style={{ background: "linear-gradient(180deg, #E8F0E8 0%, #F5F4F0 100%)" }}
               >
-                <div className="absolute -top-2.5 right-3 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-semibold text-white">
-                  Most popular
+                <span className="text-lg font-semibold text-foreground">Pro</span>
+                <span className="mt-1 text-sm text-muted">$14/user/mo</span>
+
+                <div className="mt-5 flex flex-col gap-2">
+                  <span className="text-xs text-foreground">Unlimited meeting recordings</span>
+                  <span className="text-xs font-medium text-foreground">Unlimited product memory</span>
+                  <span className="flex items-center justify-center gap-1 text-xs text-foreground">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    AI chat
+                  </span>
+                  <span className="text-xs text-foreground">Unlimited epics</span>
                 </div>
-                <span className="text-sm font-medium text-foreground">Pro</span>
-                <span className="mt-1 text-xl font-semibold text-foreground">
-                  $14<span className="text-sm font-normal text-muted">/mo</span>
-                </span>
-                <span className="mt-2 text-xs text-muted">For teams shipping product</span>
-              </button>
+
+                <div className="mt-4 flex items-center justify-center gap-1.5">
+                  {[
+                    { bg: "#4A154B", letter: "S" },
+                    { bg: "#5E6AD2", letter: "L" },
+                    { bg: "#EA4335", letter: "G" },
+                    { bg: "#0052CC", letter: "J" },
+                    { bg: "#000000", letter: "N" },
+                    { bg: "#F24E1E", letter: "F" },
+                    { bg: "#4285F4", letter: "C" },
+                    { bg: "#6264A7", letter: "T" },
+                  ].map((icon, i) => (
+                    <div key={i} className="flex h-5 w-5 items-center justify-center rounded" style={{ background: icon.bg }}>
+                      <span className="text-[8px] font-bold text-white">{icon.letter}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-col gap-2">
+                  <span className="flex items-center justify-center gap-1 text-xs text-foreground">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    Briefs
+                  </span>
+                  <span className="flex items-center justify-center gap-1 text-xs text-foreground">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    Signals
+                  </span>
+                </div>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPlan("pro"); next(); }}
+                  className="mt-5 w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  Continue with the Pro &rarr;
+                </button>
+              </div>
             </div>
-
-            <button
-              onClick={next}
-              className="w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
-            >
-              Continue
-            </button>
-
-            <button
-              onClick={back}
-              className="mt-5 text-sm text-muted transition-colors hover:text-foreground"
-            >
-              &larr; Go back
-            </button>
           </div>
         )}
 
