@@ -3,8 +3,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { type TierInfo, type UserTier, getTrialDaysRemaining, isTrialExpired, isProUser } from "@/lib/trial";
 import { track, identify as analyticsIdentify, resetAnalytics, AnalyticsEvents } from "@/lib/analytics";
+import { supabase } from "@/lib/supabase";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-const AUTH_KEY = "fjord-auth";
 const TIER_KEY = "fjord-tier";
 
 export type User = {
@@ -53,7 +54,7 @@ const AuthContext = createContext<AuthContextType>({
   resetPassword: async () => {},
 });
 
-function initials(name: string): string {
+function computeInitials(name: string): string {
   return name
     .split(" ")
     .map((w) => w[0])
@@ -62,35 +63,24 @@ function initials(name: string): string {
     .slice(0, 2);
 }
 
+function mapSupabaseUser(supabaseUser: SupabaseUser): User {
+  const email = supabaseUser.email ?? "";
+  const name =
+    supabaseUser.user_metadata?.full_name ||
+    email.split("@")[0].replace(/[^a-zA-Z ]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return {
+    id: supabaseUser.id,
+    email,
+    name,
+    initials: computeInitials(name),
+    avatar: supabaseUser.user_metadata?.avatar_url,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [tierInfo, setTierInfo] = useState<TierInfo>(DEFAULT_TIER);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(AUTH_KEY);
-      if (saved) setUser(JSON.parse(saved));
-
-      const savedTier = localStorage.getItem(TIER_KEY);
-      if (savedTier) {
-        const parsed: TierInfo = JSON.parse(savedTier);
-        // Auto-downgrade if trial expired and not paid
-        if (isTrialExpired(parsed) && parsed.tier === "pro") {
-          parsed.tier = "starter";
-          localStorage.setItem(TIER_KEY, JSON.stringify(parsed));
-        }
-        setTierInfo(parsed);
-      }
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, []);
-
-  const persist = useCallback((u: User | null) => {
-    setUser(u);
-    if (u) localStorage.setItem(AUTH_KEY, JSON.stringify(u));
-    else localStorage.removeItem(AUTH_KEY);
-  }, []);
 
   const persistTier = useCallback((t: TierInfo) => {
     setTierInfo(t);
@@ -108,58 +98,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistTier(tier);
   }, [persistTier]);
 
-  const login = useCallback(async (email: string, _password: string) => {
-    // Mock login — in production, call Supabase auth
-    await new Promise((r) => setTimeout(r, 600));
-    const name = email.split("@")[0].replace(/[^a-zA-Z ]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    persist({ id: crypto.randomUUID(), email, name, initials: initials(name) });
-  }, [persist]);
+  useEffect(() => {
+    // Load tier info from localStorage
+    try {
+      const savedTier = localStorage.getItem(TIER_KEY);
+      if (savedTier) {
+        const parsed: TierInfo = JSON.parse(savedTier);
+        if (isTrialExpired(parsed) && parsed.tier === "pro") {
+          parsed.tier = "starter";
+          localStorage.setItem(TIER_KEY, JSON.stringify(parsed));
+        }
+        setTierInfo(parsed);
+      }
+    } catch { /* ignore */ }
 
-  const signup = useCallback(async (email: string, _password: string, name: string) => {
-    await new Promise((r) => setTimeout(r, 600));
-    const id = crypto.randomUUID();
-    persist({ id, email, name, initials: initials(name) });
-    startTrial();
-    analyticsIdentify(id, { email, name });
-    track(AnalyticsEvents.USER_SIGNED_UP, { method: "email" });
-    track(AnalyticsEvents.TRIAL_STARTED);
-  }, [persist, startTrial]);
+    // Check for existing Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(mapSupabaseUser(session.user));
+      }
+      setLoading(false);
+    });
 
-  const loginWithGoogle = useCallback(async () => {
-    await new Promise((r) => setTimeout(r, 600));
-    const id = crypto.randomUUID();
-    persist({ id, email: "kate@fijord.app", name: "Kate S.", initials: "KS" });
-    const existing = localStorage.getItem(TIER_KEY);
-    if (!existing) {
-      startTrial();
-      analyticsIdentify(id, { email: "kate@fijord.app", name: "Kate S." });
-      track(AnalyticsEvents.USER_SIGNED_UP, { method: "google" });
-      track(AnalyticsEvents.TRIAL_STARTED);
-    }
-  }, [persist, startTrial]);
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        if (session?.user) {
+          setUser(mapSupabaseUser(session.user));
+        }
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+      }
+    });
 
-  const loginWithMagicLink = useCallback(async (_email: string) => {
-    // In production, trigger Supabase magic link email
-    await new Promise((r) => setTimeout(r, 400));
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const verifyCode = useCallback(async (email: string, _code: string) => {
-    // Mock — accepts any 6-digit code. In production, verify with Supabase OTP.
-    await new Promise((r) => setTimeout(r, 600));
-    const name = email.split("@")[0].replace(/[^a-zA-Z ]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    persist({ id: crypto.randomUUID(), email, name, initials: initials(name) });
-    // Start trial if no tier info exists yet
+  const login = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }, []);
+
+  const signup = useCallback(async (email: string, password: string, name: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } },
+    });
+    if (error) throw error;
+    startTrial();
+    if (data.user) {
+      analyticsIdentify(data.user.id, { email, name });
+    }
+    track(AnalyticsEvents.USER_SIGNED_UP, { method: "email" });
+    track(AnalyticsEvents.TRIAL_STARTED);
+  }, [startTrial]);
+
+  const loginWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (error) throw error;
+    // Browser redirects to Google — onAuthStateChange handles the rest after callback
+  }, []);
+
+  const loginWithMagicLink = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) throw error;
+  }, []);
+
+  const verifyCode = useCallback(async (email: string, code: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+    if (error) throw error;
+    // Start trial if no tier info exists yet (new user)
     const existing = localStorage.getItem(TIER_KEY);
     if (!existing) startTrial();
-  }, [persist, startTrial]);
+  }, [startTrial]);
 
   const logout = useCallback(() => {
-    persist(null);
+    supabase.auth.signOut();
     resetAnalytics();
-  }, [persist]);
+  }, []);
 
-  const resetPassword = useCallback(async (_email: string) => {
-    await new Promise((r) => setTimeout(r, 400));
+  const resetPassword = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw error;
   }, []);
 
   const trialDaysLeft = getTrialDaysRemaining(tierInfo.trialStartedAt);
