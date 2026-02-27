@@ -32,7 +32,7 @@ function MeetingGroup({
       {/* Meeting header */}
       <div
         onClick={() => setOpen(!open)}
-        className="flex cursor-pointer items-center gap-2.5 border border-border bg-card transition-colors hover:bg-accent-green-light"
+        className="flex cursor-pointer flex-wrap items-center gap-x-2.5 gap-y-1 border border-border bg-card transition-colors hover:bg-accent-green-light"
         style={{
           padding: "12px 16px",
           borderRadius: open ? "10px 10px 0 0" : 10,
@@ -73,16 +73,16 @@ function MeetingGroup({
         </svg>
 
         <span
-          className="flex-1 font-medium text-foreground"
+          className="min-w-0 flex-1 truncate font-medium text-foreground"
           style={{ fontSize: 14 }}
         >
           {meetingTitle}
         </span>
-        <span className="text-muted" style={{ fontSize: 12 }}>
+        <span className="shrink-0 text-muted" style={{ fontSize: 12 }}>
           {meetingDate}
         </span>
         <span
-          className="rounded text-muted"
+          className="shrink-0 rounded text-muted"
           style={{
             fontSize: 12,
             padding: "2px 8px",
@@ -274,9 +274,9 @@ export default function SignalDetailPage() {
 
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
               <span
                 className="shrink-0 rounded-full"
                 style={{
@@ -289,7 +289,7 @@ export default function SignalDetailPage() {
                 {signal.title}
               </h1>
               <span
-                className="rounded-md font-medium"
+                className="shrink-0 rounded-md font-medium"
                 style={{
                   fontSize: 12,
                   padding: "4px 10px",
@@ -363,7 +363,7 @@ export default function SignalDetailPage() {
           className="flex items-center gap-3 rounded-xl border border-border bg-card"
           style={{ padding: "16px 20px", marginBottom: 16 }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
             <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
             <polyline points="22 4 12 14.01 9 11.01" />
           </svg>
@@ -381,7 +381,7 @@ export default function SignalDetailPage() {
 
       {/* Stats row */}
       <div
-        className="flex gap-6 rounded-xl border border-border bg-card"
+        className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl border border-border bg-card"
         style={{ padding: "16px 20px", marginBottom: 32 }}
       >
         <div className="flex items-center gap-2" style={{ fontSize: 14 }}>
@@ -421,8 +421,8 @@ export default function SignalDetailPage() {
             {tag}
             <button
               onClick={() => removeTag(tag)}
-              className="text-muted transition-colors hover:text-foreground"
-              style={{ fontSize: 11, marginLeft: 2 }}
+              className="-mr-1 flex h-5 w-5 items-center justify-center rounded text-muted transition-colors hover:bg-border hover:text-foreground"
+              style={{ fontSize: 11 }}
             >
               ✕
             </button>
@@ -460,7 +460,7 @@ export default function SignalDetailPage() {
 
       {/* Evidence */}
       <div style={{ marginBottom: 32 }}>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-medium" style={{ fontSize: 16 }}>
             Evidence
           </h2>
