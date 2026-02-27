@@ -22,8 +22,8 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
       className="cursor-pointer rounded-xl border border-border bg-card p-6 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
     >
       {/* Header row */}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
+        <div className="flex min-w-0 items-center gap-3">
           <span
             className="shrink-0 rounded-full"
             style={{
@@ -33,13 +33,13 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
             }}
           />
           <span
-            className="font-medium text-foreground"
+            className="truncate font-medium text-foreground"
             style={{ fontSize: 16 }}
           >
             {signal.title}
           </span>
           <span
-            className="flex items-center gap-1 rounded-md font-medium"
+            className="shrink-0 flex items-center gap-1 rounded-md font-medium"
             style={{
               fontSize: 12,
               padding: "2px 10px",
@@ -48,18 +48,18 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
             }}
           >
             {status.label}
-            {isProject && " \u2713"}
+            {!converted && isProject && " \u2713"}
           </span>
         </div>
         {signal.recentDelta && (
-          <span className="text-muted" style={{ fontSize: 13 }}>
+          <span className="shrink-0 text-muted" style={{ fontSize: 13 }}>
             {signal.recentDelta}
           </span>
         )}
       </div>
 
       {/* Metrics + tags row */}
-      <div className="mb-4 flex items-center gap-4">
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-1.5 text-muted" style={{ fontSize: 13 }}>
           <svg
             width="14"
@@ -70,6 +70,7 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="shrink-0"
           >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
@@ -88,12 +89,13 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="shrink-0"
           >
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
           </svg>
           {signal.quoteCount} quotes
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {signal.tags.map((tag) => (
             <span
               key={tag}
@@ -158,7 +160,7 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
       )}
 
       {showSuggestion && (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -209,6 +211,9 @@ export default function SignalsPage() {
             className="mb-1.5 flex items-center gap-3 text-foreground"
             style={{ fontSize: 48, letterSpacing: "-1px", lineHeight: "74.4px", fontWeight: 300 }}
           >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
             Signals
           </h1>
           <div className="mt-8 rounded-xl border border-border bg-card px-6 py-16 text-center">
@@ -275,25 +280,29 @@ export default function SignalsPage() {
 
       {/* Converted toggle */}
       {convertedCount > 0 && (
-        <div className="mb-6 flex items-center gap-3">
-          <button
-            onClick={() => setShowConverted(!showConverted)}
+        <button
+          onClick={() => setShowConverted(!showConverted)}
+          className="mb-6 flex items-center gap-3"
+        >
+          <span
             className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
             style={{ background: showConverted ? "#3D5A3D" : "#D0CEC9" }}
+            role="switch"
+            aria-checked={showConverted}
           >
             <span
               className="inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform"
               style={{ transform: showConverted ? "translateX(18px)" : "translateX(3px)" }}
             />
-          </button>
+          </span>
           <span className="text-sm text-muted">
             Show converted signals ({convertedCount})
           </span>
-        </div>
+        </button>
       )}
 
       {/* Signal cards */}
-      {signals.length === 0 ? (
+      {signals.length === 0 && allSignals.length === 0 ? (
         <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-border">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
@@ -311,6 +320,15 @@ export default function SignalsPage() {
           >
             Process a meeting
           </button>
+        </div>
+      ) : signals.length === 0 && !showConverted ? (
+        <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
+          <p className="mb-1 text-sm font-medium text-foreground">
+            All signals have been converted to epics
+          </p>
+          <p className="text-sm text-muted">
+            Toggle &ldquo;Show converted signals&rdquo; above to view them.
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
