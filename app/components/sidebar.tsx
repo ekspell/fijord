@@ -4,9 +4,7 @@ import { useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
-import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
-import { MOCK_SIGNALS, MOCK_MEETING_RECORDS } from "@/lib/mock-data";
-import CreateEpicModal from "./create-epic-modal";
+import { MOCK_SIGNALS } from "@/lib/mock-data";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -16,7 +14,6 @@ export default function Sidebar() {
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showCreateEpic, setShowCreateEpic] = useState(false);
 
   function handleLogoClick() {
     router.push("/");
@@ -33,23 +30,19 @@ export default function Sidebar() {
     }
   }
 
-  const isEpicsActive =
-    pathname === "/epics" || pathname.startsWith("/epic/");
+  const isHomeActive = pathname === "/";
   const isSignalsActive =
     pathname === "/signals" || pathname.startsWith("/signals/");
+  const isEpicsActive =
+    pathname === "/epics" || pathname.startsWith("/epic/");
+  const isArtifactsActive = pathname === "/artifacts";
+  const isStagingActive = pathname === "/staging";
 
-  const epics = demoMode ? [] : MOCK_EPICS;
   const signals = demoMode ? [] : MOCK_SIGNALS;
-  const meetings = demoMode ? [] : MOCK_MEETING_RECORDS;
 
   // Dynamic counts from data
   const signalCount = signals.length;
   const newSignalCount = signals.filter((s) => s.status === "new").length;
-
-  // Extract current epic id from path
-  const currentEpicId = pathname.startsWith("/epic/")
-    ? pathname.split("/")[2]
-    : null;
 
   return (
     <>
@@ -126,12 +119,12 @@ export default function Sidebar() {
       </div>
 
       {/* Main nav */}
-      <nav className="mb-6">
+      <nav className="mb-6 flex-1">
         {/* Home */}
         <button
           onClick={() => router.push("/")}
           className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-[15px] transition-all ${
-            pathname === "/"
+            isHomeActive
               ? "bg-accent-green-light text-accent"
               : "text-muted hover:bg-background hover:text-foreground"
           }`}
@@ -152,27 +145,16 @@ export default function Sidebar() {
           Home
         </button>
 
-        {/* Signals */}
+        {/* Nested nav items */}
         <button
           onClick={() => router.push("/signals")}
-          className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-[15px] transition-all ${
+          className={`flex w-full items-center py-2 text-[13px] transition-all ${
             isSignalsActive
               ? "bg-accent-green-light text-accent"
               : "text-muted hover:bg-background hover:text-foreground"
           }`}
+          style={{ paddingLeft: 48, paddingRight: 20 }}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-          </svg>
           Signals
           {signalCount > 0 && (
             <span
@@ -188,7 +170,7 @@ export default function Sidebar() {
           )}
           {newSignalCount > 0 && (
             <span
-              className="rounded-full text-xs font-semibold"
+              className="ml-1 rounded-full text-xs font-semibold"
               style={{
                 background: "#E8F0E8",
                 color: "#3D5A3D",
@@ -201,124 +183,42 @@ export default function Sidebar() {
           )}
         </button>
 
-        {/* Epics */}
         <button
           onClick={() => router.push("/epics")}
-          className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-[15px] transition-all ${
+          className={`flex w-full items-center py-2 text-[13px] transition-all ${
             isEpicsActive
               ? "bg-accent-green-light text-accent"
               : "text-muted hover:bg-background hover:text-foreground"
           }`}
+          style={{ paddingLeft: 48, paddingRight: 20 }}
         >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-          </svg>
           Epics
+        </button>
+
+        <button
+          onClick={() => router.push("/artifacts")}
+          className={`flex w-full items-center py-2 text-[13px] transition-all ${
+            isArtifactsActive
+              ? "bg-accent-green-light text-accent"
+              : "text-muted hover:bg-background hover:text-foreground"
+          }`}
+          style={{ paddingLeft: 48, paddingRight: 20 }}
+        >
+          Artifacts
+        </button>
+
+        <button
+          onClick={() => router.push("/staging")}
+          className={`flex w-full items-center py-2 text-[13px] transition-all ${
+            isStagingActive
+              ? "bg-accent-green-light text-accent"
+              : "text-muted hover:bg-background hover:text-foreground"
+          }`}
+          style={{ paddingLeft: 48, paddingRight: 20 }}
+        >
+          Staging
         </button>
       </nav>
-
-      {/* Epics list */}
-      <div className="mb-6">
-        <div
-          className="px-5 text-muted"
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            marginBottom: 8,
-          }}
-        >
-          Epics
-        </div>
-        {epics.map((epic) => {
-          const isActive = currentEpicId === epic.id;
-          const dotColor = STATUS_STYLES[epic.status].text;
-          return (
-            <button
-              key={epic.id}
-              onClick={() => router.push(`/epic/${epic.id}`)}
-              className={`flex w-full items-center gap-2.5 px-5 py-2 text-left transition-all ${
-                isActive
-                  ? "bg-accent-green-light text-accent"
-                  : "text-muted hover:bg-background hover:text-foreground"
-              }`}
-              style={{ fontSize: 14 }}
-            >
-              <span
-                className="shrink-0 rounded-full"
-                style={{
-                  width: 8,
-                  height: 8,
-                  background: dotColor,
-                }}
-              />
-              {epic.title}
-            </button>
-          );
-        })}
-        <button
-          onClick={() => setShowCreateEpic(true)}
-          className="flex w-full items-center gap-2.5 px-5 py-2 text-muted transition-all hover:text-accent"
-          style={{ fontSize: 14 }}
-        >
-          + New project
-        </button>
-      </div>
-
-      {/* Recent Meetings */}
-      <div className="flex-1 overflow-y-auto">
-        <div
-          className="px-5 text-muted"
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            marginBottom: 8,
-          }}
-        >
-          Recent Meetings
-        </div>
-        {meetings.map((meeting) => (
-          <button
-            key={meeting.id}
-            onClick={() => router.push(`/meeting/${meeting.id}`)}
-            className="flex w-full items-center gap-2.5 px-5 py-2 text-left text-muted transition-all hover:bg-background hover:text-foreground"
-            style={{ fontSize: 14 }}
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="shrink-0"
-            >
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            {meeting.title} · {meeting.date}
-          </button>
-        ))}
-      </div>
 
       {/* Trial badge */}
       {tierInfo.tier === "pro" && tierInfo.trialStartedAt && trialDaysLeft > 0 && (
@@ -422,9 +322,6 @@ export default function Sidebar() {
           </div>
         )}
       </div>
-      {showCreateEpic && (
-        <CreateEpicModal onClose={() => setShowCreateEpic(false)} />
-      )}
     </aside>
     </>
   );

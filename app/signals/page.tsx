@@ -303,22 +303,21 @@ export default function SignalsPage() {
 
       {/* Signal cards */}
       {signals.length === 0 && allSignals.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-border">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9C978E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <p className="mb-1 text-sm font-medium text-foreground">No signals detected yet</p>
-          <p className="mb-6 text-sm text-muted">
-            Process a few meetings and we&apos;ll find the patterns.
+          <p className="text-[15px] font-semibold text-foreground">No signals detected yet</p>
+          <p className="mt-1.5 text-[13px] text-muted">
+            Process a few meetings and Fijord will find patterns across your conversations.
           </p>
           <button
             onClick={() => router.push("/meeting/new?from=signals")}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
-            style={{ background: "#3D5A3D" }}
+            className="mt-5 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white shadow-md shadow-accent/25 transition-colors hover:bg-accent/90"
           >
-            Process a meeting
+            Process a meeting &rarr;
           </button>
         </div>
       ) : signals.length === 0 && !showConverted ? (

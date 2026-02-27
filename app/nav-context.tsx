@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
 import { JiraCreds } from "@/lib/jira";
+import type { RoadmapLane } from "@/lib/mock-epics";
 import { FeedbackButton, FeedbackModal } from "./components/feedback-modal";
 
 export type RoadmapTicket = {
@@ -32,6 +33,7 @@ const LINEAR_KEY_STORAGE = "fjord-linear-api-key";
 const JIRA_CREDS_STORAGE = "fjord-jira-creds";
 const FIREFLIES_KEY_STORAGE = "fjord-fireflies-api-key";
 const CONVERTED_SIGNALS_KEY = "fjord-converted-signals";
+const STAGING_OVERRIDES_KEY = "fjord-staging-overrides";
 
 export type ConvertedSignalInfo = { epicId: string; epicTitle: string };
 
@@ -48,6 +50,21 @@ function loadConvertedSignals(): Record<string, ConvertedSignalInfo> {
 function persistConvertedSignals(data: Record<string, ConvertedSignalInfo>) {
   if (typeof window === "undefined") return;
   localStorage.setItem(CONVERTED_SIGNALS_KEY, JSON.stringify(data));
+}
+
+function loadStagingOverrides(): Record<string, RoadmapLane> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(STAGING_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function persistStagingOverrides(data: Record<string, RoadmapLane>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STAGING_OVERRIDES_KEY, JSON.stringify(data));
 }
 
 function loadLinearApiKey(): string {
@@ -137,6 +154,8 @@ type NavContextType = {
   convertedSignals: Record<string, ConvertedSignalInfo>;
   convertSignal: (signalId: string, epicId: string, epicTitle: string) => void;
   isSignalConverted: (signalId: string) => boolean;
+  stagingOverrides: Record<string, RoadmapLane>;
+  setStagingLane: (ticketId: string, lane: RoadmapLane) => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -173,6 +192,8 @@ const NavContext = createContext<NavContextType>({
   convertedSignals: {},
   convertSignal: () => {},
   isSignalConverted: () => false,
+  stagingOverrides: {},
+  setStagingLane: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -186,6 +207,15 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [convertedSignals, setConvertedSignals] = useState<Record<string, ConvertedSignalInfo>>({});
+  const [stagingOverrides, setStagingOverrides] = useState<Record<string, RoadmapLane>>({});
+
+  const setStagingLane = useCallback((ticketId: string, lane: RoadmapLane) => {
+    setStagingOverrides((prev) => {
+      const next = { ...prev, [ticketId]: lane };
+      persistStagingOverrides(next);
+      return next;
+    });
+  }, []);
 
   const convertSignal = useCallback((signalId: string, epicId: string, epicTitle: string) => {
     setConvertedSignals((prev) => {
@@ -265,6 +295,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedDemo === "1") setDemoMode(true);
     const savedConverted = loadConvertedSignals();
     if (Object.keys(savedConverted).length > 0) setConvertedSignals(savedConverted);
+    const savedStagingOverrides = loadStagingOverrides();
+    if (Object.keys(savedStagingOverrides).length > 0) setStagingOverrides(savedStagingOverrides);
 
     // Restore session data
     try {
@@ -368,6 +400,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
         convertedSignals,
         convertSignal,
         isSignalConverted,
+        stagingOverrides,
+        setStagingLane,
       }}
     >
       {children}

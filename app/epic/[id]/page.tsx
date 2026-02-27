@@ -1135,6 +1135,7 @@ export default function EpicDetailPage() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const { isPro } = useAuth();
+  const { stagingOverrides } = useNav();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("Discovery");
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -1166,7 +1167,10 @@ export default function EpicDetailPage() {
     epic.progress.total > 0
       ? Math.round((epic.progress.shipped / epic.progress.total) * 100)
       : 0;
-  const tickets = epic.tickets ?? [];
+  const tickets = (epic.tickets ?? []).map((t) => ({
+    ...t,
+    lane: stagingOverrides[t.id] ?? t.lane,
+  }));
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
@@ -1189,7 +1193,9 @@ export default function EpicDetailPage() {
                       ? "/signals"
                       : from === "meetings"
                         ? "/meeting/new"
-                        : "/epics"
+                        : from === "staging"
+                          ? "/staging"
+                          : "/epics"
                   )
                 }
                 className="hover:text-foreground"
@@ -1198,7 +1204,9 @@ export default function EpicDetailPage() {
                   ? "Signals"
                   : from === "meetings"
                     ? "Meetings"
-                    : "Epics"}
+                    : from === "staging"
+                      ? "Staging"
+                      : "Epics"}
               </button>
             </>
           )}
