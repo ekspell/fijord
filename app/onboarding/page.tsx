@@ -148,6 +148,11 @@ function OnboardingContent() {
   }
 
   async function handleProCheckout() {
+    const email = user?.email;
+    if (!email || email === "guest@fijord.app") {
+      setCheckoutError("Please sign up with a real email to subscribe.");
+      return;
+    }
     setCheckoutLoading(true);
     setCheckoutError("");
     try {
@@ -155,8 +160,8 @@ function OnboardingContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: user?.email,
-          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
+          email,
+          priceId: "price_1T4tzgRthYZazJEOWPZ4zSDp",
           successUrl: `${window.location.origin}/onboarding?step=7`,
           cancelUrl: `${window.location.origin}/onboarding?step=6`,
         }),
