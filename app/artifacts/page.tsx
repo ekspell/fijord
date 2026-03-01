@@ -5,7 +5,7 @@ import { useNav } from "@/app/nav-context";
 import { MOCK_MEETING_RECORDS, MOCK_MEETING_DETAILS } from "@/lib/mock-data";
 import { MOCK_EPICS } from "@/lib/mock-epics";
 
-export default function ArtifactsPage() {
+export default function EvidencePage() {
   const router = useRouter();
   const { demoMode, result, solutions } = useNav();
   const mockMeetings = demoMode ? [] : MOCK_MEETING_RECORDS;
@@ -36,7 +36,7 @@ export default function ArtifactsPage() {
           Home
         </button>
         {" \u203A "}
-        <span className="text-accent">Artifacts</span>
+        <span className="text-accent">Evidence</span>
       </div>
 
       {/* Header */}
@@ -49,7 +49,7 @@ export default function ArtifactsPage() {
           fontWeight: 300,
         }}
       >
-        Artifacts
+        Evidence
       </h1>
       <p className="mb-6 text-muted" style={{ fontSize: 15 }}>
         Your processed meetings and evidence library.
