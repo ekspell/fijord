@@ -20,6 +20,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
     pathname.startsWith("/share");
 
+  // Check if user needs onboarding redirect (before render)
+  const needsOnboarding =
+    typeof window !== "undefined" &&
+    user &&
+    pathname !== "/onboarding" &&
+    !localStorage.getItem("fjord-onboarding");
+
   // Redirect to login if not authenticated on protected routes
   useEffect(() => {
     if (loading) return;
@@ -29,14 +36,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (user && PUBLIC_PATHS.some((p) => pathname === p)) {
       router.replace("/");
     }
-    if (user && pathname !== "/onboarding" && !localStorage.getItem("fjord-onboarding")) {
+    if (needsOnboarding) {
       router.replace("/onboarding");
     }
-  }, [user, loading, pathname, isPublic, router]);
+  }, [user, loading, pathname, isPublic, needsOnboarding, router]);
 
   // Hide shell on landing page (logged-out home) and no-shell paths
   if (isNoShell || (pathname === "/" && !user)) {
     return <>{children}</>;
+  }
+
+  // Don't render dashboard while auth is loading or onboarding redirect is pending
+  if (loading || needsOnboarding) {
+    return null;
   }
 
   return (
