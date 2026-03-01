@@ -8,6 +8,7 @@ import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 import UpgradeModal from "@/app/components/upgrade-modal";
 import { PAYWALL_ENABLED } from "@/lib/config";
+import { rankSignals, detectSignalSeverity, SEVERITY_DISPLAY } from "@/lib/ranking";
 
 function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; converted?: boolean; conversionEpicId?: string }) {
   const router = useRouter();
@@ -16,6 +17,7 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
   const isProject = signal.status === "project";
   const showSuggestion =
     !converted && signal.status === "stable" && signal.strength >= 50;
+  const sev = SEVERITY_DISPLAY[detectSignalSeverity(signal)];
 
   return (
     <div
@@ -50,6 +52,18 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
           >
             {status.label}
             {!converted && isProject && " \u2713"}
+          </span>
+          <span
+            className="shrink-0 flex items-center gap-1 rounded-md font-medium"
+            style={{
+              fontSize: 11,
+              padding: "2px 8px",
+              background: sev.bg,
+              color: sev.text,
+            }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: sev.dot }} />
+            {sev.label}
           </span>
         </div>
         {signal.recentDelta && (
@@ -193,11 +207,15 @@ export default function SignalsPage() {
   const { isPro } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showConverted, setShowConverted] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(7);
   const allSignals = demoMode ? [] : MOCK_SIGNALS;
   const convertedCount = allSignals.filter((s) => isSignalConverted(s.id)).length;
-  const signals = showConverted
+  const filteredSignals = showConverted
     ? allSignals
     : allSignals.filter((s) => !isSignalConverted(s.id));
+  const rankedSignals = rankSignals(filteredSignals);
+  const signals = rankedSignals.slice(0, visibleCount);
+  const totalSignals = rankedSignals.length;
 
   if (PAYWALL_ENABLED && !isPro) {
     return (
@@ -303,7 +321,7 @@ export default function SignalsPage() {
       )}
 
       {/* Signal cards */}
-      {signals.length === 0 && allSignals.length === 0 ? (
+      {rankedSignals.length === 0 && allSignals.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9C978E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -321,7 +339,7 @@ export default function SignalsPage() {
             Process a meeting &rarr;
           </button>
         </div>
-      ) : signals.length === 0 && !showConverted ? (
+      ) : rankedSignals.length === 0 && !showConverted ? (
         <div className="rounded-xl border border-border bg-card px-6 py-12 text-center">
           <p className="mb-1 text-sm font-medium text-foreground">
             All signals have been converted to epics
@@ -331,16 +349,31 @@ export default function SignalsPage() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {signals.map((signal) => (
-            <SignalCard
-              key={signal.id}
-              signal={signal}
-              converted={isSignalConverted(signal.id)}
-              conversionEpicId={convertedSignals[signal.id]?.epicId}
-            />
-          ))}
-        </div>
+        <>
+          <div className="flex flex-col gap-4">
+            {signals.map((signal) => (
+              <SignalCard
+                key={signal.id}
+                signal={signal}
+                converted={isSignalConverted(signal.id)}
+                conversionEpicId={convertedSignals[signal.id]?.epicId}
+              />
+            ))}
+          </div>
+          {visibleCount < totalSignals && (
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <span className="text-[13px] text-muted">
+                Showing {signals.length} of {totalSignals} signals
+              </span>
+              <button
+                onClick={() => setVisibleCount((c) => Math.min(c + 5, totalSignals))}
+                className="rounded-lg border border-border px-4 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
+              >
+                See more
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

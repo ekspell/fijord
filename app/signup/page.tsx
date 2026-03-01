@@ -128,21 +128,6 @@ export default function SignupPage() {
             </h1>
 
             <button
-              onClick={handleGoogle}
-              disabled={loading}
-              className="mb-0 flex w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-background disabled:opacity-50"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </button>
-
-            <div className="my-5 flex w-full items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted">or</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-
-            <button
               onClick={() => setStep("email")}
               className="w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
             >
@@ -173,21 +158,6 @@ export default function SignupPage() {
             <h1 className="mt-5 mb-6 text-xl font-medium text-foreground">
               Create your Fijord account
             </h1>
-
-            <button
-              onClick={handleGoogle}
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-background disabled:opacity-50"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </button>
-
-            <div className="my-5 flex w-full items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs text-muted">or</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
 
             <div className="mb-3 w-full">
               <label className="mb-1.5 block text-sm font-medium text-foreground">

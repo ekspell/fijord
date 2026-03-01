@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useNav, RoadmapTicket } from "./nav-context";
-import { solutionResult, WorkItem, TicketDetail, TicketContext, Quote, PROBLEM_COLORS } from "@/lib/types";
+import { solutionResult, WorkItem, TicketDetail, TicketContext, Quote, PROBLEM_COLORS, ExtractedProblem } from "@/lib/types";
 import TicketDetailView from "./ticket-detail";
 import TranscriptDrawer from "./transcript-drawer";
 import LinearConnectModal from "./components/linear-connect-modal";
@@ -11,6 +11,7 @@ import JiraConnectModal from "./components/jira-connect-modal";
 import JiraSendModal from "./components/jira-send-modal";
 import { createShareBundle } from "@/lib/share";
 import { ShareTicket } from "@/lib/kv";
+import { rankProblems, problemSeverity, SEVERITY_DISPLAY } from "@/lib/ranking";
 
 const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   High: { bg: "bg-red-50", text: "text-red-700" },
@@ -18,11 +19,6 @@ const PRIORITY_STYLES: Record<string, { bg: string; text: string }> = {
   Low: { bg: "bg-blue-50", text: "text-blue-700" },
 };
 
-const SEVERITY_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  High: { bg: "#FEF2F2", text: "#B91C1C", label: "High" },
-  Med:  { bg: "#FDF6E3", text: "#B5860B", label: "Med" },
-  Low:  { bg: "#EFF6FF", text: "#1D4ED8", label: "Low" },
-};
 
 function ColHeader({ title, count }: { title: string; count: string }) {
   return (
@@ -54,8 +50,8 @@ function EvidenceCard({ quote, color, dimmed, onClick }: { quote: Quote; color?:
   );
 }
 
-function ProblemCard({ problem, index, color, active, dimmed, onClick }: { problem: { title: string; description: string; severity?: string; quotes: Quote[] }; index: number; color: string; active?: boolean; dimmed?: boolean; onClick?: () => void }) {
-  const sev = SEVERITY_STYLES[problem.severity || "Med"] || SEVERITY_STYLES.Med;
+function ProblemCard({ problem, index, color, active, dimmed, onClick }: { problem: ExtractedProblem; index: number; color: string; active?: boolean; dimmed?: boolean; onClick?: () => void }) {
+  const sev = SEVERITY_DISPLAY[problemSeverity(problem as ExtractedProblem)];
   return (
     <div
       onClick={onClick}
@@ -76,9 +72,10 @@ function ProblemCard({ problem, index, color, active, dimmed, onClick }: { probl
               </p>
             </div>
             <span
-              className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold"
               style={{ backgroundColor: sev.bg, color: sev.text }}
             >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: sev.dot }} />
               {sev.label}
             </span>
           </div>
@@ -86,7 +83,7 @@ function ProblemCard({ problem, index, color, active, dimmed, onClick }: { probl
             {problem.description}
           </p>
           <p className="mt-2 text-[11px] font-medium text-muted">
-            ↳ {problem.quotes.length} supporting quotes
+            {problem.quotes.length} mention{problem.quotes.length !== 1 ? "s" : ""}
           </p>
         </div>
       </div>
@@ -263,6 +260,7 @@ export default function Results() {
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
   const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
+  const [visibleCount, setVisibleCount] = useState(5);
   const interactionCountRef = useRef(0);
   const feedbackShownRef = useRef(false);
 
@@ -301,23 +299,26 @@ export default function Results() {
 
   const SEVERITY_ORDER: Record<string, number> = { High: 0, Med: 1, Low: 2 };
 
-  // Sort problems by severity (High → Med → Low)
-  const sortedProblems = [...data.problems].sort(
-    (a, b) => (SEVERITY_ORDER[a.severity] ?? 1) - (SEVERITY_ORDER[b.severity] ?? 1)
-  );
+  // Rank problems by pain-language severity, then quote frequency
+  const sortedProblems = rankProblems(data.problems);
 
-  // Assign colors to sorted problems
+  // Progressive disclosure: only show top N problems
+  const visibleProblems = sortedProblems.slice(0, visibleCount);
+  const visibleProblemIds = new Set(visibleProblems.map((p) => p.id));
+  const totalProblems = sortedProblems.length;
+
+  // Assign colors to sorted problems (full list for stable colors)
   const problemColorMap = new Map<string, string>();
   sortedProblems.forEach((p, i) => {
     problemColorMap.set(p.id, PROBLEM_COLORS[i % PROBLEM_COLORS.length]);
   });
 
-  // Build evidence with color threading
-  const coloredQuotes = sortedProblems.flatMap((p) =>
+  // Build evidence with color threading — only for visible problems
+  const coloredQuotes = visibleProblems.flatMap((p) =>
     p.quotes.map((q) => ({ quote: q, color: problemColorMap.get(p.id)!, problemId: p.id }))
   );
 
-  // Build tickets aligned to sorted problem order
+  // Build tickets aligned to visible problem order only
   const allTickets: {
     item: WorkItem;
     problemId: string;
@@ -326,7 +327,7 @@ export default function Results() {
     problemColor: string;
     solution: solutionResult;
   }[] = [];
-  sortedProblems.forEach((problem) => {
+  visibleProblems.forEach((problem) => {
     const originalIdx = data.problems.indexOf(problem);
     const sol = solutions[originalIdx];
     if (!sol) return;
@@ -559,7 +560,7 @@ export default function Results() {
           </div>
           <div>
             <p className="text-[15px] font-semibold text-foreground">
-              {data.problems.length} problems, {coloredQuotes.length} quotes &rarr; {allTickets.length} tickets
+              {totalProblems} problems, {sortedProblems.reduce((n, p) => n + p.quotes.length, 0)} quotes &rarr; ranked by severity
             </p>
             <p className="mt-0.5 text-[13px] text-muted">
               Processed in {processingTime}s
@@ -598,7 +599,7 @@ export default function Results() {
               style={{ backgroundColor: problemColorMap.get(filterProblemId) }}
             />
             <span className="text-xs font-medium text-foreground">
-              {sortedProblems.find((p) => p.id === filterProblemId)?.title}
+              {visibleProblems.find((p) => p.id === filterProblemId)?.title}
             </span>
             <button
               onClick={() => setFilterProblemId(null)}
@@ -640,10 +641,10 @@ export default function Results() {
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <ColHeader
             title="Problems"
-            count={`${filterProblemId ? 1 : sortedProblems.length} found`}
+            count={`${filterProblemId ? 1 : visibleProblems.length} of ${totalProblems}`}
           />
           <div className="max-h-[600px] overflow-y-auto p-3">
-            {sortedProblems.map((problem, i) => (
+            {visibleProblems.map((problem, i) => (
               <ProblemCard
                 key={problem.id}
                 problem={problem}
@@ -713,6 +714,21 @@ export default function Results() {
           </div>
         </div>
       </div>
+
+      {/* See more / progressive disclosure */}
+      {visibleCount < totalProblems && (
+        <div className="mb-6 flex items-center justify-center gap-3">
+          <span className="text-[13px] text-muted">
+            Showing {visibleProblems.length} of {totalProblems} problems
+          </span>
+          <button
+            onClick={() => setVisibleCount((c) => Math.min(c + 5, totalProblems))}
+            className="rounded-lg border border-border px-4 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
+          >
+            See more
+          </button>
+        </div>
+      )}
 
       {/* Bottom action bar */}
       <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">

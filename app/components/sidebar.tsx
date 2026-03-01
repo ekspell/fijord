@@ -279,26 +279,30 @@ export default function Sidebar() {
           className="flex w-full items-center gap-2.5 transition-colors hover:bg-background"
           style={{ padding: "16px 20px" }}
         >
-          <div
-            className="flex shrink-0 items-center justify-center rounded-full font-semibold"
-            style={{
-              width: 32,
-              height: 32,
-              background: "#E8F0E8",
-              color: "#3D5A3D",
-              fontSize: 12,
-            }}
-          >
-            {user?.initials ?? "KS"}
-          </div>
-          <div className="text-left">
-            <div className="font-medium" style={{ fontSize: 15 }}>
-              {user?.name ?? "Kate S."}
-            </div>
-            <div className="text-muted" style={{ fontSize: 12 }}>
-              PM · Fijord AI
-            </div>
-          </div>
+          {user && (
+            <>
+              <div
+                className="flex shrink-0 items-center justify-center rounded-full font-semibold"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: "#E8F0E8",
+                  color: "#3D5A3D",
+                  fontSize: 12,
+                }}
+              >
+                {user.initials}
+              </div>
+              <div className="text-left">
+                <div className="font-medium" style={{ fontSize: 15 }}>
+                  {user.name}
+                </div>
+                <div className="text-muted" style={{ fontSize: 12 }}>
+                  PM · Fijord AI
+                </div>
+              </div>
+            </>
+          )}
         </button>
 
         {showUserMenu && (
