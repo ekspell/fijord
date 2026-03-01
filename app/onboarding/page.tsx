@@ -99,14 +99,18 @@ function OnboardingContent() {
     return (s >= 1 && s <= 7 ? s : 1) as Step;
   })();
 
+  // Restore onboarding progress after Stripe redirect
+  const saved = typeof window !== "undefined" ? sessionStorage.getItem("fjord-onboarding-progress") : null;
+  const restored = saved ? JSON.parse(saved) as Partial<OnboardingData> : null;
+
   const [step, setStep] = useState<Step>(initialStep);
-  const [fullName, setFullName] = useState("");
-  const [workspaceName, setWorkspaceName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [role, setRole] = useState("");
+  const [fullName, setFullName] = useState(restored?.fullName || "");
+  const [workspaceName, setWorkspaceName] = useState(restored?.workspaceName || "");
+  const [companyName, setCompanyName] = useState(restored?.companyName || "");
+  const [role, setRole] = useState(restored?.role || "");
   const [customRole, setCustomRole] = useState("");
-  const [ticketTool, setTicketTool] = useState("");
-  const [plan, setPlan] = useState("pro");
+  const [ticketTool, setTicketTool] = useState(restored?.ticketTool || "");
+  const [plan, setPlan] = useState(restored?.plan || "pro");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
 
@@ -144,6 +148,7 @@ function OnboardingContent() {
       plan,
     };
     localStorage.setItem("fjord-onboarding", JSON.stringify(data));
+    sessionStorage.removeItem("fjord-onboarding-progress");
     router.push("/");
   }
 
@@ -155,6 +160,12 @@ function OnboardingContent() {
     }
     setCheckoutLoading(true);
     setCheckoutError("");
+    // Save progress so it survives the Stripe redirect
+    sessionStorage.setItem("fjord-onboarding-progress", JSON.stringify({
+      fullName, workspaceName, companyName,
+      role: role === "Other" ? customRole : role,
+      ticketTool, plan: "pro",
+    }));
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",

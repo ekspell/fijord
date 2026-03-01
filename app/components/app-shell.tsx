@@ -34,7 +34,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, pathname, isPublic, router]);
 
-  if (isNoShell) {
+  // Hide shell on landing page (logged-out home) and no-shell paths
+  if (isNoShell || (pathname === "/" && !user)) {
     return <>{children}</>;
   }
 

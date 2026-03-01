@@ -7,6 +7,7 @@ import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import { MOCK_SIGNALS, MOCK_MEETING_RECORDS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 import type { Epic } from "@/lib/mock-epics";
+import Landing from "@/app/landing";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -293,8 +294,11 @@ function SectionHeader({
 
 export default function Home() {
   const { demoMode, isSignalConverted, result, solutions } = useNav();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
+
+  if (loading) return null;
+  if (!user) return <Landing onEnter={() => router.push("/signup")} />;
   const greeting = getGreeting();
   const userName = user?.name?.split(" ")[0] ?? "Kate";
   const signals = demoMode ? [] : MOCK_SIGNALS.filter((s) => !isSignalConverted(s.id));
