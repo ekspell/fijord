@@ -25,8 +25,9 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  loginWithMagicLink: (email: string) => Promise<void>;
+  loginWithMagicLink: (email: string, shouldCreateUser?: boolean) => Promise<void>;
   verifyCode: (email: string, code: string) => Promise<void>;
+  loginAsGuest: () => void;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
 };
@@ -50,6 +51,7 @@ const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: async () => {},
   loginWithMagicLink: async () => {},
   verifyCode: async () => {},
+  loginAsGuest: () => {},
   logout: () => {},
   resetPassword: async () => {},
 });
@@ -165,8 +167,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Browser redirects to Google — onAuthStateChange handles the rest after callback
   }, []);
 
-  const loginWithMagicLink = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({ email });
+  const loginWithMagicLink = useCallback(async (email: string, shouldCreateUser = true) => {
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser } });
     if (error) throw error;
   }, []);
 
@@ -178,8 +180,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!existing) startTrial();
   }, [startTrial]);
 
+  const loginAsGuest = useCallback(() => {
+    const guest: User = {
+      id: "guest",
+      email: "guest@fijord.app",
+      name: "Guest User",
+      initials: "GU",
+    };
+    setUser(guest);
+    startTrial();
+  }, [startTrial]);
+
   const logout = useCallback(() => {
     supabase.auth.signOut();
+    setUser(null);
     resetAnalytics();
   }, []);
 
@@ -194,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, loading, tierInfo, trialDaysLeft, isPro,
-      login, signup, loginWithGoogle, loginWithMagicLink, verifyCode, logout, resetPassword,
+      login, signup, loginWithGoogle, loginWithMagicLink, verifyCode, loginAsGuest, logout, resetPassword,
     }}>
       {children}
     </AuthContext.Provider>

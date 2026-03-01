@@ -101,8 +101,11 @@ function TicketCard({
   loading,
   failed,
   selected,
+  expanded,
+  detail,
   onToggle,
-  onClick,
+  onExpand,
+  onViewTicket,
 }: {
   item: WorkItem;
   problemTitle: string;
@@ -110,44 +113,66 @@ function TicketCard({
   loading: boolean;
   failed: boolean;
   selected: boolean;
+  expanded: boolean;
+  detail?: TicketDetail;
   onToggle: () => void;
-  onClick: () => void;
+  onExpand: () => void;
+  onViewTicket: () => void;
 }) {
   const ps = PRIORITY_STYLES[item.priority] || PRIORITY_STYLES.Low;
   return (
     <div
-      className={`mb-2 rounded-lg border bg-card p-3.5 transition-all ${
+      className={`mb-2 rounded-lg border bg-card transition-all ${
         selected ? "border-accent/40 ring-1 ring-accent/20" : "border-border hover:bg-[#F9F8F6]"
       }`}
     >
-      <div className="mb-1.5 flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggle}
-          className="h-4 w-4 shrink-0 cursor-pointer rounded border-2 border-border accent-accent"
-        />
-        <span className="text-[11px] font-semibold text-muted">{item.id}</span>
-        <span
-          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${ps.bg} ${ps.text}`}
-        >
-          {item.priority}
-        </span>
-      </div>
-      <button
-        onClick={onClick}
-        disabled={loading}
-        className="w-full text-left disabled:opacity-60"
-      >
-        <h4 className="text-sm font-medium leading-snug text-foreground">
-          {item.title}
-        </h4>
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: problemColor }} />
-          <span className="text-[11px] font-medium" style={{ color: problemColor }}>
-            {problemTitle}
+      <div className="p-3.5">
+        <div className="mb-1.5 flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggle}
+            className="h-4 w-4 shrink-0 cursor-pointer rounded border-2 border-border accent-accent"
+          />
+          <span className="text-[11px] font-semibold text-muted">{item.id}</span>
+          <span
+            className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${ps.bg} ${ps.text}`}
+          >
+            {item.priority}
           </span>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="ml-auto shrink-0 cursor-pointer transition-transform"
+            style={{
+              transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+              color: "#9B9B9B",
+            }}
+            onClick={onExpand}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </div>
+        <button
+          onClick={onExpand}
+          className="w-full text-left"
+        >
+          <h4 className="text-sm font-medium leading-snug text-foreground">
+            {item.title}
+          </h4>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: problemColor }} />
+            <span className="text-[11px] font-medium" style={{ color: problemColor }}>
+              {problemTitle}
+            </span>
+          </div>
+        </button>
         {loading && (
           <div className="mt-2 flex items-center gap-2">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-accent" />
@@ -155,15 +180,67 @@ function TicketCard({
           </div>
         )}
         {failed && !loading && (
-          <div className="mt-2 flex items-center gap-1.5">
+          <button onClick={onExpand} className="mt-2 flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 8v4M12 16h.01" />
             </svg>
             <span className="text-[11px] text-red-700">Failed to load — click to retry</span>
-          </div>
+          </button>
         )}
-      </button>
+      </div>
+
+      {/* Expanded detail */}
+      {expanded && (
+        <div className="border-t border-border bg-background px-3.5 pb-3.5 pt-3">
+          {!detail && loading && (
+            <div className="flex items-center gap-2 py-2">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-border border-t-accent" />
+              <span className="text-[12px] text-muted">Generating details...</span>
+            </div>
+          )}
+          {detail && (
+            <>
+              {detail.description && (
+                <div className="mb-3">
+                  <div className="mb-1 text-[12px] font-medium text-foreground">Description</div>
+                  <p className="text-[13px] leading-relaxed text-muted">{detail.description}</p>
+                </div>
+              )}
+              {detail.acceptanceCriteria && detail.acceptanceCriteria.length > 0 && (
+                <div className="mb-3">
+                  <div className="mb-1.5 text-[12px] font-medium text-foreground">Acceptance criteria</div>
+                  <div className="flex flex-col gap-1.5">
+                    {detail.acceptanceCriteria.map((ac, i) => (
+                      <div key={i} className="flex items-start gap-2 text-[13px] text-muted">
+                        <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#D0CEC9" }} />
+                        {ac}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {detail.quotes && detail.quotes.length > 0 && (
+                <div className="mb-3">
+                  <div className="mb-1.5 text-[12px] font-medium text-foreground">Source evidence</div>
+                  <div
+                    className="text-[13px] leading-relaxed text-muted"
+                    style={{ paddingLeft: 12, borderLeft: `3px solid ${problemColor}` }}
+                  >
+                    &ldquo;{detail.quotes[0].text}&rdquo;
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={onViewTicket}
+                className="mt-1 text-[13px] font-medium text-accent transition-colors hover:text-accent/80"
+              >
+                View ticket &rarr;
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -178,6 +255,7 @@ export default function Results() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [generatedDetails, setGeneratedDetails] = useState<Map<string, TicketDetail>>(new Map());
   const [failedTicket, setFailedTicket] = useState<string | null>(null);
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
   const [showLinearConnect, setShowLinearConnect] = useState(false);
   const [showLinearSend, setShowLinearSend] = useState(false);
   const [preparingLinear, setPreparingLinear] = useState<{ done: number; total: number } | null>(null);
@@ -270,21 +348,9 @@ export default function Results() {
     (a, b) => (SEVERITY_ORDER[a.item.priority] ?? 1) - (SEVERITY_ORDER[b.item.priority] ?? 1)
   );
 
-  const handleTicketClick = async (ticket: typeof allTickets[0]) => {
-    // If we already have a generated detail for this ticket, reuse it
+  const generateDetail = async (ticket: typeof allTickets[0]): Promise<TicketDetail | null> => {
     const existing = generatedDetails.get(ticket.item.id);
-    if (existing) {
-      setTicketContext({
-        ticket: existing,
-        problem: data.problems[ticket.problemIndex],
-        problemIndex: ticket.problemIndex,
-        problemColor: ticket.problemColor,
-        solution: ticket.solution.solution,
-        meetingTitle: data.meetingTitle,
-        meetingDate: data.date,
-      });
-      return;
-    }
+    if (existing) return existing;
 
     setLoadingTicket(ticket.item.id);
     setFailedTicket(null);
@@ -305,8 +371,21 @@ export default function Results() {
       const ticketDetail: TicketDetail = await res.json();
       setGeneratedDetails((prev) => new Map(prev).set(ticketDetail.id, ticketDetail));
       trackInteraction();
+      return ticketDetail;
+    } catch (err) {
+      console.error(err);
+      setFailedTicket(ticket.item.id);
+      return null;
+    } finally {
+      setLoadingTicket(null);
+    }
+  };
+
+  const handleTicketClick = async (ticket: typeof allTickets[0]) => {
+    const detail = await generateDetail(ticket);
+    if (detail) {
       setTicketContext({
-        ticket: ticketDetail,
+        ticket: detail,
         problem: data.problems[ticket.problemIndex],
         problemIndex: ticket.problemIndex,
         problemColor: ticket.problemColor,
@@ -314,11 +393,18 @@ export default function Results() {
         meetingTitle: data.meetingTitle,
         meetingDate: data.date,
       });
-    } catch (err) {
-      console.error(err);
-      setFailedTicket(ticket.item.id);
-    } finally {
-      setLoadingTicket(null);
+    }
+  };
+
+  const handleExpandToggle = (ticket: typeof allTickets[0]) => {
+    const id = ticket.item.id;
+    if (expandedTicketId === id) {
+      setExpandedTicketId(null);
+    } else {
+      setExpandedTicketId(id);
+      if (!generatedDetails.has(id)) {
+        generateDetail(ticket);
+      }
     }
   };
 
@@ -616,8 +702,11 @@ export default function Results() {
                   loading={loadingTicket === ticket.item.id}
                   failed={failedTicket === ticket.item.id}
                   selected={selectedTickets.has(ticket.item.id)}
+                  expanded={expandedTicketId === ticket.item.id}
+                  detail={generatedDetails.get(ticket.item.id)}
                   onToggle={() => toggleTicket(ticket.item.id)}
-                  onClick={() => handleTicketClick(ticket)}
+                  onExpand={() => handleExpandToggle(ticket)}
+                  onViewTicket={() => handleTicketClick(ticket)}
                 />
               );
             })}

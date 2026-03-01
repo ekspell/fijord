@@ -292,12 +292,15 @@ function SectionHeader({
 /* ─── Home Dashboard ─── */
 
 export default function Home() {
-  const { demoMode, isSignalConverted } = useNav();
+  const { demoMode, isSignalConverted, result, solutions } = useNav();
   const { user } = useAuth();
+  const router = useRouter();
   const greeting = getGreeting();
   const userName = user?.name?.split(" ")[0] ?? "Kate";
   const signals = demoMode ? [] : MOCK_SIGNALS.filter((s) => !isSignalConverted(s.id));
   const epics = demoMode ? [] : MOCK_EPICS;
+  const mockMeetings = demoMode ? [] : MOCK_MEETING_RECORDS;
+  const hasProcessed = !!(result && solutions.length > 0);
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900, paddingTop: 36 }}>
@@ -319,6 +322,81 @@ export default function Home() {
 
       {/* Quick actions */}
       <QuickActions />
+
+      {/* Recent meetings */}
+      {(hasProcessed || mockMeetings.length > 0) && (
+        <section className="mb-10">
+          <SectionHeader title="Recent meetings" href="/artifacts" />
+          <div className="flex flex-col gap-3">
+            {/* Processed meeting from current session */}
+            {hasProcessed && (
+              <div
+                onClick={() => router.push("/meeting/new")}
+                className="cursor-pointer rounded-xl border border-border bg-card transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+                style={{ padding: 16 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
+                    style={{ background: "#3D5A3D" }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-foreground" style={{ fontSize: 14 }}>
+                      {result!.meetingTitle}
+                    </div>
+                    <div className="flex items-center gap-3 text-muted" style={{ fontSize: 13 }}>
+                      <span>{result!.date}</span>
+                      <span>{result!.problems.length} problems</span>
+                      <span>{solutions.reduce((s, sol) => s + sol.workItems.length, 0)} tickets</span>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </div>
+            )}
+            {/* Mock meetings */}
+            {mockMeetings.slice(0, 4).map((meeting) => (
+              <div
+                key={meeting.id}
+                onClick={() => router.push(`/meeting/${meeting.id}?from=home`)}
+                className="cursor-pointer rounded-xl border border-border bg-card transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+                style={{ padding: 16 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-medium text-white"
+                    style={{ background: meeting.color, fontSize: 12 }}
+                  >
+                    {meeting.participant
+                      .split(" ")
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-foreground" style={{ fontSize: 14 }}>
+                      {meeting.title}
+                    </div>
+                    <div className="flex items-center gap-3 text-muted" style={{ fontSize: 13 }}>
+                      <span>{meeting.date}{meeting.time ? ` · ${meeting.time}` : ""}</span>
+                      <span>{meeting.participant}</span>
+                    </div>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Emerging signals */}
       <section className="mb-10">

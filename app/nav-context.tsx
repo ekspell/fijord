@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
 import { JiraCreds } from "@/lib/jira";
-import type { RoadmapLane } from "@/lib/mock-epics";
+import type { RoadmapLane, EpicBrief, Epic } from "@/lib/mock-epics";
 import { FeedbackButton, FeedbackModal } from "./components/feedback-modal";
 
 export type RoadmapTicket = {
@@ -34,6 +34,8 @@ const JIRA_CREDS_STORAGE = "fjord-jira-creds";
 const FIREFLIES_KEY_STORAGE = "fjord-fireflies-api-key";
 const CONVERTED_SIGNALS_KEY = "fjord-converted-signals";
 const STAGING_OVERRIDES_KEY = "fjord-staging-overrides";
+const BRIEF_KEY = "fjord-brief";
+const USER_EPICS_KEY = "fjord-user-epics";
 
 export type ConvertedSignalInfo = { epicId: string; epicTitle: string };
 
@@ -50,6 +52,21 @@ function loadConvertedSignals(): Record<string, ConvertedSignalInfo> {
 function persistConvertedSignals(data: Record<string, ConvertedSignalInfo>) {
   if (typeof window === "undefined") return;
   localStorage.setItem(CONVERTED_SIGNALS_KEY, JSON.stringify(data));
+}
+
+function loadUserEpics(): Epic[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(USER_EPICS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistUserEpics(epics: Epic[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(USER_EPICS_KEY, JSON.stringify(epics));
 }
 
 function loadStagingOverrides(): Record<string, RoadmapLane> {
@@ -156,6 +173,10 @@ type NavContextType = {
   isSignalConverted: (signalId: string) => boolean;
   stagingOverrides: Record<string, RoadmapLane>;
   setStagingLane: (ticketId: string, lane: RoadmapLane) => void;
+  brief: EpicBrief | null;
+  setBrief: (b: EpicBrief | null) => void;
+  userEpics: Epic[];
+  addEpic: (epic: Epic) => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -194,6 +215,10 @@ const NavContext = createContext<NavContextType>({
   isSignalConverted: () => false,
   stagingOverrides: {},
   setStagingLane: () => {},
+  brief: null,
+  setBrief: () => {},
+  userEpics: [],
+  addEpic: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -205,9 +230,19 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
   const [showLanding, setShowLanding] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
+  const [demoMode, setDemoMode] = useState(true);
   const [convertedSignals, setConvertedSignals] = useState<Record<string, ConvertedSignalInfo>>({});
   const [stagingOverrides, setStagingOverrides] = useState<Record<string, RoadmapLane>>({});
+  const [brief, setBriefState] = useState<EpicBrief | null>(null);
+  const [userEpics, setUserEpics] = useState<Epic[]>([]);
+
+  const addEpic = useCallback((epic: Epic) => {
+    setUserEpics((prev) => {
+      const next = [...prev, epic];
+      persistUserEpics(next);
+      return next;
+    });
+  }, []);
 
   const setStagingLane = useCallback((ticketId: string, lane: RoadmapLane) => {
     setStagingOverrides((prev) => {
@@ -265,6 +300,14 @@ export function NavProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setBrief = useCallback((b: EpicBrief | null) => {
+    setBriefState(b);
+    if (typeof window !== "undefined") {
+      if (b) sessionStorage.setItem(BRIEF_KEY, JSON.stringify(b));
+      else sessionStorage.removeItem(BRIEF_KEY);
+    }
+  }, []);
+
   const triggerFeedback = useCallback(() => {
     setShowFeedbackModal(true);
   }, []);
@@ -297,6 +340,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (Object.keys(savedConverted).length > 0) setConvertedSignals(savedConverted);
     const savedStagingOverrides = loadStagingOverrides();
     if (Object.keys(savedStagingOverrides).length > 0) setStagingOverrides(savedStagingOverrides);
+    const savedUserEpics = loadUserEpics();
+    if (savedUserEpics.length > 0) setUserEpics(savedUserEpics);
 
     // Restore session data
     try {
@@ -308,6 +353,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
       if (savedSolutions) setSolutionsState(JSON.parse(savedSolutions));
       const savedTranscript = sessionStorage.getItem(TRANSCRIPT_KEY);
       if (savedTranscript) setTranscriptState(savedTranscript);
+      const savedBrief = sessionStorage.getItem(BRIEF_KEY);
+      if (savedBrief) setBriefState(JSON.parse(savedBrief));
     } catch { /* ignore parse errors */ }
   }, []);
 
@@ -402,6 +449,10 @@ export function NavProvider({ children }: { children: ReactNode }) {
         isSignalConverted,
         stagingOverrides,
         setStagingLane,
+        brief,
+        setBrief,
+        userEpics,
+        addEpic,
       }}
     >
       {children}

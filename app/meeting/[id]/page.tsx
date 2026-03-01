@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useNav } from "@/app/nav-context";
+import { useAuth } from "@/app/auth-context";
+import UpgradeModal from "@/app/components/upgrade-modal";
 import {
   MOCK_MEETING_RECORDS,
   MOCK_MEETING_DETAILS,
@@ -10,6 +12,8 @@ import {
 } from "@/lib/mock-data";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import type { MeetingProblem, TranscriptLine } from "@/lib/mock-data";
+
+const TABS = ["Discovery", "Scope", "Staging", "Brief"] as const;
 
 /* ─── Assign Epic Modal ─── */
 
@@ -305,9 +309,12 @@ export default function MeetingDetailPage() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const { showToast } = useNav();
+  const { isPro } = useAuth();
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Discovery");
   const [showTranscript, setShowTranscript] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const record = MOCK_MEETING_RECORDS.find((m) => m.id === id);
   const detail = id ? MOCK_MEETING_DETAILS[id] : undefined;
@@ -509,179 +516,288 @@ export default function MeetingDetailPage() {
         ))}
       </div>
 
-      {/* Problems extracted */}
-      <div style={{ marginBottom: 32 }}>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-medium" style={{ fontSize: 16 }}>
-            Problems extracted
-          </h2>
-          <span className="text-muted" style={{ fontSize: 13 }}>
-            {problems.length} {problems.length === 1 ? "problem" : "problems"} · {totalQuotes} {totalQuotes === 1 ? "quote" : "quotes"}
-          </span>
-        </div>
-
-        {problems.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
-            <p className="text-sm text-muted">
-              No problems found in this meeting. Try reprocessing or check
-              the transcript.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {problems.map((problem) => (
-              <ProblemCard key={problem.id} problem={problem} />
-            ))}
-          </div>
-        )}
+      {/* Tabs */}
+      <div className="mb-8 flex gap-1 rounded-xl border border-border bg-card p-1">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`rounded-lg px-5 py-2 text-sm font-medium transition-colors ${
+              activeTab === tab
+                ? "bg-background text-foreground shadow-sm"
+                : "cursor-pointer text-muted hover:text-foreground"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
-      {/* Connections */}
-      <div style={{ marginBottom: 32 }}>
-        <h2
-          className="font-medium"
-          style={{ fontSize: 16, marginBottom: 16 }}
-        >
-          Connections
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Contributing to signals */}
-          <div
-            className="rounded-xl border border-border bg-card"
-            style={{ padding: 16 }}
-          >
-            <div
-              className="font-medium uppercase text-muted"
-              style={{
-                fontSize: 13,
-                letterSpacing: "0.5px",
-                marginBottom: 12,
-              }}
-            >
-              Contributing to signals
+      {/* Tab content */}
+      {activeTab === "Discovery" && (
+        <>
+          {/* Problems extracted */}
+          <div style={{ marginBottom: 32 }}>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-medium" style={{ fontSize: 16 }}>
+                Problems extracted
+              </h2>
+              <span className="text-muted" style={{ fontSize: 13 }}>
+                {problems.length} {problems.length === 1 ? "problem" : "problems"} · {totalQuotes} {totalQuotes === 1 ? "quote" : "quotes"}
+              </span>
             </div>
 
-            {contributingSignals.length === 0 ? (
-              <div
-                className="rounded-lg text-center text-muted"
-                style={{
-                  fontSize: 13,
-                  padding: "16px 12px",
-                  background: "#FAF9F6",
-                }}
-              >
-                This meeting hasn&apos;t contributed to any signals yet.
+            {problems.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+                <p className="text-sm text-muted">
+                  No problems found in this meeting. Try reprocessing or check
+                  the transcript.
+                </p>
               </div>
             ) : (
-              contributingSignals.map((signal) => (
-                <button
-                  key={signal.id}
-                  onClick={() => router.push(`/signals/${signal.id}?from=meetings`)}
-                  className="mb-2 flex w-full items-start gap-2.5 rounded-lg text-left transition-colors hover:bg-accent-green-light"
-                  style={{ padding: "10px 12px", background: "#FAF9F6" }}
+              <div className="flex flex-col gap-3">
+                {problems.map((problem) => (
+                  <ProblemCard key={problem.id} problem={problem} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Connections */}
+          <div style={{ marginBottom: 32 }}>
+            <h2
+              className="font-medium"
+              style={{ fontSize: 16, marginBottom: 16 }}
+            >
+              Connections
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Contributing to signals */}
+              <div
+                className="rounded-xl border border-border bg-card"
+                style={{ padding: 16 }}
+              >
+                <div
+                  className="font-medium uppercase text-muted"
+                  style={{
+                    fontSize: 13,
+                    letterSpacing: "0.5px",
+                    marginBottom: 12,
+                  }}
                 >
-                  <span
-                    className="mt-1.5 shrink-0 rounded-full"
+                  Contributing to signals
+                </div>
+
+                {contributingSignals.length === 0 ? (
+                  <div
+                    className="rounded-lg text-center text-muted"
                     style={{
-                      width: 8,
-                      height: 8,
-                      background: signal.color,
+                      fontSize: 13,
+                      padding: "16px 12px",
+                      background: "#FAF9F6",
                     }}
-                  />
-                  <div>
-                    <div className="font-medium" style={{ fontSize: 13 }}>
-                      {signal.title}
-                    </div>
-                    <div className="text-muted" style={{ fontSize: 12 }}>
-                      {signal.quotesFromThisMeeting}{" "}
-                      {signal.quotesFromThisMeeting === 1
-                        ? "quote"
-                        : "quotes"}{" "}
-                      from this meeting
-                    </div>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-
-          {/* Feeding epics */}
-          <div
-            className="rounded-xl border border-border bg-card"
-            style={{ padding: 16 }}
-          >
-            <div
-              className="font-medium uppercase text-muted"
-              style={{
-                fontSize: 13,
-                letterSpacing: "0.5px",
-                marginBottom: 12,
-              }}
-            >
-              Feeding epics
-            </div>
-
-            {feedingEpics.length === 0 ? (
-              <div
-                className="mb-2 rounded-lg text-center text-muted"
-                style={{
-                  fontSize: 13,
-                  padding: "16px 12px",
-                  background: "#FAF9F6",
-                }}
-              >
-                Not assigned to any epics.
-              </div>
-            ) : (
-              feedingEpics.map((epic) => {
-                const status = STATUS_STYLES[epic.status];
-                return (
-                  <button
-                    key={epic.id}
-                    onClick={() => router.push(`/epic/${epic.id}?from=meetings`)}
-                    className="mb-2 flex w-full items-center gap-2.5 rounded-lg text-left transition-colors hover:bg-accent-green-light"
-                    style={{ padding: "10px 12px", background: "#FAF9F6" }}
                   >
-                    <div
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                      style={{ background: "#E8F0E8" }}
+                    This meeting hasn&apos;t contributed to any signals yet.
+                  </div>
+                ) : (
+                  contributingSignals.map((signal) => (
+                    <button
+                      key={signal.id}
+                      onClick={() => router.push(`/signals/${signal.id}?from=meetings`)}
+                      className="mb-2 flex w-full items-start gap-2.5 rounded-lg text-left transition-colors hover:bg-accent-green-light"
+                      style={{ padding: "10px 12px", background: "#FAF9F6" }}
                     >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#3D5A3D"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium" style={{ fontSize: 13 }}>
-                        {epic.title}
+                      <span
+                        className="mt-1.5 shrink-0 rounded-full"
+                        style={{
+                          width: 8,
+                          height: 8,
+                          background: signal.color,
+                        }}
+                      />
+                      <div>
+                        <div className="font-medium" style={{ fontSize: 13 }}>
+                          {signal.title}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: 12 }}>
+                          {signal.quotesFromThisMeeting}{" "}
+                          {signal.quotesFromThisMeeting === 1
+                            ? "quote"
+                            : "quotes"}{" "}
+                          from this meeting
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: status.text }}>
-                        {status.label}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })
-            )}
+                    </button>
+                  ))
+                )}
+              </div>
 
-            <button
-              onClick={() => setShowAssignModal(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-muted transition-colors hover:border-accent hover:bg-accent-green-light hover:text-accent"
-              style={{ padding: 10, fontSize: 13 }}
-            >
-              + Assign to another epic
-            </button>
+              {/* Feeding epics */}
+              <div
+                className="rounded-xl border border-border bg-card"
+                style={{ padding: 16 }}
+              >
+                <div
+                  className="font-medium uppercase text-muted"
+                  style={{
+                    fontSize: 13,
+                    letterSpacing: "0.5px",
+                    marginBottom: 12,
+                  }}
+                >
+                  Feeding epics
+                </div>
+
+                {feedingEpics.length === 0 ? (
+                  <div
+                    className="mb-2 rounded-lg text-center text-muted"
+                    style={{
+                      fontSize: 13,
+                      padding: "16px 12px",
+                      background: "#FAF9F6",
+                    }}
+                  >
+                    Not assigned to any epics.
+                  </div>
+                ) : (
+                  feedingEpics.map((epic) => {
+                    const status = STATUS_STYLES[epic.status];
+                    return (
+                      <button
+                        key={epic.id}
+                        onClick={() => router.push(`/epic/${epic.id}?from=meetings`)}
+                        className="mb-2 flex w-full items-center gap-2.5 rounded-lg text-left transition-colors hover:bg-accent-green-light"
+                        style={{ padding: "10px 12px", background: "#FAF9F6" }}
+                      >
+                        <div
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                          style={{ background: "#E8F0E8" }}
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#3D5A3D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="font-medium" style={{ fontSize: 13 }}>
+                            {epic.title}
+                          </div>
+                          <div style={{ fontSize: 12, color: status.text }}>
+                            {status.label}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+
+                <button
+                  onClick={() => setShowAssignModal(true)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-muted transition-colors hover:border-accent hover:bg-accent-green-light hover:text-accent"
+                  style={{ padding: 10, fontSize: 13 }}
+                >
+                  + Assign to another epic
+                </button>
+              </div>
+            </div>
           </div>
+        </>
+      )}
+
+      {activeTab === "Scope" && (
+        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <p className="mb-1 text-sm font-medium text-foreground">No solutions yet</p>
+          <p className="mb-4 text-sm text-muted">
+            Solutions haven&apos;t been generated for this meeting yet.
+          </p>
+          <button
+            onClick={() => router.push("/meeting/new")}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: "#3D5A3D" }}
+          >
+            Reprocess
+          </button>
         </div>
-      </div>
+      )}
+
+      {activeTab === "Staging" && (
+        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+            </svg>
+          </div>
+          <p className="mb-1 text-sm font-medium text-foreground">No staged tickets</p>
+          <p className="mb-4 text-sm text-muted">
+            No tickets have been staged for this meeting yet.
+          </p>
+          <button
+            onClick={() => router.push("/meeting/new")}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: "#3D5A3D" }}
+          >
+            Reprocess
+          </button>
+        </div>
+      )}
+
+      {activeTab === "Brief" && !isPro ? (
+        <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <p className="mb-1 text-sm font-medium text-foreground">Briefs is a Pro feature</p>
+          <p className="mb-4 text-sm text-muted">Upgrade to auto-generate product briefs from your discovery evidence.</p>
+          <button
+            onClick={() => setShowUpgrade(true)}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: "#3D5A3D" }}
+          >
+            Upgrade to Pro
+          </button>
+        </div>
+      ) : activeTab === "Brief" && (
+        <div className="rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          </div>
+          <p className="mb-1 text-sm font-medium text-foreground">No brief generated</p>
+          <p className="mb-4 text-sm text-muted">
+            No brief generated yet.
+          </p>
+          <button
+            onClick={() => router.push("/meeting/new")}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+            style={{ background: "#3D5A3D" }}
+          >
+            Reprocess
+          </button>
+        </div>
+      )}
 
       {/* Transcript drawer */}
       {showTranscript && (
@@ -714,6 +830,9 @@ export default function MeetingDetailPage() {
           }}
         />
       )}
+
+      {/* Upgrade modal */}
+      {showUpgrade && <UpgradeModal feature="Briefs" onClose={() => setShowUpgrade(false)} />}
     </div>
   );
 }

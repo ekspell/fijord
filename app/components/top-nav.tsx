@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNav } from "../nav-context";
 
-const tabs = ["Discovery", "Scope", "Staging"];
+const tabs = ["Discovery", "Scope", "Staging", "Brief"];
 
 export default function TopNav() {
   const { activeTab, setActiveTab, result, roadmap, setShowLanding, linearApiKey, clearLinearApiKey, jiraCreds, clearJiraCreds, firefliesApiKey, clearFirefliesApiKey } = useNav();
@@ -47,7 +47,8 @@ export default function TopNav() {
         {tabs.map((tab) => {
           const disabled =
             (tab === "Scope" && !result) ||
-            (tab === "Staging" && !result && roadmap.length === 0);
+            (tab === "Staging" && !result && roadmap.length === 0) ||
+            (tab === "Brief" && !result);
           return (
             <button
               key={tab}

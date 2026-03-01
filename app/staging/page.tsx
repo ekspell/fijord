@@ -2,16 +2,30 @@
 
 import { Suspense, useRef, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useNav } from "@/app/nav-context";
+import { useNav, RoadmapTicket } from "@/app/nav-context";
 import {
   MOCK_EPICS,
   STATUS_STYLES,
   TICKET_STATUS_STYLES,
   PRIORITY_STYLES,
 } from "@/lib/mock-epics";
-import type { EpicTicket, RoadmapLane } from "@/lib/mock-epics";
+import type { EpicTicket, RoadmapLane, TicketPriority, TicketStatus } from "@/lib/mock-epics";
+import TicketDetailView from "@/app/ticket-detail";
+import type { TicketContext, Quote } from "@/lib/types";
 
 type StagingTicket = EpicTicket & { epicId: string; epicTitle: string; epicStatus: "on-track" | "at-risk" | "blocked" };
+
+const ROADMAP_PRIORITY_MAP: Record<string, TicketPriority> = {
+  High: "high",
+  Med: "medium",
+  Low: "low",
+};
+
+const ROADMAP_LANE_TO_STATUS: Record<RoadmapLane, TicketStatus> = {
+  now: "planned",
+  next: "in-progress",
+  later: "shipped",
+};
 
 type ColumnKey = RoadmapLane;
 
@@ -101,17 +115,56 @@ export default function StagingPage() {
   );
 }
 
+function stagingToContext(ticket: StagingTicket, sourceRoadmap?: RoadmapTicket): TicketContext {
+  const quotes: Quote[] = sourceRoadmap?.quotes && sourceRoadmap.quotes.length > 0
+    ? sourceRoadmap.quotes
+    : sourceRoadmap?.problemQuotes
+      ? sourceRoadmap.problemQuotes.map((q) => ({ text: q.text, summary: q.summary || "", speaker: q.speaker, timestamp: "" }))
+      : ticket.sourceQuote
+        ? [{ text: ticket.sourceQuote, summary: "", speaker: "", timestamp: "" }]
+        : [];
+
+  const priorityMap: Record<string, "High" | "Med" | "Low"> = { high: "High", medium: "Med", low: "Low" };
+
+  return {
+    ticket: {
+      id: ticket.id,
+      title: ticket.title,
+      priority: priorityMap[ticket.priority] || "Med",
+      status: ticket.status || "planned",
+      problemStatement: sourceRoadmap?.problemStatement || "",
+      description: ticket.description || "",
+      acceptanceCriteria: ticket.acceptanceCriteria || [],
+      checkedAC: sourceRoadmap?.checkedAC,
+      quotes,
+    },
+    problem: {
+      id: ticket.id + "-problem",
+      title: sourceRoadmap?.problemTitle || ticket.epicTitle,
+      description: sourceRoadmap?.problemDescription || "",
+      severity: "Med" as const,
+      quotes,
+    },
+    problemIndex: 0,
+    problemColor: sourceRoadmap?.problemColor || "#3D5A3D",
+    solution: { title: "", description: "" },
+    meetingTitle: "",
+    meetingDate: "",
+  };
+}
+
 function StagingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const { demoMode, stagingOverrides, setStagingLane } = useNav();
+  const { demoMode, roadmap, stagingOverrides, setStagingLane, updateRoadmapTicket } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<StagingTicket | null>(null);
   const draggedId = useRef<string | null>(null);
 
   const epics = demoMode ? [] : MOCK_EPICS;
 
-  // Flatten all tickets across all epics, applying lane overrides
+  // Flatten all tickets across all epics + roadmap, applying lane overrides
   const allTickets = useMemo(() => {
     const tickets: StagingTicket[] = [];
     for (const epic of epics) {
@@ -125,8 +178,24 @@ function StagingContent() {
         });
       }
     }
+    // Include tickets saved from meeting processing
+    for (const rt of roadmap) {
+      const lane = stagingOverrides[rt.id] ?? rt.column;
+      tickets.push({
+        id: rt.id,
+        title: rt.title,
+        priority: ROADMAP_PRIORITY_MAP[rt.priority] || "low",
+        status: ROADMAP_LANE_TO_STATUS[lane] || "planned",
+        lane,
+        description: rt.description,
+        acceptanceCriteria: rt.acceptanceCriteria,
+        epicId: "meeting-staging",
+        epicTitle: rt.problemTitle,
+        epicStatus: "on-track",
+      });
+    }
     return tickets;
-  }, [epics, stagingOverrides]);
+  }, [epics, roadmap, stagingOverrides]);
 
   const columns = COLUMN_META.map((meta) => ({
     ...meta,
@@ -159,6 +228,35 @@ function StagingContent() {
     setDragOverCol(null);
     draggedId.current = null;
   };
+
+  // Ticket detail view
+  if (selectedTicket) {
+    const sourceRoadmap = roadmap.find((r) => r.id === selectedTicket.id);
+    const ctx = stagingToContext(selectedTicket, sourceRoadmap);
+    const handleUpdate = (updates: Partial<import("@/lib/types").TicketDetail>) => {
+      if (!sourceRoadmap) return;
+      const roadmapUpdates: Partial<RoadmapTicket> = {};
+      if (updates.title !== undefined) roadmapUpdates.title = updates.title;
+      if (updates.priority !== undefined) roadmapUpdates.priority = updates.priority;
+      if (updates.description !== undefined) roadmapUpdates.description = updates.description;
+      if (updates.problemStatement !== undefined) roadmapUpdates.problemStatement = updates.problemStatement;
+      if (updates.acceptanceCriteria !== undefined) roadmapUpdates.acceptanceCriteria = updates.acceptanceCriteria;
+      if (updates.checkedAC !== undefined) roadmapUpdates.checkedAC = updates.checkedAC;
+      if (updates.quotes !== undefined) roadmapUpdates.quotes = updates.quotes;
+      updateRoadmapTicket(sourceRoadmap.id, roadmapUpdates);
+    };
+
+    return (
+      <div className="mx-auto max-w-[1100px]">
+        <TicketDetailView
+          context={ctx}
+          onBack={() => setSelectedTicket(null)}
+          onUpdate={sourceRoadmap ? handleUpdate : undefined}
+          breadcrumbLabel="Staging"
+        />
+      </div>
+    );
+  }
 
   if (allTickets.length === 0) {
     return (
@@ -271,7 +369,7 @@ function StagingContent() {
                 key={ticket.id}
                 ticket={ticket}
                 onDragStart={handleDragStart}
-                onClick={() => router.push(`/epic/${ticket.epicId}?from=staging`)}
+                onClick={() => setSelectedTicket(ticket)}
               />
             ))}
             {col.tickets.length === 0 && (

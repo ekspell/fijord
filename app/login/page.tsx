@@ -42,7 +42,7 @@ type Step = "choose" | "email" | "check" | "code";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginWithGoogle, loginWithMagicLink, verifyCode } = useAuth();
+  const { loginWithGoogle, loginWithMagicLink, verifyCode, loginAsGuest } = useAuth();
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -67,10 +67,15 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await loginWithMagicLink(email.trim());
+      await loginWithMagicLink(email.trim(), false);
       setStep("check");
-    } catch {
-      setError("Failed to send link. Please try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.toLowerCase().includes("rate") || msg.toLowerCase().includes("limit") || msg.toLowerCase().includes("seconds")) {
+        setError("Too many attempts. Please wait a minute and try again.");
+      } else {
+        setError("No account found. Please sign up first.");
+      }
     } finally {
       setLoading(false);
     }
@@ -82,7 +87,7 @@ export default function LoginPage() {
     setError("");
     try {
       await verifyCode(email.trim(), code);
-      router.push("/onboarding");
+      router.push("/");
     } catch {
       setError("Verification failed. Please try again.");
     } finally {
@@ -155,6 +160,13 @@ export default function LoginPage() {
                 Sign up
               </button>
             </p>
+
+            <button
+              onClick={() => { loginAsGuest(); router.push("/"); }}
+              className="mt-3 text-sm text-muted transition-colors hover:text-foreground"
+            >
+              Continue as guest &rarr;
+            </button>
           </div>
         )}
 

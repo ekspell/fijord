@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { MOCK_MEETING_RECORDS } from "@/lib/mock-data";
-import type { EpicStatus } from "@/lib/mock-epics";
+import type { Epic, EpicStatus } from "@/lib/mock-epics";
 
 const STATUS_OPTIONS: { value: EpicStatus; label: string }[] = [
   { value: "on-track", label: "On track" },
@@ -24,7 +24,7 @@ export default function CreateEpicModal({
   onCreated?: (epicId: string, epicTitle: string) => void;
 }) {
   const router = useRouter();
-  const { showToast } = useNav();
+  const { showToast, demoMode, addEpic } = useNav();
   const [title, setTitle] = useState(defaultTitle ?? "");
   const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<EpicStatus>("on-track");
@@ -52,6 +52,24 @@ export default function CreateEpicModal({
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
+
+    const initials = owner.trim()
+      ? owner.trim().split(/\s+/).map((w) => w[0]?.toUpperCase() ?? "").join("").slice(0, 2)
+      : "ME";
+
+    const newEpic: Epic = {
+      id: slug,
+      title: title.trim(),
+      description: description.trim(),
+      status,
+      metrics: { tickets: 0, meetings: selectedMeetings.length, quotes: 0 },
+      progress: { shipped: 0, total: 0 },
+      progressLabel: "No tickets yet",
+      owner: { name: owner.trim() || "Me", initials },
+      dateLabel: `Started ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+    };
+
+    addEpic(newEpic);
     onClose();
     showToast(`Epic "${title}" created`);
     onCreated?.(slug, title);
@@ -131,31 +149,33 @@ export default function CreateEpicModal({
           </div>
         </div>
 
-        {/* Assign meetings */}
-        <div className="mb-6">
-          <label className="mb-1.5 block text-sm font-medium text-foreground">
-            Assign meetings <span className="font-normal text-muted">(optional)</span>
-          </label>
-          <div
-            className="flex max-h-36 flex-col gap-1 overflow-y-auto rounded-lg border border-border bg-background p-2"
-          >
-            {MOCK_MEETING_RECORDS.slice(0, 8).map((m) => (
-              <label
-                key={m.id}
-                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent-green-light"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedMeetings.includes(m.id)}
-                  onChange={() => toggleMeeting(m.id)}
-                  className="accent-[#3D5A3D]"
-                />
-                <span className="text-sm text-foreground">{m.title}</span>
-                <span className="ml-auto text-xs text-muted">{m.date}</span>
-              </label>
-            ))}
+        {/* Assign meetings — only show when meetings exist */}
+        {!demoMode && MOCK_MEETING_RECORDS.length > 0 && (
+          <div className="mb-6">
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Assign meetings <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <div
+              className="flex max-h-36 flex-col gap-1 overflow-y-auto rounded-lg border border-border bg-background p-2"
+            >
+              {MOCK_MEETING_RECORDS.slice(0, 8).map((m) => (
+                <label
+                  key={m.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent-green-light"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedMeetings.includes(m.id)}
+                    onChange={() => toggleMeeting(m.id)}
+                    className="accent-[#3D5A3D]"
+                  />
+                  <span className="text-sm text-foreground">{m.title}</span>
+                  <span className="ml-auto text-xs text-muted">{m.date}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-3">

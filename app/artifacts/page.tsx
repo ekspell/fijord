@@ -7,8 +7,26 @@ import { MOCK_EPICS } from "@/lib/mock-epics";
 
 export default function ArtifactsPage() {
   const router = useRouter();
-  const { demoMode } = useNav();
-  const meetings = demoMode ? [] : MOCK_MEETING_RECORDS;
+  const { demoMode, result, solutions } = useNav();
+  const mockMeetings = demoMode ? [] : MOCK_MEETING_RECORDS;
+
+  // Build a card for the current session's processed meeting
+  const processedMeeting = result && solutions.length > 0 ? {
+    id: "__processed__",
+    title: result.meetingTitle,
+    participant: result.participants,
+    date: result.date,
+    time: "",
+    color: "#3D5A3D",
+    epicIds: [] as string[],
+    problemCount: result.problems.length,
+    ticketCount: solutions.reduce((s, sol) => s + sol.workItems.length, 0),
+  } : null;
+
+  const meetings = [
+    ...(processedMeeting ? [processedMeeting] : []),
+    ...mockMeetings,
+  ];
 
   return (
     <div className="mx-auto" style={{ maxWidth: 900 }}>
@@ -70,7 +88,8 @@ export default function ArtifactsPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {meetings.map((meeting) => {
-            const detail = MOCK_MEETING_DETAILS[meeting.id];
+            const isProcessed = meeting.id === "__processed__";
+            const detail = !isProcessed ? MOCK_MEETING_DETAILS[meeting.id] : null;
             const participantCount = detail
               ? detail.participants.length
               : 1;
@@ -87,7 +106,11 @@ export default function ArtifactsPage() {
             return (
               <div
                 key={meeting.id}
-                onClick={() => router.push(`/meeting/${meeting.id}?from=artifacts`)}
+                onClick={() =>
+                  isProcessed
+                    ? router.push("/meeting/new")
+                    : router.push(`/meeting/${meeting.id}?from=artifacts`)
+                }
                 className="cursor-pointer rounded-xl border border-border bg-card transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
                 style={{ padding: 20 }}
               >
@@ -97,11 +120,17 @@ export default function ArtifactsPage() {
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-medium text-white"
                       style={{ background: meeting.color, fontSize: 12 }}
                     >
-                      {meeting.participant
-                        .split(" ")
-                        .map((w) => w[0])
-                        .join("")
-                        .slice(0, 2)}
+                      {isProcessed ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        meeting.participant
+                          .split(" ")
+                          .map((w) => w[0])
+                          .join("")
+                          .slice(0, 2)
+                      )}
                     </div>
                     <div>
                       <h3 className="font-medium text-foreground" style={{ fontSize: 15 }}>
@@ -109,9 +138,18 @@ export default function ArtifactsPage() {
                       </h3>
                       <div className="flex items-center gap-3 text-muted" style={{ fontSize: 13, marginTop: 2 }}>
                         <span>{meeting.date}{meeting.time ? ` \u00b7 ${meeting.time}` : ""}</span>
-                        <span>{participantCount} participant{participantCount !== 1 ? "s" : ""}</span>
-                        {quoteCount > 0 && (
-                          <span>{quoteCount} quote{quoteCount !== 1 ? "s" : ""}</span>
+                        {isProcessed && processedMeeting ? (
+                          <>
+                            <span>{processedMeeting.problemCount} problems</span>
+                            <span>{processedMeeting.ticketCount} tickets</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>{participantCount} participant{participantCount !== 1 ? "s" : ""}</span>
+                            {quoteCount > 0 && (
+                              <span>{quoteCount} quote{quoteCount !== 1 ? "s" : ""}</span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

@@ -136,12 +136,12 @@ const TAB_TO_STATUS: Record<Tab, string | null> = {
 
 export default function EpicsPage() {
   const router = useRouter();
-  const { demoMode } = useNav();
+  const { demoMode, userEpics } = useNav();
   const { isPro } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("All");
-  const allEpics = demoMode ? [] : MOCK_EPICS;
+  const allEpics = demoMode ? [...userEpics] : [...MOCK_EPICS, ...userEpics];
 
   const statusFilter = TAB_TO_STATUS[activeTab];
   const epics = statusFilter

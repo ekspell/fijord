@@ -42,7 +42,7 @@ type Step = "choose" | "email" | "check" | "code";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { loginWithGoogle, loginWithMagicLink, verifyCode } = useAuth();
+  const { loginWithGoogle, loginWithMagicLink, verifyCode, loginAsGuest } = useAuth();
   const [step, setStep] = useState<Step>("choose");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -67,10 +67,15 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
     try {
-      await loginWithMagicLink(email.trim());
+      await loginWithMagicLink(email.trim(), true);
       setStep("check");
-    } catch {
-      setError("Failed to send link. Please try again.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.toLowerCase().includes("rate") || msg.toLowerCase().includes("limit") || msg.toLowerCase().includes("seconds")) {
+        setError("Too many attempts. Please wait a minute and try again.");
+      } else {
+        setError(`Failed to send link: ${msg || "Unknown error"}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -151,6 +156,13 @@ export default function SignupPage() {
               <a href="/terms" className="underline hover:text-foreground">Terms of Service</a> and{" "}
               <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>.
             </p>
+
+            <button
+              onClick={() => { loginAsGuest(); router.push("/onboarding"); }}
+              className="mt-5 text-sm text-muted transition-colors hover:text-foreground"
+            >
+              Continue as guest &rarr;
+            </button>
           </div>
         )}
 

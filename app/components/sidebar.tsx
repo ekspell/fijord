@@ -9,7 +9,7 @@ import { MOCK_SIGNALS } from "@/lib/mock-data";
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { showToast, demoMode, toggleDemoMode } = useNav();
+  const { showToast, demoMode, toggleDemoMode, roadmap } = useNav();
   const { user, logout, trialDaysLeft, isPro, tierInfo } = useAuth();
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -147,6 +147,54 @@ export default function Sidebar() {
 
         {/* Nested nav items */}
         <button
+          onClick={() => router.push("/epics")}
+          className={`flex w-full items-center py-2 text-[13px] transition-all ${
+            isEpicsActive
+              ? "bg-accent-green-light text-accent"
+              : "text-muted hover:bg-background hover:text-foreground"
+          }`}
+          style={{ paddingLeft: 48, paddingRight: 20 }}
+        >
+          Epics
+        </button>
+
+        <button
+          onClick={() => router.push("/artifacts")}
+          className={`flex w-full items-center py-2 text-[13px] transition-all ${
+            isArtifactsActive
+              ? "bg-accent-green-light text-accent"
+              : "text-muted hover:bg-background hover:text-foreground"
+          }`}
+          style={{ paddingLeft: 48, paddingRight: 20 }}
+        >
+          Artifacts
+        </button>
+
+        <button
+          onClick={() => router.push("/staging")}
+          className={`flex w-full items-center py-2 text-[13px] transition-all ${
+            isStagingActive
+              ? "bg-accent-green-light text-accent"
+              : "text-muted hover:bg-background hover:text-foreground"
+          }`}
+          style={{ paddingLeft: 48, paddingRight: 20 }}
+        >
+          Staging
+          {roadmap.length > 0 && (
+            <span
+              className="ml-auto rounded-full text-xs font-semibold text-white"
+              style={{
+                background: "#3D5A3D",
+                padding: "2px 6px",
+                fontSize: 10,
+              }}
+            >
+              {roadmap.length}
+            </span>
+          )}
+        </button>
+
+        <button
           onClick={() => router.push("/signals")}
           className={`flex w-full items-center py-2 text-[13px] transition-all ${
             isSignalsActive
@@ -181,42 +229,6 @@ export default function Sidebar() {
               NEW
             </span>
           )}
-        </button>
-
-        <button
-          onClick={() => router.push("/epics")}
-          className={`flex w-full items-center py-2 text-[13px] transition-all ${
-            isEpicsActive
-              ? "bg-accent-green-light text-accent"
-              : "text-muted hover:bg-background hover:text-foreground"
-          }`}
-          style={{ paddingLeft: 48, paddingRight: 20 }}
-        >
-          Epics
-        </button>
-
-        <button
-          onClick={() => router.push("/artifacts")}
-          className={`flex w-full items-center py-2 text-[13px] transition-all ${
-            isArtifactsActive
-              ? "bg-accent-green-light text-accent"
-              : "text-muted hover:bg-background hover:text-foreground"
-          }`}
-          style={{ paddingLeft: 48, paddingRight: 20 }}
-        >
-          Artifacts
-        </button>
-
-        <button
-          onClick={() => router.push("/staging")}
-          className={`flex w-full items-center py-2 text-[13px] transition-all ${
-            isStagingActive
-              ? "bg-accent-green-light text-accent"
-              : "text-muted hover:bg-background hover:text-foreground"
-          }`}
-          style={{ paddingLeft: 48, paddingRight: 20 }}
-        >
-          Staging
         </button>
       </nav>
 

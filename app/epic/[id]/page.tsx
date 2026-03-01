@@ -1135,12 +1135,12 @@ export default function EpicDetailPage() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const { isPro } = useAuth();
-  const { stagingOverrides } = useNav();
+  const { stagingOverrides, userEpics } = useNav();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("Discovery");
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const epic = MOCK_EPICS.find((e) => e.id === id);
+  const epic = MOCK_EPICS.find((e) => e.id === id) ?? userEpics.find((e) => e.id === id);
 
   if (!epic) {
     return (

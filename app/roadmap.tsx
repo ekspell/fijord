@@ -611,6 +611,31 @@ export default function Roadmap() {
         ))}
       </div>
 
+      {/* Continue to Brief prompt */}
+      <div className="mb-8 flex items-center justify-between rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "#E8F0E8" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-foreground">Ready to generate a brief?</p>
+            <p className="text-[12px] text-muted">Auto-generate a product brief from your discovery evidence and staged tickets.</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setActiveTab("Brief")}
+          className="shrink-0 rounded-lg px-5 py-2.5 text-[13px] font-medium text-white shadow-sm transition-colors hover:opacity-90"
+          style={{ background: "#3D5A3D" }}
+        >
+          Continue to Brief &rarr;
+        </button>
+      </div>
+
       {/* Linear modals */}
       {showLinearConnect && (
         <LinearConnectModal
