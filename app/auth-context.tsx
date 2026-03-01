@@ -31,6 +31,7 @@ type AuthContextType = {
   loginAsGuest: () => void;
   logout: () => void;
   resetPassword: (email: string) => Promise<void>;
+  updateName: (name: string) => void;
 };
 
 const DEFAULT_TIER: TierInfo = {
@@ -55,6 +56,7 @@ const AuthContext = createContext<AuthContextType>({
   loginAsGuest: () => {},
   logout: () => {},
   resetPassword: async () => {},
+  updateName: () => {},
 });
 
 function computeInitials(name: string): string {
@@ -66,10 +68,22 @@ function computeInitials(name: string): string {
     .slice(0, 2);
 }
 
+function getOnboardingName(): string | null {
+  try {
+    const raw = localStorage.getItem("fjord-onboarding");
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data.fullName) return data.fullName;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 function mapSupabaseUser(supabaseUser: SupabaseUser): User {
   const email = supabaseUser.email ?? "";
   const name =
     supabaseUser.user_metadata?.full_name ||
+    getOnboardingName() ||
     email.split("@")[0].replace(/[^a-zA-Z ]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   return {
     id: supabaseUser.id,
@@ -203,13 +217,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
+  const updateName = useCallback((name: string) => {
+    setUser((prev) => prev ? { ...prev, name, initials: computeInitials(name) } : prev);
+  }, []);
+
   const trialDaysLeft = getTrialDaysRemaining(tierInfo.trialStartedAt);
   const isPro = !PAYWALL_ENABLED || isProUser(tierInfo);
 
   return (
     <AuthContext.Provider value={{
       user, loading, tierInfo, trialDaysLeft, isPro,
-      login, signup, loginWithGoogle, loginWithMagicLink, verifyCode, loginAsGuest, logout, resetPassword,
+      login, signup, loginWithGoogle, loginWithMagicLink, verifyCode, loginAsGuest, logout, resetPassword, updateName,
     }}>
       {children}
     </AuthContext.Provider>

@@ -95,7 +95,7 @@ export default function OnboardingPage() {
 function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading } = useAuth();
+  const { user, loading, updateName } = useAuth();
 
   const initialStep = (() => {
     const s = parseInt(searchParams.get("step") || "1", 10);
@@ -161,6 +161,7 @@ function OnboardingContent() {
     };
     localStorage.setItem("fjord-onboarding", JSON.stringify(data));
     sessionStorage.removeItem("fjord-onboarding-progress");
+    if (fullName.trim()) updateName(fullName.trim());
     router.push("/");
   }
 
