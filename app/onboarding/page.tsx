@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/auth-context";
 
 /* ─── Fijord Arrow Mark ─── */
@@ -82,10 +82,24 @@ function ProgressDots({ current, total }: { current: Step; total: number }) {
 /* ─── Onboarding Page ─── */
 
 export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingContent />
+    </Suspense>
+  );
+}
+
+function OnboardingContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading } = useAuth();
 
-  const [step, setStep] = useState<Step>(1);
+  const initialStep = (() => {
+    const s = parseInt(searchParams.get("step") || "1", 10);
+    return (s >= 1 && s <= 7 ? s : 1) as Step;
+  })();
+
+  const [step, setStep] = useState<Step>(initialStep);
   const [fullName, setFullName] = useState("");
   const [workspaceName, setWorkspaceName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -93,6 +107,8 @@ export default function OnboardingPage() {
   const [customRole, setCustomRole] = useState("");
   const [ticketTool, setTicketTool] = useState("");
   const [plan, setPlan] = useState("pro");
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
 
   // Auth guard
   useEffect(() => {
@@ -129,6 +145,31 @@ export default function OnboardingPage() {
     };
     localStorage.setItem("fjord-onboarding", JSON.stringify(data));
     router.push("/");
+  }
+
+  async function handleProCheckout() {
+    setCheckoutLoading(true);
+    setCheckoutError("");
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user?.email,
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
+          successUrl: `${window.location.origin}/onboarding?step=7`,
+          cancelUrl: `${window.location.origin}/onboarding?step=6`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Checkout failed");
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : "Something went wrong");
+      setCheckoutLoading(false);
+    }
   }
 
   const canAdvance = (): boolean => {
@@ -509,11 +550,15 @@ export default function OnboardingPage() {
                 </div>
 
                 <button
-                  onClick={(e) => { e.stopPropagation(); setPlan("pro"); next(); }}
-                  className="mt-auto w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                  onClick={(e) => { e.stopPropagation(); setPlan("pro"); handleProCheckout(); }}
+                  disabled={checkoutLoading}
+                  className="mt-auto w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Continue with the Pro &rarr;
+                  {checkoutLoading ? "Redirecting to Stripe..." : "Continue with Pro \u2192"}
                 </button>
+                {checkoutError && (
+                  <p className="mt-2 text-center text-xs text-red-500">{checkoutError}</p>
+                )}
               </div>
             </div>
 

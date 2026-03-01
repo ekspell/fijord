@@ -3,7 +3,7 @@ import { stripe } from "@/lib/stripe";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, priceId } = await req.json();
+    const { email, priceId, successUrl, cancelUrl } = await req.json();
 
     if (!email || !priceId) {
       return NextResponse.json(
@@ -12,13 +12,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const origin = req.nextUrl.origin;
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer_email: email,
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: { trial_period_days: 7 },
-      success_url: `${req.nextUrl.origin}/?upgraded=true`,
-      cancel_url: `${req.nextUrl.origin}/pricing`,
+      success_url: successUrl || `${origin}/?upgraded=true`,
+      cancel_url: cancelUrl || `${origin}/pricing`,
     });
 
     return NextResponse.json({ url: session.url });
