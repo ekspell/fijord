@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { type TierInfo, type UserTier, getTrialDaysRemaining, isTrialExpired, isProUser } from "@/lib/trial";
 import { track, identify as analyticsIdentify, resetAnalytics, AnalyticsEvents } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
+import { PAYWALL_ENABLED } from "@/lib/config";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const TIER_KEY = "fjord-tier";
@@ -203,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const trialDaysLeft = getTrialDaysRemaining(tierInfo.trialStartedAt);
-  const isPro = isProUser(tierInfo);
+  const isPro = !PAYWALL_ENABLED || isProUser(tierInfo);
 
   return (
     <AuthContext.Provider value={{

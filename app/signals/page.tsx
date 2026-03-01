@@ -7,6 +7,7 @@ import { useAuth } from "@/app/auth-context";
 import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 import UpgradeModal from "@/app/components/upgrade-modal";
+import { PAYWALL_ENABLED } from "@/lib/config";
 
 function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; converted?: boolean; conversionEpicId?: string }) {
   const router = useRouter();
@@ -198,7 +199,7 @@ export default function SignalsPage() {
     ? allSignals
     : allSignals.filter((s) => !isSignalConverted(s.id));
 
-  if (!isPro) {
+  if (PAYWALL_ENABLED && !isPro) {
     return (
       <>
         <div className="mx-auto" style={{ maxWidth: 900 }}>

@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
 import UpgradeModal from "@/app/components/upgrade-modal";
+import { PAYWALL_ENABLED } from "@/lib/config";
 import {
   MOCK_MEETING_RECORDS,
   MOCK_MEETING_DETAILS,
@@ -758,7 +759,7 @@ export default function MeetingDetailPage() {
         </div>
       )}
 
-      {activeTab === "Brief" && !isPro ? (
+      {activeTab === "Brief" && PAYWALL_ENABLED && !isPro ? (
         <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/auth-context";
+import { PAYWALL_ENABLED } from "@/lib/config";
 
 /* ─── Fijord Arrow Mark ─── */
 
@@ -28,6 +29,8 @@ function FijordMark({ size = 40 }: { size?: number }) {
 }
 
 /* ─── Types ─── */
+
+const TOTAL_STEPS = PAYWALL_ENABLED ? 7 : 6;
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -131,11 +134,20 @@ function OnboardingContent() {
   if (typeof window !== "undefined" && localStorage.getItem("fjord-onboarding")) return null;
 
   function next() {
-    if (step < 7) setStep((step + 1) as Step);
+    if (step < 7) {
+      const nextStep = step + 1;
+      // When paywall off, step 6 is features overview (final step) — skip step 7
+      if (nextStep === 7 && !PAYWALL_ENABLED) {
+        return; // Step 6 handles completion via handleComplete
+      }
+      setStep(nextStep as Step);
+    }
   }
 
   function back() {
-    if (step > 1) setStep((step - 1) as Step);
+    if (step > 1) {
+      setStep((step - 1) as Step);
+    }
   }
 
   function handleComplete() {
@@ -200,7 +212,7 @@ function OnboardingContent() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background" style={step === 7 ? { background: "#F5F5F5" } : undefined}>
-      <div className={`w-full px-6 ${step === 6 ? "max-w-[640px]" : step === 7 ? "max-w-2xl" : "max-w-sm"}`}>
+      <div className={`w-full px-6 ${step === 6 && PAYWALL_ENABLED ? "max-w-[640px]" : step === 7 ? "max-w-2xl" : "max-w-sm"}`}>
 
         {/* ─── Step 1: Welcome ─── */}
         {step === 1 && (
@@ -441,8 +453,8 @@ function OnboardingContent() {
           </div>
         )}
 
-        {/* ─── Step 6: Select a plan ─── */}
-        {step === 6 && (
+        {/* ─── Step 6: Select a plan (paywall on) / Features overview (paywall off) ─── */}
+        {step === 6 && PAYWALL_ENABLED && (
           <div className="flex flex-col items-center">
             <h1 className="mb-6 text-xl font-medium text-foreground">
               Select a plan
@@ -587,6 +599,77 @@ function OnboardingContent() {
           </div>
         )}
 
+        {/* ─── Step 6 (paywall off): Features overview ─── */}
+        {step === 6 && !PAYWALL_ENABLED && (
+          <div className="flex flex-col items-center">
+            <FijordMark />
+            <h1 className="mt-5 mb-2 text-xl font-medium text-foreground">
+              Here&apos;s what you can do
+            </h1>
+            <p className="mb-8 text-center text-sm text-muted">
+              Everything you need to turn meetings into action.
+            </p>
+
+            <div className="mb-8 w-full space-y-3">
+              {[
+                { icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                    <path d="M19 10v2a7 7 0 01-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                  </svg>
+                ), label: "Process meetings", desc: "Upload or record calls and extract structured insights" },
+                { icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                ), label: "Detect signals", desc: "Spot recurring themes across conversations automatically" },
+                { icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+                  </svg>
+                ), label: "Create epics", desc: "Group evidence into structured product initiatives" },
+                { icon: (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D5A3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="3" y1="9" x2="21" y2="9" />
+                    <line x1="9" y1="21" x2="9" y2="9" />
+                  </svg>
+                ), label: "Export tickets", desc: "Push scoped tickets to Linear, Jira, or your tool of choice" },
+              ].map((feature) => (
+                <div
+                  key={feature.label}
+                  className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: "#E8F0E8" }}>
+                    {feature.icon}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">{feature.label}</div>
+                    <div className="text-xs text-muted">{feature.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={handleComplete}
+              className="w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            >
+              Enter workspace
+            </button>
+
+            <button
+              onClick={back}
+              className="mt-5 text-sm text-muted transition-colors hover:text-foreground"
+            >
+              &larr; Go back
+            </button>
+          </div>
+        )}
+
         {/* ─── Step 7: Final ─── */}
         {step === 7 && (
           <div className="flex flex-col items-center">
@@ -622,7 +705,7 @@ function OnboardingContent() {
 
       {/* ─── Progress Dots ─── */}
       <div className="fixed bottom-8">
-        <ProgressDots current={step} total={7} />
+        <ProgressDots current={step} total={TOTAL_STEPS} />
       </div>
     </div>
   );

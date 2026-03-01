@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
 import UpgradeModal from "@/app/components/upgrade-modal";
+import { PAYWALL_ENABLED } from "@/lib/config";
 import type { EpicBrief, ExperienceStep } from "@/lib/mock-epics";
 
 const EMOTION_COLORS: Record<string, { bg: string; text: string }> = {
@@ -335,8 +336,8 @@ export default function BriefView() {
     }
   }, [brief, result, solutions, isPro, generateBrief]);
 
-  // Pro gating
-  if (!isPro) {
+  // Pro gating (skip when paywall disabled)
+  if (PAYWALL_ENABLED && !isPro) {
     return (
       <div className="mx-auto" style={{ maxWidth: 900 }}>
         <div className="rounded-xl border border-border bg-card p-6">

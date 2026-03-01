@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
 import { MOCK_SIGNALS } from "@/lib/mock-data";
+import { PAYWALL_ENABLED } from "@/lib/config";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -233,7 +234,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Trial badge */}
-      {tierInfo.tier === "pro" && tierInfo.trialStartedAt && trialDaysLeft > 0 && (
+      {PAYWALL_ENABLED && tierInfo.tier === "pro" && tierInfo.trialStartedAt && trialDaysLeft > 0 && (
         <div className="mx-3 mt-auto mb-2">
           <button
             onClick={() => router.push("/pricing")}
@@ -250,7 +251,7 @@ export default function Sidebar() {
           </button>
         </div>
       )}
-      {tierInfo.tier === "starter" && (
+      {PAYWALL_ENABLED && tierInfo.tier === "starter" && (
         <div className="mx-3 mt-auto mb-2">
           <button
             onClick={() => router.push("/pricing")}
@@ -309,6 +310,7 @@ export default function Sidebar() {
               Settings
               <span className="ml-auto text-[10px] text-muted/40">Soon</span>
             </div>
+            {PAYWALL_ENABLED && (
             <button
               onClick={() => { router.push("/pricing"); setShowUserMenu(false); }}
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground transition-colors hover:bg-background"
@@ -319,6 +321,7 @@ export default function Sidebar() {
               </svg>
               Pricing
             </button>
+            )}
             <div className="my-1 h-px bg-border" />
             <button
               onClick={() => { logout(); setShowUserMenu(false); router.push("/login"); }}
