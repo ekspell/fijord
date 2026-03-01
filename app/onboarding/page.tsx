@@ -397,40 +397,34 @@ function OnboardingContent() {
               Fjord can sync structured tickets directly.
             </p>
 
-            <div className="mb-5 w-full space-y-3">
+            <div className="mb-5 w-full">
               {TICKET_TOOLS.map((tool) => (
                 <button
                   key={tool.id}
                   onClick={() => setTicketTool(tool.id)}
-                  className={`flex w-full items-center gap-3.5 rounded-xl border-2 px-5 py-4 text-left text-sm font-medium transition-colors ${
+                  className={`flex w-full items-center gap-2.5 text-left text-sm transition-colors ${
                     ticketTool === tool.id
-                      ? "border-[#2E90FA] bg-[#EEEEEE] text-foreground"
-                      : "border-border text-foreground hover:border-border-hover"
+                      ? "rounded-lg border-2 border-[#2E90FA] bg-[#EEEEEE] px-4 py-3 font-medium text-foreground"
+                      : "px-4 py-3 text-foreground hover:text-foreground/70"
                   }`}
                 >
                   {tool.id === "linear" && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center">
-                      <svg width="24" height="24" viewBox="0 0 100 100" fill="#5E6AD2">
-                        <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
-                      </svg>
-                    </div>
+                    <svg width="16" height="16" viewBox="0 0 100 100" fill="#5E6AD2" className="shrink-0">
+                      <path d="M3.35 55.2a3.05 3.05 0 010-4.31L46.9 7.34a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L22.52 55.24a3.05 3.05 0 01-4.31 0L3.35 55.2zm17.76 17.76a3.05 3.05 0 010-4.31L57.25 32.51a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31l-36.14 36.14a3.05 3.05 0 01-4.31 0l-7.45-7.45zm41.38 23.69a3.05 3.05 0 01-4.31 0l-7.45-7.45a3.05 3.05 0 010-4.31l36.14-36.14a3.05 3.05 0 014.31 0l7.45 7.45a3.05 3.05 0 010 4.31L62.49 96.65z" />
+                    </svg>
                   )}
                   {tool.id === "jira" && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="#0052CC">
-                        <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" />
-                        <path d="M11.575 0H0a5.217 5.217 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 12.487V1.005A1.005 1.005 0 0011.575 0z" opacity=".65" transform="translate(5.714 5.713)" />
-                      </svg>
-                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#0052CC" className="shrink-0">
+                      <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.518a1.005 1.005 0 00-1.005-1.005z" />
+                      <path d="M11.575 0H0a5.217 5.217 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 12.487V1.005A1.005 1.005 0 0011.575 0z" opacity=".65" transform="translate(5.714 5.713)" />
+                    </svg>
                   )}
                   {tool.id === "none" && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9C978E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c1.3 0 1.9.5 2.5 1" />
-                        <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-                        <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-                      </svg>
-                    </div>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C978E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                      <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c1.3 0 1.9.5 2.5 1" />
+                      <path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+                      <path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+                    </svg>
                   )}
                   {tool.label}
                 </button>
