@@ -36,6 +36,7 @@ const CONVERTED_SIGNALS_KEY = "fjord-converted-signals";
 const STAGING_OVERRIDES_KEY = "fjord-staging-overrides";
 const BRIEF_KEY = "fjord-brief";
 const USER_EPICS_KEY = "fjord-user-epics";
+const DELETED_MEETINGS_KEY = "fjord-deleted-meetings";
 
 export type ConvertedSignalInfo = { epicId: string; epicTitle: string };
 
@@ -52,6 +53,21 @@ function loadConvertedSignals(): Record<string, ConvertedSignalInfo> {
 function persistConvertedSignals(data: Record<string, ConvertedSignalInfo>) {
   if (typeof window === "undefined") return;
   localStorage.setItem(CONVERTED_SIGNALS_KEY, JSON.stringify(data));
+}
+
+function loadDeletedMeetings(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_MEETINGS_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function persistDeletedMeetings(ids: Set<string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DELETED_MEETINGS_KEY, JSON.stringify([...ids]));
 }
 
 function loadUserEpics(): Epic[] {
@@ -177,6 +193,9 @@ type NavContextType = {
   setBrief: (b: EpicBrief | null) => void;
   userEpics: Epic[];
   addEpic: (epic: Epic) => void;
+  deletedMeetings: Set<string>;
+  deleteMeeting: (id: string) => void;
+  clearSession: () => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -219,6 +238,9 @@ const NavContext = createContext<NavContextType>({
   setBrief: () => {},
   userEpics: [],
   addEpic: () => {},
+  deletedMeetings: new Set(),
+  deleteMeeting: () => {},
+  clearSession: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -235,6 +257,27 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [stagingOverrides, setStagingOverrides] = useState<Record<string, RoadmapLane>>({});
   const [brief, setBriefState] = useState<EpicBrief | null>(null);
   const [userEpics, setUserEpics] = useState<Epic[]>([]);
+  const [deletedMeetings, setDeletedMeetings] = useState<Set<string>>(new Set());
+
+  const deleteMeeting = useCallback((id: string) => {
+    setDeletedMeetings((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      persistDeletedMeetings(next);
+      return next;
+    });
+  }, []);
+
+  const clearSession = useCallback(() => {
+    setResultState(null);
+    setSolutionsState([]);
+    setTranscriptState("");
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(RESULT_KEY);
+      sessionStorage.removeItem(SOLUTIONS_KEY);
+      sessionStorage.removeItem(TRANSCRIPT_KEY);
+    }
+  }, []);
 
   const addEpic = useCallback((epic: Epic) => {
     setUserEpics((prev) => {
@@ -342,6 +385,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (Object.keys(savedStagingOverrides).length > 0) setStagingOverrides(savedStagingOverrides);
     const savedUserEpics = loadUserEpics();
     if (savedUserEpics.length > 0) setUserEpics(savedUserEpics);
+    const savedDeletedMeetings = loadDeletedMeetings();
+    if (savedDeletedMeetings.size > 0) setDeletedMeetings(savedDeletedMeetings);
 
     // Restore session data
     try {
@@ -453,6 +498,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
         setBrief,
         userEpics,
         addEpic,
+        deletedMeetings,
+        deleteMeeting,
+        clearSession,
       }}
     >
       {children}

@@ -260,7 +260,7 @@ export default function Results() {
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
   const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(7);
   const interactionCountRef = useRef(0);
   const feedbackShownRef = useRef(false);
 
@@ -302,24 +302,14 @@ export default function Results() {
   // Rank problems by pain-language severity, then quote frequency
   const sortedProblems = rankProblems(data.problems);
 
-  // Progressive disclosure: only show top N problems
-  const visibleProblems = sortedProblems.slice(0, visibleCount);
-  const visibleProblemIds = new Set(visibleProblems.map((p) => p.id));
-  const totalProblems = sortedProblems.length;
-
   // Assign colors to sorted problems (full list for stable colors)
   const problemColorMap = new Map<string, string>();
   sortedProblems.forEach((p, i) => {
     problemColorMap.set(p.id, PROBLEM_COLORS[i % PROBLEM_COLORS.length]);
   });
 
-  // Build evidence with color threading — only for visible problems
-  const coloredQuotes = visibleProblems.flatMap((p) =>
-    p.quotes.map((q) => ({ quote: q, color: problemColorMap.get(p.id)!, problemId: p.id }))
-  );
-
-  // Build tickets aligned to visible problem order only
-  const allTickets: {
+  // Build ALL tickets from all problems, then sort by priority
+  const allTicketsUnsorted: {
     item: WorkItem;
     problemId: string;
     problemIndex: number;
@@ -327,13 +317,13 @@ export default function Results() {
     problemColor: string;
     solution: solutionResult;
   }[] = [];
-  visibleProblems.forEach((problem) => {
+  sortedProblems.forEach((problem) => {
     const originalIdx = data.problems.indexOf(problem);
     const sol = solutions[originalIdx];
     if (!sol) return;
     const color = problemColorMap.get(problem.id)!;
     sol.workItems.forEach((item) => {
-      allTickets.push({
+      allTicketsUnsorted.push({
         item,
         problemId: problem.id,
         problemIndex: originalIdx,
@@ -345,8 +335,22 @@ export default function Results() {
   });
 
   // Sort tickets by priority (High → Med → Low)
-  allTickets.sort(
+  allTicketsUnsorted.sort(
     (a, b) => (SEVERITY_ORDER[a.item.priority] ?? 1) - (SEVERITY_ORDER[b.item.priority] ?? 1)
+  );
+
+  // Progressive disclosure: show top N tickets
+  const totalTickets = allTicketsUnsorted.length;
+  const allTickets = allTicketsUnsorted.slice(0, visibleCount);
+
+  // Derive visible problems & evidence from visible tickets
+  const visibleProblemIds = new Set(allTickets.map((t) => t.problemId));
+  const visibleProblems = sortedProblems.filter((p) => visibleProblemIds.has(p.id));
+  const totalProblems = sortedProblems.length;
+
+  // Build evidence with color threading — only for visible problems
+  const coloredQuotes = visibleProblems.flatMap((p) =>
+    p.quotes.map((q) => ({ quote: q, color: problemColorMap.get(p.id)!, problemId: p.id }))
   );
 
   const generateDetail = async (ticket: typeof allTickets[0]): Promise<TicketDetail | null> => {
@@ -431,7 +435,7 @@ export default function Results() {
 
   const prepareAndSendToLinear = async () => {
     // Find selected tickets that don't have generated details yet
-    const selectedList = allTickets.filter((t) => selectedTickets.has(t.item.id));
+    const selectedList = allTicketsUnsorted.filter((t) => selectedTickets.has(t.item.id));
     const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
 
     if (missing.length === 0) {
@@ -483,7 +487,7 @@ export default function Results() {
   };
 
   const prepareAndSendToJira = async () => {
-    const selectedList = allTickets.filter((t) => selectedTickets.has(t.item.id));
+    const selectedList = allTicketsUnsorted.filter((t) => selectedTickets.has(t.item.id));
     const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
 
     if (missing.length === 0) {
@@ -560,7 +564,7 @@ export default function Results() {
           </div>
           <div>
             <p className="text-[15px] font-semibold text-foreground">
-              {totalProblems} problems, {sortedProblems.reduce((n, p) => n + p.quotes.length, 0)} quotes &rarr; ranked by severity
+              {totalTickets} tickets from {totalProblems} problems &rarr; ranked by priority
             </p>
             <p className="mt-0.5 text-[13px] text-muted">
               Processed in {processingTime}s
@@ -662,7 +666,7 @@ export default function Results() {
         <div className="overflow-hidden rounded-xl border border-border bg-card">
           <ColHeader
             title="Suggested tickets"
-            count={`${filterProblemId ? allTickets.filter((t) => t.problemId === filterProblemId).length : allTickets.length} tickets`}
+            count={`${filterProblemId ? allTickets.filter((t) => t.problemId === filterProblemId).length : allTickets.length} of ${totalTickets}`}
           />
           <div className="max-h-[600px] overflow-y-auto p-3">
             <div className="mb-2 flex items-center justify-between rounded-lg bg-accent/5 px-3 py-2">
@@ -716,13 +720,13 @@ export default function Results() {
       </div>
 
       {/* See more / progressive disclosure */}
-      {visibleCount < totalProblems && (
+      {visibleCount < totalTickets && (
         <div className="mb-6 flex items-center justify-center gap-3">
           <span className="text-[13px] text-muted">
-            Showing {visibleProblems.length} of {totalProblems} problems
+            Showing {allTickets.length} of {totalTickets} tickets
           </span>
           <button
-            onClick={() => setVisibleCount((c) => Math.min(c + 5, totalProblems))}
+            onClick={() => setVisibleCount((c) => Math.min(c + 7, totalTickets))}
             className="rounded-lg border border-border px-4 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
           >
             See more
@@ -734,7 +738,7 @@ export default function Results() {
       <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
         <p className="text-[13px] text-muted">
           <strong className="text-foreground">{selectedTickets.size}</strong> of{" "}
-          <strong className="text-foreground">{allTickets.length}</strong> tickets selected
+          <strong className="text-foreground">{totalTickets}</strong> tickets selected
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -794,7 +798,7 @@ export default function Results() {
               };
               // Build flat tickets for roadmap from selected items, including full detail if generated
               const newTickets: RoadmapTicket[] = [];
-              allTickets.forEach((ticket) => {
+              allTicketsUnsorted.forEach((ticket) => {
                 if (!selectedTickets.has(ticket.item.id)) return;
                 const problem = data.problems[ticket.problemIndex];
                 const detail = generatedDetails.get(ticket.item.id);
@@ -845,7 +849,7 @@ export default function Results() {
       )}
       {showLinearSend && (
         <LinearSendModal
-          tickets={allTickets
+          tickets={allTicketsUnsorted
             .filter((t) => selectedTickets.has(t.item.id))
             .map((t) => {
               const detail = generatedDetails.get(t.item.id);
@@ -886,7 +890,7 @@ export default function Results() {
       )}
       {showJiraSend && jiraCreds && (
         <JiraSendModal
-          tickets={allTickets
+          tickets={allTicketsUnsorted
             .filter((t) => selectedTickets.has(t.item.id))
             .map((t) => {
               const detail = generatedDetails.get(t.item.id);

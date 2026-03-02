@@ -158,13 +158,6 @@ export default function EpicsPage() {
 
   return (
     <div className="mx-auto flex flex-col" style={{ maxWidth: 900 }}>
-      {/* Breadcrumb */}
-      <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <button onClick={() => router.push("/")} className="hover:text-foreground">Home</button>
-        {" › "}
-        <span className="text-accent">Epics</span>
-      </div>
-
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-background pt-2 pb-0">
         {/* Title row + Create button */}

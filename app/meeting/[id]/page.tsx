@@ -309,7 +309,7 @@ export default function MeetingDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const { showToast } = useNav();
+  const { showToast, deleteMeeting, deletedMeetings } = useNav();
   const { isPro } = useAuth();
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Discovery");
   const [showTranscript, setShowTranscript] = useState(false);
@@ -317,7 +317,7 @@ export default function MeetingDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const record = MOCK_MEETING_RECORDS.find((m) => m.id === id);
+  const record = MOCK_MEETING_RECORDS.find((m) => m.id === id && !deletedMeetings.has(m.id));
   const detail = id ? MOCK_MEETING_DETAILS[id] : undefined;
 
   if (!record) {
@@ -826,6 +826,7 @@ export default function MeetingDetailPage() {
           onClose={() => setShowDeleteModal(false)}
           onDelete={() => {
             setShowDeleteModal(false);
+            deleteMeeting(id);
             showToast("Meeting deleted");
             router.push("/");
           }}
