@@ -10,7 +10,7 @@ import { PAYWALL_ENABLED } from "@/lib/config";
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { showToast, demoMode, toggleDemoMode, roadmap } = useNav();
+  const { showToast, demoMode, toggleDemoMode, roadmap, openSearch } = useNav();
   const { user, logout, trialDaysLeft, isPro, tierInfo } = useAuth();
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,11 +91,11 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Search (coming soon) */}
-      <div
-        className="mx-4 mb-5 flex w-[calc(100%-32px)] cursor-default items-center gap-2 rounded-lg bg-background text-left text-[15px] text-muted/50"
+      {/* Search */}
+      <button
+        onClick={openSearch}
+        className="mx-4 mb-5 flex w-[calc(100%-32px)] cursor-pointer items-center gap-2 rounded-lg bg-background text-left text-[15px] text-muted/50 transition-colors hover:bg-background/80 hover:text-muted"
         style={{ padding: "10px 12px" }}
-        title="Search — coming soon"
       >
         <svg
           width="14"
@@ -117,7 +117,7 @@ export default function Sidebar() {
         >
           ⌘K
         </span>
-      </div>
+      </button>
 
       {/* Main nav */}
       <nav className="mb-6 flex-1">

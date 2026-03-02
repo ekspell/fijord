@@ -5,6 +5,7 @@ import { ProblemsResult, solutionResult, Quote } from "@/lib/types";
 import { JiraCreds } from "@/lib/jira";
 import type { RoadmapLane, EpicBrief, Epic } from "@/lib/mock-epics";
 import { FeedbackButton, FeedbackModal } from "./components/feedback-modal";
+import SearchModal from "./components/search-modal";
 
 export type RoadmapTicket = {
   id: string;
@@ -197,6 +198,9 @@ type NavContextType = {
   deletedMeetings: Set<string>;
   deleteMeeting: (id: string) => void;
   clearSession: () => void;
+  searchOpen: boolean;
+  openSearch: () => void;
+  closeSearch: () => void;
 };
 
 const NavContext = createContext<NavContextType>({
@@ -242,6 +246,9 @@ const NavContext = createContext<NavContextType>({
   deletedMeetings: new Set(),
   deleteMeeting: () => {},
   clearSession: () => {},
+  searchOpen: false,
+  openSearch: () => {},
+  closeSearch: () => {},
 });
 
 export function NavProvider({ children }: { children: ReactNode }) {
@@ -259,6 +266,22 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [brief, setBriefState] = useState<EpicBrief | null>(null);
   const [userEpics, setUserEpics] = useState<Epic[]>([]);
   const [deletedMeetings, setDeletedMeetings] = useState<Set<string>>(new Set());
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
+
+  // Global Cmd+K listener
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const deleteMeeting = useCallback((id: string) => {
     setDeletedMeetings((prev) => {
@@ -502,9 +525,15 @@ export function NavProvider({ children }: { children: ReactNode }) {
         deletedMeetings,
         deleteMeeting,
         clearSession,
+        searchOpen,
+        openSearch,
+        closeSearch,
       }}
     >
       {children}
+
+      {/* Global search modal */}
+      <SearchModal open={searchOpen} onClose={closeSearch} deletedMeetings={deletedMeetings} />
 
       {/* Floating feedback button */}
       <FeedbackButton showToast={showToast} hidden={showLanding} />
