@@ -157,7 +157,7 @@ export default function EpicsPage() {
   }
 
   return (
-    <div className="mx-auto flex flex-col" style={{ maxWidth: 900 }}>
+    <div className="mx-auto flex flex-col" style={{ maxWidth: 900, paddingTop: 36 }}>
       {/* Sticky header */}
       <div className="sticky top-0 z-10 bg-background pt-2 pb-0">
         {/* Title row + Create button */}

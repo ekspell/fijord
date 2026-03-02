@@ -44,7 +44,7 @@ export default function EvidencePage() {
   ];
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 900 }}>
+    <div className="mx-auto" style={{ maxWidth: 900, paddingTop: 36 }}>
       {/* Header */}
       <h1
         className="text-foreground"

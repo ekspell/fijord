@@ -220,7 +220,7 @@ export default function SignalsPage() {
   if (PAYWALL_ENABLED && !isPro) {
     return (
       <>
-        <div className="mx-auto" style={{ maxWidth: 900 }}>
+        <div className="mx-auto" style={{ maxWidth: 900, paddingTop: 36 }}>
           <h1
             className="mb-1.5 flex items-center gap-3 text-foreground"
             style={{ fontSize: 48, letterSpacing: "-1px", lineHeight: "74.4px", fontWeight: 300 }}
@@ -255,14 +255,7 @@ export default function SignalsPage() {
   }
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 900 }}>
-      {/* Breadcrumb */}
-      <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
-        <button onClick={() => router.push("/")} className="hover:text-foreground">Home</button>
-        {" › "}
-        <span className="text-accent">Emerging signals</span>
-      </div>
-
+    <div className="mx-auto" style={{ maxWidth: 900, paddingTop: 36 }}>
       {/* Header */}
       <h1
         className="mb-1.5 flex items-center gap-3 text-foreground"
