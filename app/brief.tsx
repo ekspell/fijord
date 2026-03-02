@@ -459,7 +459,7 @@ export default function BriefView() {
   // Pro gating (skip when paywall disabled)
   if (PAYWALL_ENABLED && !isPro) {
     return (
-      <div className="mx-auto" style={{ maxWidth: 900 }}>
+      <div className="mx-auto" style={{ maxWidth: 1000 }}>
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="px-6 py-10 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E8F0E8" }}>
@@ -509,7 +509,7 @@ export default function BriefView() {
   // No brief yet and no data to generate from
   if (!brief) {
     return (
-      <div className="mx-auto" style={{ maxWidth: 900 }}>
+      <div className="mx-auto" style={{ maxWidth: 1000 }}>
         <div className="rounded-xl border border-border bg-card p-6">
           <div className="px-6 py-10 text-center text-sm text-muted">
             No brief generated yet. Process a transcript first to auto-generate a brief.
@@ -729,7 +729,7 @@ export default function BriefView() {
   };
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 900 }}>
+    <div className="mx-auto" style={{ maxWidth: 1000 }}>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>

@@ -86,7 +86,7 @@ export default function PricingPage() {
   const savingsLabel = annual ? "Save 29%" : null;
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 900 }}>
+    <div className="mx-auto" style={{ maxWidth: 1000 }}>
       {/* Breadcrumb */}
       <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
         <button onClick={() => router.push("/")} className="hover:text-foreground">Home</button>

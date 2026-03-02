@@ -322,7 +322,7 @@ export default function Home() {
   const hasProcessed = !!(result && solutions.length > 0);
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 900, paddingTop: 36 }}>
+    <div className="mx-auto" style={{ maxWidth: 1000, paddingTop: 36 }}>
       {/* Greeting */}
       <h1
         className="mb-1 text-foreground"

@@ -1174,7 +1174,7 @@ export default function EpicDetailPage() {
   }));
 
   return (
-    <div className="mx-auto" style={{ maxWidth: 900 }}>
+    <div className="mx-auto" style={{ maxWidth: 1000 }}>
       {/* Breadcrumb — only shown when navigating from a list/page */}
       {from && (
         <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
