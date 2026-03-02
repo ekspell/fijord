@@ -249,7 +249,7 @@ function StagingContent() {
     };
 
     return (
-      <div className="mx-auto max-w-[1100px]">
+      <div className="mx-auto max-w-[900px]">
         <TicketDetailView
           context={ctx}
           onBack={() => setSelectedTicket(null)}
@@ -262,7 +262,7 @@ function StagingContent() {
 
   if (allTickets.length === 0) {
     return (
-      <div className="mx-auto max-w-[1100px]">
+      <div className="mx-auto max-w-[900px]">
         {from && (
           <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
             <button onClick={() => router.push("/")} className="hover:text-foreground">
@@ -310,7 +310,7 @@ function StagingContent() {
   }
 
   return (
-    <div className="mx-auto max-w-[1100px]">
+    <div className="mx-auto max-w-[900px]">
       {/* Breadcrumb */}
       {from && (
         <div className="mb-4 text-muted" style={{ fontSize: 13 }}>

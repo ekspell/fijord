@@ -366,7 +366,7 @@ function Discovery() {
   return (
     <div>
       {/* Flow tab bar */}
-      <div className="mx-auto" style={{ maxWidth: 1100 }}>
+      <div className="mx-auto" style={{ maxWidth: 900 }}>
         <div className="mb-8 flex w-fit gap-1 rounded-xl border border-border bg-card p-1">
           {TABS.map((tab) => {
             const disabled =
@@ -399,7 +399,7 @@ function Discovery() {
       {activeTab === "Brief" && <BriefView />}
 
       {activeTab === "Discovery" && (
-      <div className="mx-auto" style={{ maxWidth: 1100 }}>
+      <div className="mx-auto" style={{ maxWidth: 900 }}>
       {/* Breadcrumb — only shown when navigating from a list/page */}
       {from && (
         <div className="mb-4 text-muted" style={{ fontSize: 13 }}>
