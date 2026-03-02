@@ -67,6 +67,7 @@ export type EpicBrief = {
   goal: string;
   approach: string;
   successMetrics: string[];
+  editedAt?: string;
 };
 
 export type Epic = {

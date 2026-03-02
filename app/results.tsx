@@ -259,6 +259,7 @@ export default function Results() {
   const [showJiraConnect, setShowJiraConnect] = useState(false);
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
+  const [preparingStaging, setPreparingStaging] = useState<{ done: number; total: number } | null>(null);
   const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
   const [visibleCount, setVisibleCount] = useState(7);
   const interactionCountRef = useRef(0);
@@ -535,9 +536,81 @@ export default function Results() {
     setShowJiraSend(true);
   };
 
+  const prepareAndSaveToStaging = async () => {
+    if (!data) return;
+    const PRIORITY_TO_COL: Record<string, "now" | "next" | "later"> = {
+      High: "now", Med: "next", Low: "later",
+    };
+    const selectedList = allTicketsUnsorted.filter((t) => selectedTickets.has(t.item.id));
+    const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
+
+    if (missing.length > 0) {
+      setPreparingStaging({ done: 0, total: missing.length });
+
+      let done = 0;
+      for (let i = 0; i < missing.length; i += 3) {
+        const batch = missing.slice(i, i + 3);
+        const results = await Promise.allSettled(
+          batch.map(async (ticket) => {
+            const res = await fetch("/api/generate-ticket", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                transcript,
+                problem: data.problems[ticket.problemIndex],
+                solution: ticket.solution.solution,
+                workItem: ticket.item,
+              }),
+            });
+            if (!res.ok) throw new Error("Failed to generate ticket");
+            return res.json() as Promise<TicketDetail>;
+          })
+        );
+
+        results.forEach((r) => {
+          if (r.status === "fulfilled") {
+            setGeneratedDetails((prev) => new Map(prev).set(r.value.id, r.value));
+          }
+        });
+
+        done += batch.length;
+        setPreparingStaging({ done, total: missing.length });
+      }
+
+      setPreparingStaging(null);
+    }
+
+    // Build roadmap tickets with complete details
+    const newTickets: RoadmapTicket[] = [];
+    selectedList.forEach((ticket) => {
+      const problem = data.problems[ticket.problemIndex];
+      const detail = generatedDetails.get(ticket.item.id);
+      newTickets.push({
+        id: ticket.item.id,
+        title: detail?.title || ticket.item.title,
+        priority: detail?.priority || ticket.item.priority,
+        problemTitle: ticket.problemTitle,
+        problemDescription: problem.description,
+        problemColor: ticket.problemColor,
+        problemQuotes: problem.quotes.slice(0, 2).map((q) => ({ text: q.text, summary: q.summary, speaker: q.speaker })),
+        column: PRIORITY_TO_COL[detail?.priority || ticket.item.priority] || "later",
+        status: detail?.status,
+        problemStatement: detail?.problemStatement,
+        description: detail?.description,
+        acceptanceCriteria: detail?.acceptanceCriteria,
+        quotes: detail?.quotes,
+      });
+    });
+
+    addToRoadmap(newTickets);
+    setSelectedTickets(new Set());
+    setActiveTab("Staging");
+    trackInteraction();
+  };
+
   const handleTicketUpdate = (updates: Partial<TicketDetail>) => {
     if (!ticketContext) return;
-    const updatedTicket = { ...ticketContext.ticket, ...updates };
+    const updatedTicket = { ...ticketContext.ticket, ...updates, editedAt: new Date().toISOString() };
     setTicketContext({ ...ticketContext, ticket: updatedTicket });
     setGeneratedDetails((prev) => new Map(prev).set(updatedTicket.id, updatedTicket));
   };
@@ -790,48 +863,20 @@ export default function Results() {
               : "Send to Jira"}
           </button>
           <button
-            disabled={selectedTickets.size === 0}
-            onClick={() => {
-              if (!data) return;
-              const PRIORITY_TO_COL: Record<string, "now" | "next" | "later"> = {
-                High: "now", Med: "next", Low: "later",
-              };
-              // Build flat tickets for roadmap from selected items, including full detail if generated
-              const newTickets: RoadmapTicket[] = [];
-              allTicketsUnsorted.forEach((ticket) => {
-                if (!selectedTickets.has(ticket.item.id)) return;
-                const problem = data.problems[ticket.problemIndex];
-                const detail = generatedDetails.get(ticket.item.id);
-                newTickets.push({
-                  id: ticket.item.id,
-                  title: detail?.title || ticket.item.title,
-                  priority: detail?.priority || ticket.item.priority,
-                  problemTitle: ticket.problemTitle,
-                  problemDescription: problem.description,
-                  problemColor: ticket.problemColor,
-                  problemQuotes: problem.quotes.slice(0, 2).map((q) => ({ text: q.text, summary: q.summary, speaker: q.speaker })),
-                  column: PRIORITY_TO_COL[detail?.priority || ticket.item.priority] || "later",
-                  // Full detail fields (if generated)
-                  status: detail?.status,
-                  problemStatement: detail?.problemStatement,
-                  description: detail?.description,
-                  acceptanceCriteria: detail?.acceptanceCriteria,
-                  quotes: detail?.quotes,
-                });
-              });
-              const count = newTickets.length;
-              addToRoadmap(newTickets);
-              setSelectedTickets(new Set());
-              setActiveTab("Staging");
-              trackInteraction();
-            }}
-            className={`rounded-lg px-5 py-2 text-sm font-medium text-white transition-all ${
-              selectedTickets.size > 0
+            disabled={selectedTickets.size === 0 || !!preparingStaging}
+            onClick={prepareAndSaveToStaging}
+            className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-medium text-white transition-all ${
+              selectedTickets.size > 0 && !preparingStaging
                 ? "bg-accent shadow-md shadow-accent/25 hover:bg-accent/90"
                 : "bg-accent disabled:cursor-not-allowed disabled:opacity-40"
             }`}
           >
-            Save to staging &rarr;
+            {preparingStaging && (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            )}
+            {preparingStaging
+              ? `Preparing ${preparingStaging.done}/${preparingStaging.total}...`
+              : "Save to staging \u2192"}
           </button>
         </div>
       </div>

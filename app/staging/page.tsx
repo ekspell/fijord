@@ -137,6 +137,7 @@ function stagingToContext(ticket: StagingTicket, sourceRoadmap?: RoadmapTicket):
       acceptanceCriteria: ticket.acceptanceCriteria || [],
       checkedAC: sourceRoadmap?.checkedAC,
       quotes,
+      editedAt: sourceRoadmap?.editedAt,
     },
     problem: {
       id: ticket.id + "-problem",
@@ -243,6 +244,7 @@ function StagingContent() {
       if (updates.acceptanceCriteria !== undefined) roadmapUpdates.acceptanceCriteria = updates.acceptanceCriteria;
       if (updates.checkedAC !== undefined) roadmapUpdates.checkedAC = updates.checkedAC;
       if (updates.quotes !== undefined) roadmapUpdates.quotes = updates.quotes;
+      if (updates.editedAt !== undefined) roadmapUpdates.editedAt = updates.editedAt;
       updateRoadmapTicket(sourceRoadmap.id, roadmapUpdates);
     };
 

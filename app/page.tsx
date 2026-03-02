@@ -294,7 +294,7 @@ function SectionHeader({
 /* ─── Home Dashboard ─── */
 
 export default function Home() {
-  const { demoMode, isSignalConverted, result, solutions, deletedMeetings, deleteMeeting, clearSession, showToast } = useNav();
+  const { demoMode, isSignalConverted, result, solutions, deletedMeetings, deleteMeeting, clearSession, showToast, setActiveTab } = useNav();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -350,7 +350,7 @@ export default function Home() {
             {/* Processed meeting from current session */}
             {hasProcessed && (
               <div
-                onClick={() => router.push("/meeting/new")}
+                onClick={() => { setActiveTab("Scope"); router.push("/meeting/new"); }}
                 className="group cursor-pointer rounded-xl border border-border bg-card transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
                 style={{ padding: 16 }}
               >

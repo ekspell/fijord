@@ -5,7 +5,9 @@ import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
 import UpgradeModal from "@/app/components/upgrade-modal";
 import { PAYWALL_ENABLED } from "@/lib/config";
-import type { EpicBrief, ExperienceStep } from "@/lib/mock-epics";
+import type { EpicBrief, ExperienceStep, DesignPrinciple, WireframeCard } from "@/lib/mock-epics";
+import { EditableText, EditableTextarea } from "@/app/components/editable-fields";
+import { EditedBadge } from "@/app/components/edited-badge";
 
 const EMOTION_COLORS: Record<string, { bg: string; text: string }> = {
   red: { bg: "#FEE2E2", text: "#DC2626" },
@@ -15,7 +17,7 @@ const EMOTION_COLORS: Record<string, { bg: string; text: string }> = {
 
 /* ─── Sub-components ─── */
 
-function PersonaCard({ persona }: { persona: EpicBrief["persona"] }) {
+function PersonaCard({ persona, onUpdate }: { persona: EpicBrief["persona"]; onUpdate?: (patch: Partial<EpicBrief["persona"]>) => void }) {
   return (
     <div
       className="rounded-xl"
@@ -44,13 +46,31 @@ function PersonaCard({ persona }: { persona: EpicBrief["persona"] }) {
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
           </svg>
         </div>
-        <div>
-          <div className="font-medium" style={{ fontSize: 15, color: "#FFFFFF" }}>
-            {persona.title}
-          </div>
-          <div style={{ fontSize: 13, color: "#A0A0A0", lineHeight: 1.5 }}>
-            {persona.description}
-          </div>
+        <div className="flex-1">
+          {onUpdate ? (
+            <>
+              <EditableText
+                value={persona.title}
+                onChange={(val) => onUpdate({ title: val })}
+                className="[&]:text-white [&]:hover:bg-white/10"
+                style={{ fontSize: 15, fontWeight: 500 }}
+              />
+              <EditableTextarea
+                value={persona.description}
+                onChange={(val) => onUpdate({ description: val })}
+                className="[&]:text-[#A0A0A0] [&]:hover:bg-white/10"
+              />
+            </>
+          ) : (
+            <>
+              <div className="font-medium" style={{ fontSize: 15, color: "#FFFFFF" }}>
+                {persona.title}
+              </div>
+              <div style={{ fontSize: 13, color: "#A0A0A0", lineHeight: 1.5 }}>
+                {persona.description}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -67,9 +87,17 @@ function PersonaCard({ persona }: { persona: EpicBrief["persona"] }) {
           >
             Goal
           </div>
-          <div style={{ fontSize: 13, color: "#D0D0D0", lineHeight: 1.5 }}>
-            {persona.goal}
-          </div>
+          {onUpdate ? (
+            <EditableTextarea
+              value={persona.goal}
+              onChange={(val) => onUpdate({ goal: val })}
+              className="[&]:text-[#D0D0D0] [&]:hover:bg-white/10"
+            />
+          ) : (
+            <div style={{ fontSize: 13, color: "#D0D0D0", lineHeight: 1.5 }}>
+              {persona.goal}
+            </div>
+          )}
         </div>
         <div className="rounded-lg" style={{ background: "#353535", padding: 14 }}>
           <div
@@ -82,9 +110,17 @@ function PersonaCard({ persona }: { persona: EpicBrief["persona"] }) {
           >
             Frustration
           </div>
-          <div style={{ fontSize: 13, color: "#D0D0D0", lineHeight: 1.5 }}>
-            {persona.frustration}
-          </div>
+          {onUpdate ? (
+            <EditableTextarea
+              value={persona.frustration}
+              onChange={(val) => onUpdate({ frustration: val })}
+              className="[&]:text-[#D0D0D0] [&]:hover:bg-white/10"
+            />
+          ) : (
+            <div style={{ fontSize: 13, color: "#D0D0D0", lineHeight: 1.5 }}>
+              {persona.frustration}
+            </div>
+          )}
         </div>
       </div>
 
@@ -97,9 +133,17 @@ function PersonaCard({ persona }: { persona: EpicBrief["persona"] }) {
           borderLeft: "3px solid #555",
         }}
       >
-        <div style={{ fontSize: 13, color: "#D0D0D0", fontStyle: "italic", lineHeight: 1.5 }}>
-          &ldquo;{persona.keyQuote}&rdquo;
-        </div>
+        {onUpdate ? (
+          <EditableTextarea
+            value={persona.keyQuote}
+            onChange={(val) => onUpdate({ keyQuote: val })}
+            className="[&]:text-[#D0D0D0] [&]:italic [&]:hover:bg-white/10"
+          />
+        ) : (
+          <div style={{ fontSize: 13, color: "#D0D0D0", fontStyle: "italic", lineHeight: 1.5 }}>
+            &ldquo;{persona.keyQuote}&rdquo;
+          </div>
+        )}
         <div style={{ fontSize: 12, color: "#7a7a7a", marginTop: 6 }}>
           — Customer, end of call
         </div>
@@ -108,7 +152,7 @@ function PersonaCard({ persona }: { persona: EpicBrief["persona"] }) {
   );
 }
 
-function ExperienceStepCard({ step, index }: { step: ExperienceStep; index: number }) {
+function ExperienceStepCard({ step, index, onUpdate }: { step: ExperienceStep; index: number; onUpdate?: (patch: Partial<ExperienceStep>) => void }) {
   const colors = EMOTION_COLORS[step.emotionColor];
   return (
     <div className="rounded-lg border border-border" style={{ padding: 16 }}>
@@ -121,15 +165,33 @@ function ExperienceStepCard({ step, index }: { step: ExperienceStep; index: numb
           Step {index + 1}
         </span>
       </div>
-      <div className="font-medium text-foreground" style={{ fontSize: 14, marginBottom: 4 }}>
-        {step.title}
-      </div>
-      <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
-        {step.description}
-      </p>
+      {onUpdate ? (
+        <>
+          <EditableText
+            value={step.title}
+            onChange={(val) => onUpdate({ title: val })}
+            className="text-foreground"
+            style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}
+          />
+          <EditableTextarea
+            value={step.description}
+            onChange={(val) => onUpdate({ description: val })}
+            className="text-muted"
+          />
+        </>
+      ) : (
+        <>
+          <div className="font-medium text-foreground" style={{ fontSize: 14, marginBottom: 4 }}>
+            {step.title}
+          </div>
+          <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 10 }}>
+            {step.description}
+          </p>
+        </>
+      )}
       <span
         className="rounded-full font-medium"
-        style={{ fontSize: 11, padding: "2px 8px", background: colors.bg, color: colors.text }}
+        style={{ fontSize: 11, padding: "2px 8px", background: colors.bg, color: colors.text, marginTop: onUpdate ? 8 : 0, display: "inline-block" }}
       >
         {step.emotionTag}
       </span>
@@ -142,11 +204,13 @@ function ExperienceSection({
   subtitle,
   steps,
   titleColor,
+  onUpdateStep,
 }: {
   title: string;
   subtitle: string;
   steps: ExperienceStep[];
   titleColor: string;
+  onUpdateStep?: (index: number, patch: Partial<ExperienceStep>) => void;
 }) {
   return (
     <div>
@@ -168,7 +232,12 @@ function ExperienceSection({
       </div>
       <div className="grid grid-cols-3 gap-3">
         {steps.map((step, i) => (
-          <ExperienceStepCard key={i} step={step} index={i} />
+          <ExperienceStepCard
+            key={i}
+            step={step}
+            index={i}
+            onUpdate={onUpdateStep ? (patch) => onUpdateStep(i, patch) : undefined}
+          />
         ))}
       </div>
     </div>
@@ -191,7 +260,7 @@ function ArrowSeparator() {
   );
 }
 
-function DesignPrinciplesSection({ principles }: { principles: EpicBrief["designPrinciples"] }) {
+function DesignPrinciplesSection({ principles, onUpdatePrinciple }: { principles: EpicBrief["designPrinciples"]; onUpdatePrinciple?: (index: number, patch: Partial<DesignPrinciple>) => void }) {
   return (
     <div style={{ marginTop: 32 }}>
       <h3
@@ -210,14 +279,37 @@ function DesignPrinciplesSection({ principles }: { principles: EpicBrief["design
               {i + 1}
             </div>
             <div className="flex-1">
-              <div className="font-medium text-foreground" style={{ fontSize: 14, marginBottom: 2 }}>{p.title}</div>
-              <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>{p.description}</p>
-              <div
-                className="text-muted"
-                style={{ fontSize: 13, fontStyle: "italic", borderLeft: "3px solid #3D5A3D", paddingLeft: 10 }}
-              >
-                &ldquo;{p.quote}&rdquo;
-              </div>
+              {onUpdatePrinciple ? (
+                <>
+                  <EditableText
+                    value={p.title}
+                    onChange={(val) => onUpdatePrinciple(i, { title: val })}
+                    className="text-foreground"
+                    style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}
+                  />
+                  <EditableTextarea
+                    value={p.description}
+                    onChange={(val) => onUpdatePrinciple(i, { description: val })}
+                    className="text-muted"
+                  />
+                  <EditableTextarea
+                    value={p.quote}
+                    onChange={(val) => onUpdatePrinciple(i, { quote: val })}
+                    className="text-muted italic"
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="font-medium text-foreground" style={{ fontSize: 14, marginBottom: 2 }}>{p.title}</div>
+                  <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 8 }}>{p.description}</p>
+                  <div
+                    className="text-muted"
+                    style={{ fontSize: 13, fontStyle: "italic", borderLeft: "3px solid #3D5A3D", paddingLeft: 10 }}
+                  >
+                    &ldquo;{p.quote}&rdquo;
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ))}
@@ -226,7 +318,7 @@ function DesignPrinciplesSection({ principles }: { principles: EpicBrief["design
   );
 }
 
-function WireframeSketchSection({ wireframe }: { wireframe: EpicBrief["wireframeSketch"] }) {
+function WireframeSketchSection({ wireframe, onUpdateCard }: { wireframe: EpicBrief["wireframeSketch"]; onUpdateCard?: (cardIndex: number, patch: Partial<WireframeCard> & { itemIndex?: number; itemValue?: string }) => void }) {
   return (
     <div style={{ marginTop: 32 }}>
       <div className="flex items-baseline gap-2" style={{ marginBottom: 14 }}>
@@ -250,16 +342,34 @@ function WireframeSketchSection({ wireframe }: { wireframe: EpicBrief["wireframe
               >
                 {i + 1}
               </div>
-              <div className="font-medium text-foreground" style={{ fontSize: 13 }}>{card.title}</div>
+              {onUpdateCard ? (
+                <EditableText
+                  value={card.title}
+                  onChange={(val) => onUpdateCard(i, { title: val })}
+                  className="text-foreground"
+                  style={{ fontSize: 13, fontWeight: 500 }}
+                />
+              ) : (
+                <div className="font-medium text-foreground" style={{ fontSize: 13 }}>{card.title}</div>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               {card.items.map((item, j) => (
-                <div
-                  key={j}
-                  className="rounded-md"
-                  style={{ fontSize: 12, padding: "6px 10px", background: "#F5F4F0", border: "1px solid #E8E6E1", color: "#6B6B6B" }}
-                >
-                  {item}
+                <div key={j}>
+                  {onUpdateCard ? (
+                    <EditableTextarea
+                      value={item}
+                      onChange={(val) => onUpdateCard(i, { itemIndex: j, itemValue: val })}
+                      className="text-muted"
+                    />
+                  ) : (
+                    <div
+                      className="rounded-md"
+                      style={{ fontSize: 12, padding: "6px 10px", background: "#F5F4F0", border: "1px solid #E8E6E1", color: "#6B6B6B" }}
+                    >
+                      {item}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -270,7 +380,7 @@ function WireframeSketchSection({ wireframe }: { wireframe: EpicBrief["wireframe
   );
 }
 
-function OpenQuestionsSection({ questions }: { questions: string[] }) {
+function OpenQuestionsSection({ questions, onUpdateQuestion }: { questions: string[]; onUpdateQuestion?: (index: number, value: string) => void }) {
   return (
     <div style={{ marginTop: 32 }}>
       <h3
@@ -288,7 +398,17 @@ function OpenQuestionsSection({ questions }: { questions: string[] }) {
             >
               ?
             </div>
-            <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, paddingTop: 2 }}>{q}</p>
+            {onUpdateQuestion ? (
+              <div className="flex-1" style={{ paddingTop: 2 }}>
+                <EditableTextarea
+                  value={q}
+                  onChange={(val) => onUpdateQuestion(i, val)}
+                  className="text-muted"
+                />
+              </div>
+            ) : (
+              <p className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, paddingTop: 2 }}>{q}</p>
+            )}
           </div>
         ))}
       </div>
@@ -400,6 +520,52 @@ export default function BriefView() {
   }
 
   const meetingTitle = result?.meetingTitle ?? "Meeting Brief";
+
+  const updateBrief = (patch: Partial<EpicBrief>) => {
+    if (!brief) return;
+    setBrief({ ...brief, ...patch, editedAt: new Date().toISOString() });
+  };
+
+  const updateExperienceStep = (
+    section: "currentExperience" | "desiredExperience",
+    index: number,
+    patch: Partial<ExperienceStep>,
+  ) => {
+    if (!brief) return;
+    const steps = [...brief[section].steps];
+    steps[index] = { ...steps[index], ...patch };
+    updateBrief({ [section]: { ...brief[section], steps } });
+  };
+
+  const updateDesignPrinciple = (index: number, patch: Partial<DesignPrinciple>) => {
+    if (!brief) return;
+    const principles = [...brief.designPrinciples];
+    principles[index] = { ...principles[index], ...patch };
+    updateBrief({ designPrinciples: principles });
+  };
+
+  const updateWireframeCard = (
+    cardIndex: number,
+    patch: Partial<WireframeCard> & { itemIndex?: number; itemValue?: string },
+  ) => {
+    if (!brief) return;
+    const cards = [...brief.wireframeSketch.cards];
+    if (patch.title) {
+      cards[cardIndex] = { ...cards[cardIndex], title: patch.title };
+    } else if (patch.itemIndex !== undefined && patch.itemValue !== undefined) {
+      const items = [...cards[cardIndex].items];
+      items[patch.itemIndex] = patch.itemValue;
+      cards[cardIndex] = { ...cards[cardIndex], items };
+    }
+    updateBrief({ wireframeSketch: { ...brief.wireframeSketch, cards } });
+  };
+
+  const updateOpenQuestion = (index: number, value: string) => {
+    if (!brief) return;
+    const questions = [...brief.openQuestions];
+    questions[index] = value;
+    updateBrief({ openQuestions: questions });
+  };
 
   const handleSavePdf = () => {
     const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -548,7 +714,7 @@ export default function BriefView() {
   </div>`).join("")}
 </div>
 
-<div class="footer">Generated from <strong>${brief.sourceCount} discovery call${brief.sourceCount !== 1 ? "s" : ""}</strong>. Additional calls will refine this brief. &middot; Fijord</div>
+<div class="footer">Generated from <strong>${brief.sourceCount} discovery call${brief.sourceCount !== 1 ? "s" : ""}</strong>. Additional calls will refine this brief.${brief.editedAt ? ` &middot; Edited ${esc(new Date(brief.editedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}` : ""} &middot; Fijord</div>
 </body></html>`;
 
     const printWindow = window.open("", "_blank");
@@ -579,6 +745,7 @@ export default function BriefView() {
           <span className="text-muted" style={{ fontSize: 12 }}>
             Auto-generated from transcript
           </span>
+          {brief.editedAt && <EditedBadge editedAt={brief.editedAt} />}
         </div>
         <h2
           className="text-foreground"
@@ -612,7 +779,10 @@ export default function BriefView() {
 
       <div className="rounded-xl border border-border bg-card p-6">
         {/* Persona */}
-        <PersonaCard persona={brief.persona} />
+        <PersonaCard
+          persona={brief.persona}
+          onUpdate={(patch) => updateBrief({ persona: { ...brief.persona, ...patch } })}
+        />
 
         {/* Current Experience */}
         <ExperienceSection
@@ -620,6 +790,7 @@ export default function BriefView() {
           subtitle={brief.currentExperience.subtitle}
           steps={brief.currentExperience.steps}
           titleColor="#D97706"
+          onUpdateStep={(i, patch) => updateExperienceStep("currentExperience", i, patch)}
         />
         <ArrowSeparator />
         {/* Desired Experience */}
@@ -628,16 +799,26 @@ export default function BriefView() {
           subtitle={brief.desiredExperience.subtitle}
           steps={brief.desiredExperience.steps}
           titleColor="#3D5A3D"
+          onUpdateStep={(i, patch) => updateExperienceStep("desiredExperience", i, patch)}
         />
 
         {/* Design Principles */}
-        <DesignPrinciplesSection principles={brief.designPrinciples} />
+        <DesignPrinciplesSection
+          principles={brief.designPrinciples}
+          onUpdatePrinciple={updateDesignPrinciple}
+        />
 
         {/* Wireframe Sketch */}
-        <WireframeSketchSection wireframe={brief.wireframeSketch} />
+        <WireframeSketchSection
+          wireframe={brief.wireframeSketch}
+          onUpdateCard={updateWireframeCard}
+        />
 
         {/* Open Questions */}
-        <OpenQuestionsSection questions={brief.openQuestions} />
+        <OpenQuestionsSection
+          questions={brief.openQuestions}
+          onUpdateQuestion={updateOpenQuestion}
+        />
 
         {/* Footer */}
         <div

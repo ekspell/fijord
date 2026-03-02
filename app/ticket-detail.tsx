@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TicketContext, TicketDetail, Quote } from "@/lib/types";
 import { useNav } from "./nav-context";
 import { EditableText, EditableTextarea, EditableList, EditablePriority } from "./components/editable-fields";
+import { EditedBadge } from "./components/edited-badge";
 import TranscriptDrawer from "./transcript-drawer";
 
 export default function TicketDetailView({
@@ -75,7 +76,7 @@ export default function TicketDetailView({
         {/* Main content card */}
         <div className="w-full lg:w-2/3">
           <div className="rounded-xl border border-border bg-card p-8">
-            {/* Header: ID, priority badge, status badge */}
+            {/* Header: ID, priority badge, status badge, edited badge */}
             <div className="mb-4 flex items-center gap-3">
               <span className="text-sm font-medium text-muted">{ticket.id}</span>
               <EditablePriority
@@ -85,6 +86,7 @@ export default function TicketDetailView({
               <span className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted">
                 {ticket.status || "Ready for design"}
               </span>
+              {ticket.editedAt && <EditedBadge editedAt={ticket.editedAt} />}
             </div>
 
             {/* Title */}

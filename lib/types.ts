@@ -56,6 +56,7 @@ export type TicketDetail = {
   acceptanceCriteria: string[];
   checkedAC?: number[];
   quotes: Quote[];
+  editedAt?: string;
 };
 
 // Context bundle for ticket detail view

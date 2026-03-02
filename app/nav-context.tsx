@@ -22,6 +22,7 @@ export type RoadmapTicket = {
   acceptanceCriteria?: string[];
   checkedAC?: number[];
   quotes?: Quote[];
+  editedAt?: string;
 };
 
 const DEMO_MODE_KEY = "fjord-demo-mode";
