@@ -449,7 +449,7 @@ export default function Roadmap() {
 
   if (roadmap.length === 0) {
     return (
-      <div className="mx-auto max-w-[1100px]">
+      <div className="mx-auto max-w-[900px]">
         <div className="mb-8">
           <h1
             className="text-foreground"
@@ -490,7 +490,7 @@ export default function Roadmap() {
   }
 
   return (
-    <div className="mx-auto max-w-[1100px]">
+    <div className="mx-auto max-w-[900px]">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-end justify-between">
