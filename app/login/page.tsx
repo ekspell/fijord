@@ -41,17 +41,15 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await loginWithMagicLink(email.trim(), false);
+      await loginWithMagicLink(email.trim(), true);
       setStep("check");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
       const lower = msg.toLowerCase();
       if (lower.includes("rate") || lower.includes("limit") || lower.includes("seconds")) {
         setError("A link was already sent. Please check your email or wait a minute before trying again.");
-      } else if (lower.includes("signups not allowed") || lower.includes("otp_disabled")) {
-        setError("No account found with this email. Please sign up first.");
       } else {
-        setError("No account found. Please sign up first.");
+        setError("Something went wrong. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -76,7 +74,7 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      await loginWithMagicLink(email.trim(), false);
+      await loginWithMagicLink(email.trim(), true);
       setError("");
     } catch {
       setError("Failed to resend. Please try again.");
