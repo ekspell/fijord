@@ -45,8 +45,11 @@ export default function LoginPage() {
       setStep("check");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
-      if (msg.toLowerCase().includes("rate") || msg.toLowerCase().includes("limit") || msg.toLowerCase().includes("seconds")) {
-        setError("Too many attempts. Please wait a minute and try again.");
+      const lower = msg.toLowerCase();
+      if (lower.includes("rate") || lower.includes("limit") || lower.includes("seconds")) {
+        setError("A link was already sent. Please check your email or wait a minute before trying again.");
+      } else if (lower.includes("signups not allowed") || lower.includes("otp_disabled")) {
+        setError("No account found with this email. Please sign up first.");
       } else {
         setError("No account found. Please sign up first.");
       }

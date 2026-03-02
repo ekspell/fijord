@@ -45,10 +45,13 @@ export default function SignupPage() {
       setStep("check");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "";
-      if (msg.toLowerCase().includes("rate") || msg.toLowerCase().includes("limit") || msg.toLowerCase().includes("seconds")) {
-        setError("Too many attempts. Please wait a minute and try again.");
+      const lower = msg.toLowerCase();
+      if (lower.includes("rate") || lower.includes("limit") || lower.includes("seconds")) {
+        setError("A link was already sent. Please check your email or wait a minute before trying again.");
+      } else if (lower.includes("already registered") || lower.includes("already been registered") || lower.includes("user already")) {
+        setError("This email already has an account. Please sign in instead.");
       } else {
-        setError(`Failed to send link: ${msg || "Unknown error"}`);
+        setError(`Something went wrong. Please try again. ${msg ? `(${msg})` : ""}`);
       }
     } finally {
       setLoading(false);
