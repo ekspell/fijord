@@ -123,9 +123,9 @@ function Discovery() {
     demoMode,
   } = useNav();
 
-  // Reset to input form when navigating to this page fresh
+  // Reset to input form when navigating to this page fresh (no processed result)
   useEffect(() => {
-    setActiveTab("Discovery");
+    if (!result) setActiveTab("Discovery");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [steps, setSteps] = useState<Step[]>([

@@ -13,7 +13,7 @@ import type { EpicTicket, RoadmapLane, TicketPriority, TicketStatus } from "@/li
 import TicketDetailView from "@/app/ticket-detail";
 import type { TicketContext, Quote } from "@/lib/types";
 
-type StagingTicket = EpicTicket & { epicId: string; epicTitle: string; epicStatus: "on-track" | "at-risk" | "blocked" };
+type StagingTicket = EpicTicket & { epicId: string; epicTitle: string; epicStatus: "on-track" | "at-risk" | "blocked"; problemColor?: string };
 
 const ROADMAP_PRIORITY_MAP: Record<string, TicketPriority> = {
   High: "high",
@@ -59,8 +59,7 @@ function StagingCard({
   onClick: () => void;
 }) {
   const ps = PRIORITY_STYLES[ticket.priority];
-  const statusStyle = TICKET_STATUS_STYLES[ticket.status];
-  const epicStatusStyle = STATUS_STYLES[ticket.epicStatus];
+  const isFromMeeting = ticket.epicId === "meeting-staging";
 
   return (
     <div
@@ -81,28 +80,37 @@ function StagingCard({
       <h3 className="text-sm font-medium leading-snug text-foreground">
         {ticket.title}
       </h3>
-      <div className="mt-2 flex items-center gap-2">
-        <span
-          className="rounded-full text-[10px] font-medium"
-          style={{
-            padding: "2px 8px",
-            background: epicStatusStyle.bg,
-            color: epicStatusStyle.text,
-          }}
-        >
-          {ticket.epicTitle}
-        </span>
-        <span
-          className="rounded text-[10px] font-medium"
-          style={{
-            padding: "1px 5px",
-            background: statusStyle.bg,
-            color: statusStyle.text,
-          }}
-        >
-          {statusStyle.label}
-        </span>
-      </div>
+      {isFromMeeting ? (
+        <div className="mt-2 flex items-center gap-1.5">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ticket.problemColor || "#3D5A3D" }} />
+          <span className="text-[11px] font-medium" style={{ color: ticket.problemColor || "#3D5A3D" }}>
+            {ticket.epicTitle}
+          </span>
+        </div>
+      ) : (
+        <div className="mt-2 flex items-center gap-2">
+          <span
+            className="rounded-full text-[10px] font-medium"
+            style={{
+              padding: "2px 8px",
+              background: STATUS_STYLES[ticket.epicStatus].bg,
+              color: STATUS_STYLES[ticket.epicStatus].text,
+            }}
+          >
+            {ticket.epicTitle}
+          </span>
+          <span
+            className="rounded text-[10px] font-medium"
+            style={{
+              padding: "1px 5px",
+              background: TICKET_STATUS_STYLES[ticket.status].bg,
+              color: TICKET_STATUS_STYLES[ticket.status].text,
+            }}
+          >
+            {TICKET_STATUS_STYLES[ticket.status].label}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -193,6 +201,7 @@ function StagingContent() {
         epicId: "meeting-staging",
         epicTitle: rt.problemTitle,
         epicStatus: "on-track",
+        problemColor: rt.problemColor,
       });
     }
     return tickets;
