@@ -155,16 +155,29 @@ export default function LoginPage() {
               <span className="text-foreground">{email}</span>
             </p>
 
+            <p className="text-center text-sm text-muted">
+              Don&apos;t see it?{" "}
+              <button
+                onClick={handleResend}
+                disabled={loading}
+                className="font-medium text-accent hover:underline disabled:opacity-50"
+              >
+                Send a new link
+              </button>
+            </p>
+
+            {error && <p className="mt-3 text-center text-sm text-accent-red">{error}</p>}
+
             <button
               onClick={() => setStep("code")}
-              className="text-sm text-muted underline transition-colors hover:text-foreground"
+              className="mt-5 text-sm text-muted underline transition-colors hover:text-foreground"
             >
               Enter code manually
             </button>
 
             <button
               onClick={goBack}
-              className="mt-5 text-sm text-muted transition-colors hover:text-foreground"
+              className="mt-4 text-sm text-muted transition-colors hover:text-foreground"
             >
               &larr; Go back
             </button>
