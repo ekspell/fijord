@@ -1,22 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
 
-function AnimatedStrike({ children, active, delay }: { children: React.ReactNode; active: boolean; delay: number }) {
-  return (
-    <span
-      style={{
-        textDecorationLine: "line-through",
-        textDecorationColor: active ? "var(--color-foreground)" : "transparent",
-        textDecorationThickness: "1.5px",
-        opacity: active ? 0.45 : 1,
-        transition: `text-decoration-color 500ms ease-in-out ${delay}ms, opacity 500ms ease-in-out ${delay}ms`,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
 
 const FijordLogo = () => (
   <svg width="109" height="54" viewBox="0 0 109 54" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-14 w-auto text-foreground">
@@ -113,12 +97,6 @@ function ProductPreview() {
 }
 
 export default function Landing({ onEnter }: { onEnter: () => void }) {
-  const [strikeActive, setStrikeActive] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setStrikeActive(true), 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
@@ -137,11 +115,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         {/* Hero */}
         <section className="mx-auto max-w-[700px] pb-4 pt-20 text-center sm:pt-24">
           <p className="mb-5 text-lg leading-relaxed text-muted">
-            You just had a great discovery call. Now you need to{" "}
-            <AnimatedStrike active={strikeActive} delay={0}>transcribe the key points</AnimatedStrike>,{" "}
-            <AnimatedStrike active={strikeActive} delay={150}>identify the problems</AnimatedStrike>,{" "}
-            <AnimatedStrike active={strikeActive} delay={300}>write up solutions</AnimatedStrike>, and{" "}
-            <AnimatedStrike active={strikeActive} delay={450}>create tickets</AnimatedStrike>...
+            You just had a great discovery call. Now you need to transcribe it, find the problems, write up solutions, and create tickets...
           </p>
           <h1 className="mb-6 text-[36px] font-semibold leading-[1.15] tracking-tight text-foreground sm:text-[48px]">
             Or just let Fijord do it in 30 seconds
