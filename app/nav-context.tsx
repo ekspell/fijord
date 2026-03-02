@@ -143,7 +143,7 @@ function persistJiraCreds(creds: JiraCreds | null) {
 function loadRoadmap(): RoadmapTicket[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -152,7 +152,7 @@ function loadRoadmap(): RoadmapTicket[] {
 
 function persistRoadmap(items: RoadmapTicket[]) {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
 type NavContextType = {
@@ -297,9 +297,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
     setSolutionsState([]);
     setTranscriptState("");
     if (typeof window !== "undefined") {
-      sessionStorage.removeItem(RESULT_KEY);
-      sessionStorage.removeItem(SOLUTIONS_KEY);
-      sessionStorage.removeItem(TRANSCRIPT_KEY);
+      localStorage.removeItem(RESULT_KEY);
+      localStorage.removeItem(SOLUTIONS_KEY);
+      localStorage.removeItem(TRANSCRIPT_KEY);
     }
   }, []);
 
@@ -346,32 +346,32 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const setResult = useCallback((r: ProblemsResult | null) => {
     setResultState(r);
     if (typeof window !== "undefined") {
-      if (r) sessionStorage.setItem(RESULT_KEY, JSON.stringify(r));
-      else sessionStorage.removeItem(RESULT_KEY);
+      if (r) localStorage.setItem(RESULT_KEY, JSON.stringify(r));
+      else localStorage.removeItem(RESULT_KEY);
     }
   }, []);
 
   const setSolutions = useCallback((s: solutionResult[]) => {
     setSolutionsState(s);
     if (typeof window !== "undefined") {
-      if (s.length > 0) sessionStorage.setItem(SOLUTIONS_KEY, JSON.stringify(s));
-      else sessionStorage.removeItem(SOLUTIONS_KEY);
+      if (s.length > 0) localStorage.setItem(SOLUTIONS_KEY, JSON.stringify(s));
+      else localStorage.removeItem(SOLUTIONS_KEY);
     }
   }, []);
 
   const setTranscript = useCallback((t: string) => {
     setTranscriptState(t);
     if (typeof window !== "undefined") {
-      if (t) sessionStorage.setItem(TRANSCRIPT_KEY, t);
-      else sessionStorage.removeItem(TRANSCRIPT_KEY);
+      if (t) localStorage.setItem(TRANSCRIPT_KEY, t);
+      else localStorage.removeItem(TRANSCRIPT_KEY);
     }
   }, []);
 
   const setBrief = useCallback((b: EpicBrief | null) => {
     setBriefState(b);
     if (typeof window !== "undefined") {
-      if (b) sessionStorage.setItem(BRIEF_KEY, JSON.stringify(b));
-      else sessionStorage.removeItem(BRIEF_KEY);
+      if (b) localStorage.setItem(BRIEF_KEY, JSON.stringify(b));
+      else localStorage.removeItem(BRIEF_KEY);
     }
   }, []);
 
@@ -414,15 +414,15 @@ export function NavProvider({ children }: { children: ReactNode }) {
 
     // Restore session data
     try {
-      const savedResult = sessionStorage.getItem(RESULT_KEY);
+      const savedResult = localStorage.getItem(RESULT_KEY);
       if (savedResult) {
         setResultState(JSON.parse(savedResult));
       }
-      const savedSolutions = sessionStorage.getItem(SOLUTIONS_KEY);
+      const savedSolutions = localStorage.getItem(SOLUTIONS_KEY);
       if (savedSolutions) setSolutionsState(JSON.parse(savedSolutions));
-      const savedTranscript = sessionStorage.getItem(TRANSCRIPT_KEY);
+      const savedTranscript = localStorage.getItem(TRANSCRIPT_KEY);
       if (savedTranscript) setTranscriptState(savedTranscript);
-      const savedBrief = sessionStorage.getItem(BRIEF_KEY);
+      const savedBrief = localStorage.getItem(BRIEF_KEY);
       if (savedBrief) setBriefState(JSON.parse(savedBrief));
     } catch { /* ignore parse errors */ }
   }, []);
