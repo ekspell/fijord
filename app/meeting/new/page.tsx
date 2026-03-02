@@ -366,7 +366,7 @@ function Discovery() {
   return (
     <div>
       {/* Flow tab bar */}
-      <div className="mx-auto" style={{ maxWidth: 900 }}>
+      <div className="mx-auto" style={{ maxWidth: 1100 }}>
         <div className="mb-8 flex w-fit gap-1 rounded-xl border border-border bg-card p-1">
           {TABS.map((tab) => {
             const disabled =
