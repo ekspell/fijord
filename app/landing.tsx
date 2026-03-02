@@ -115,10 +115,10 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         {/* Hero */}
         <section className="mx-auto max-w-[700px] pb-4 pt-20 text-center sm:pt-24">
           <p className="mb-5 text-lg leading-relaxed text-muted">
-            You just had a great discovery call. Now you need to transcribe it, find the problems, write up solutions, and create tickets...
+            You just had a great discovery call. Now you just need to transcribe it, find the problems, write up solutions, and create tickets... 😮‍💨
           </p>
           <h1 className="mb-6 text-[36px] font-semibold leading-[1.15] tracking-tight text-foreground sm:text-[48px]">
-            Or just let Fijord do it in 30 seconds
+            Or let Fijord do it in 30 seconds
           </h1>
           <p className="mb-9 text-lg leading-relaxed text-muted">
             Paste your transcript. Get problems backed by evidence, solutions, and ready-to-ship tickets. Export to Linear or Jira with one click.
