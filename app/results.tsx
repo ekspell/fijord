@@ -788,24 +788,17 @@ export default function Results() {
                 />
               );
             })}
+            {visibleCount < totalTickets && (
+              <button
+                onClick={() => setVisibleCount((c) => Math.min(c + 7, totalTickets))}
+                className="mt-1 w-full py-2 text-center text-[13px] font-medium text-accent underline transition-colors hover:text-accent/80"
+              >
+                See more ({totalTickets - allTickets.length} remaining)
+              </button>
+            )}
           </div>
         </div>
       </div>
-
-      {/* See more / progressive disclosure */}
-      {visibleCount < totalTickets && (
-        <div className="mb-6 flex items-center justify-center gap-3">
-          <span className="text-[13px] text-muted">
-            Showing {allTickets.length} of {totalTickets} tickets
-          </span>
-          <button
-            onClick={() => setVisibleCount((c) => Math.min(c + 7, totalTickets))}
-            className="rounded-lg border border-border px-4 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
-          >
-            See more
-          </button>
-        </div>
-      )}
 
       {/* Bottom action bar */}
       <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
