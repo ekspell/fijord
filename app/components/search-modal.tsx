@@ -4,10 +4,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MOCK_MEETING_RECORDS, MOCK_MEETING_DETAILS, MOCK_SIGNALS } from "@/lib/mock-data";
 import { MOCK_EPICS } from "@/lib/mock-epics";
+import type { Epic } from "@/lib/mock-epics";
+import type { ProblemsResult } from "@/lib/types";
+import { useNav, type RoadmapTicket } from "@/app/nav-context";
 
 type SearchResult = {
   id: string;
-  type: "meeting" | "epic" | "signal" | "evidence";
+  type: "meeting" | "epic" | "signal" | "evidence" | "ticket";
   title: string;
   snippet: string;
   href: string;
@@ -64,6 +67,12 @@ const TYPE_ICONS: Record<SearchResult["type"], React.ReactNode> = {
       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
     </svg>
   ),
+  ticket: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[#888]">
+      <polyline points="9 11 12 14 22 4" />
+      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+    </svg>
+  ),
 };
 
 const TYPE_LABELS: Record<SearchResult["type"], string> = {
@@ -71,6 +80,7 @@ const TYPE_LABELS: Record<SearchResult["type"], string> = {
   epic: "Epics",
   signal: "Signals",
   evidence: "Evidence",
+  ticket: "Tickets",
 };
 
 function buildSearchIndex(deletedMeetings: Set<string>) {
@@ -82,8 +92,7 @@ function buildSearchIndex(deletedMeetings: Set<string>) {
   return { meetings, details, epics, signals };
 }
 
-function search(query: string, deletedMeetings: Set<string>, maxPerCategory = 4): SearchResult[] {
-  if (!query.trim()) return [];
+function searchDemo(query: string, deletedMeetings: Set<string>, maxPerCategory = 4): SearchResult[] {
   const q = query.toLowerCase().trim();
   const { meetings, details, epics, signals } = buildSearchIndex(deletedMeetings);
   const results: SearchResult[] = [];
@@ -197,6 +206,139 @@ function search(query: string, deletedMeetings: Set<string>, maxPerCategory = 4)
   return results;
 }
 
+function searchUserData(
+  query: string,
+  roadmap: RoadmapTicket[],
+  result: ProblemsResult | null,
+  userEpics: Epic[],
+  maxPerCategory = 4,
+): SearchResult[] {
+  const q = query.toLowerCase().trim();
+  const results: SearchResult[] = [];
+
+  // Tickets (from roadmap)
+  let ticketCount = 0;
+  for (const t of roadmap) {
+    if (ticketCount >= maxPerCategory) break;
+    const titleMatch = t.title.toLowerCase().includes(q);
+    const descMatch = (t.description ?? "").toLowerCase().includes(q);
+    const problemMatch = t.problemTitle.toLowerCase().includes(q);
+    if (titleMatch || descMatch || problemMatch) {
+      let snippet = t.problemTitle;
+      if (descMatch && !titleMatch) snippet = truncateAround(t.description!, query);
+      results.push({ id: t.id, type: "ticket", title: t.title, snippet, href: "/staging" });
+      ticketCount++;
+    }
+  }
+
+  // Epics (from userEpics)
+  let epicCount = 0;
+  for (const e of userEpics) {
+    if (epicCount >= maxPerCategory) break;
+    const titleMatch = e.title.toLowerCase().includes(q);
+    const descMatch = e.description.toLowerCase().includes(q);
+    if (titleMatch || descMatch) {
+      const snippet = descMatch && !titleMatch
+        ? truncateAround(e.description, query)
+        : e.description.slice(0, 80) + (e.description.length > 80 ? "..." : "");
+      results.push({ id: e.id, type: "epic", title: e.title, snippet, href: `/epic/${e.id}` });
+      epicCount++;
+    }
+  }
+
+  // Meetings (from result)
+  if (result) {
+    const titleMatch = result.meetingTitle.toLowerCase().includes(q);
+    const problemMatch = result.problems?.some((p) => p.title.toLowerCase().includes(q));
+    if (titleMatch || problemMatch) {
+      let snippet = result.date;
+      if (result.participants) snippet += ` \u00B7 ${result.participants}`;
+      if (problemMatch && !titleMatch) {
+        const prob = result.problems.find((p) => p.title.toLowerCase().includes(q));
+        if (prob) snippet = `Problem: ${prob.title}`;
+      }
+      results.push({ id: "current-meeting", type: "meeting", title: result.meetingTitle, snippet, href: "/meeting/new" });
+    }
+  }
+
+  // Evidence (from roadmap ticket quotes + result problem quotes)
+  let evidenceCount = 0;
+  const seenQuotes = new Set<string>();
+
+  for (const t of roadmap) {
+    if (evidenceCount >= maxPerCategory) break;
+    for (const quote of t.problemQuotes ?? []) {
+      if (evidenceCount >= maxPerCategory) break;
+      if (quote.text.toLowerCase().includes(q)) {
+        const key = quote.text.slice(0, 60);
+        if (seenQuotes.has(key)) continue;
+        seenQuotes.add(key);
+        results.push({
+          id: `quote-ticket-${t.id}-${evidenceCount}`,
+          type: "evidence",
+          title: `"${truncateAround(quote.text, query, 60)}"`,
+          snippet: `${quote.speaker} \u00B7 ${t.problemTitle}`,
+          href: "/staging",
+        });
+        evidenceCount++;
+      }
+    }
+    for (const quote of t.quotes ?? []) {
+      if (evidenceCount >= maxPerCategory) break;
+      if (quote.text.toLowerCase().includes(q)) {
+        const key = quote.text.slice(0, 60);
+        if (seenQuotes.has(key)) continue;
+        seenQuotes.add(key);
+        results.push({
+          id: `quote-tdetail-${t.id}-${evidenceCount}`,
+          type: "evidence",
+          title: `"${truncateAround(quote.text, query, 60)}"`,
+          snippet: `${quote.speaker} \u00B7 ${t.title}`,
+          href: "/staging",
+        });
+        evidenceCount++;
+      }
+    }
+  }
+
+  if (result && evidenceCount < maxPerCategory) {
+    for (const prob of result.problems ?? []) {
+      if (evidenceCount >= maxPerCategory) break;
+      for (const quote of prob.quotes ?? []) {
+        if (evidenceCount >= maxPerCategory) break;
+        if (quote.text.toLowerCase().includes(q)) {
+          const key = quote.text.slice(0, 60);
+          if (seenQuotes.has(key)) continue;
+          seenQuotes.add(key);
+          results.push({
+            id: `quote-meeting-${prob.id}-${evidenceCount}`,
+            type: "evidence",
+            title: `"${truncateAround(quote.text, query, 60)}"`,
+            snippet: `${quote.speaker} \u00B7 ${result.meetingTitle}`,
+            href: "/meeting/new",
+          });
+          evidenceCount++;
+        }
+      }
+    }
+  }
+
+  return results;
+}
+
+function search(
+  query: string,
+  deletedMeetings: Set<string>,
+  opts: { demoMode: boolean; roadmap: RoadmapTicket[]; result: ProblemsResult | null; userEpics: Epic[] },
+  maxPerCategory = 4,
+): SearchResult[] {
+  if (!query.trim()) return [];
+  if (opts.demoMode) {
+    return searchDemo(query, deletedMeetings, maxPerCategory);
+  }
+  return searchUserData(query, opts.roadmap, opts.result, opts.userEpics, maxPerCategory);
+}
+
 export default function SearchModal({
   open,
   onClose,
@@ -207,12 +349,16 @@ export default function SearchModal({
   deletedMeetings: Set<string>;
 }) {
   const router = useRouter();
+  const { roadmap, result, userEpics, demoMode } = useNav();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const resultListRef = useRef<HTMLDivElement>(null);
 
-  const results = useMemo(() => search(query, deletedMeetings), [query, deletedMeetings]);
+  const results = useMemo(
+    () => search(query, deletedMeetings, { demoMode, roadmap, result, userEpics }),
+    [query, deletedMeetings, demoMode, roadmap, result, userEpics],
+  );
 
   // Flat list of result indices for keyboard nav
   const flatResults = results;
@@ -269,7 +415,7 @@ export default function SearchModal({
 
   // Group results by type for rendering
   const grouped: { type: SearchResult["type"]; items: SearchResult[] }[] = [];
-  const typeOrder: SearchResult["type"][] = ["meeting", "epic", "signal", "evidence"];
+  const typeOrder: SearchResult["type"][] = ["ticket", "meeting", "epic", "signal", "evidence"];
   for (const type of typeOrder) {
     const items = results.filter((r) => r.type === type);
     if (items.length > 0) grouped.push({ type, items });
