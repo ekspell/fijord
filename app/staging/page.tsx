@@ -60,7 +60,7 @@ function ColHeader({
         {count > 0 && (
           <button
             onClick={onToggleAll}
-            className="text-[11px] font-medium text-muted transition-colors hover:text-accent"
+            className="text-[11px] font-medium text-muted underline transition-colors hover:text-accent"
           >
             {allChecked ? "Deselect all" : "Select all"}
           </button>
