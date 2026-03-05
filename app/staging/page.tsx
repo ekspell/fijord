@@ -54,11 +54,17 @@ function StagingCard({
   onDragStart,
   onClick,
   onDelete,
+  checked,
+  onCheck,
+  selectMode,
 }: {
   ticket: StagingTicket;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
   onDelete: (id: string) => void;
+  checked: boolean;
+  onCheck: (id: string) => void;
+  selectMode: boolean;
 }) {
   const ps = PRIORITY_STYLES[ticket.priority];
   const isFromMeeting = ticket.epicId === "meeting-staging";
@@ -78,13 +84,35 @@ function StagingCard({
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, ticket.id)}
-      onClick={onClick}
-      className="group/card relative mb-3 cursor-grab rounded-xl border border-border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] active:cursor-grabbing active:shadow-lg"
+      draggable={!selectMode}
+      onDragStart={(e) => !selectMode && onDragStart(e, ticket.id)}
+      onClick={selectMode ? () => onCheck(ticket.id) : onClick}
+      className={`group/card relative mb-3 rounded-xl border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] ${
+        checked
+          ? "border-accent/40 bg-accent/5 ring-1 ring-accent/20"
+          : "border-border"
+      } ${selectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing active:shadow-lg"}`}
     >
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
+          {/* Checkbox — visible on hover or when in select mode */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCheck(ticket.id);
+            }}
+            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all ${
+              checked
+                ? "border-accent bg-accent"
+                : "border-border/60 bg-white group-hover/card:border-muted"
+            } ${selectMode ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"}`}
+          >
+            {checked && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
           <span className="text-[11px] font-semibold text-muted">{ticket.id}</span>
           <span
             className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
@@ -220,7 +248,9 @@ function StagingContent() {
   const { demoMode, roadmap, stagingOverrides, setStagingLane, updateRoadmapTicket, removeFromRoadmap, showToast } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<StagingTicket | null>(null);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const draggedId = useRef<string | null>(null);
+  const selectMode = checkedIds.size > 0;
 
   const epics = demoMode ? [] : MOCK_EPICS;
 
@@ -294,6 +324,22 @@ function StagingContent() {
     removeFromRoadmap(id);
     showToast("Ticket removed from staging");
   }, [removeFromRoadmap, showToast]);
+
+  const handleCheck = useCallback((id: string) => {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleBulkDelete = useCallback(() => {
+    const count = checkedIds.size;
+    checkedIds.forEach((id) => removeFromRoadmap(id));
+    setCheckedIds(new Set());
+    showToast(`${count} ticket${count !== 1 ? "s" : ""} removed from staging`);
+  }, [checkedIds, removeFromRoadmap, showToast]);
 
   // Ticket detail view
   if (selectedTicket) {
@@ -438,6 +484,9 @@ function StagingContent() {
                 onDragStart={handleDragStart}
                 onClick={() => setSelectedTicket(ticket)}
                 onDelete={handleDelete}
+                checked={checkedIds.has(ticket.id)}
+                onCheck={handleCheck}
+                selectMode={selectMode}
               />
             ))}
             {col.tickets.length === 0 && (
@@ -456,6 +505,32 @@ function StagingContent() {
           </div>
         ))}
       </div>
+
+      {/* Bulk action bar */}
+      {selectMode && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-border bg-card px-5 py-3 shadow-lg">
+          <span className="text-[13px] text-muted">
+            <strong className="text-foreground">{checkedIds.size}</strong> selected
+          </span>
+          <div className="h-4 w-px bg-border" />
+          <button
+            onClick={handleBulkDelete}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-50"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+            </svg>
+            Remove
+          </button>
+          <button
+            onClick={() => setCheckedIds(new Set())}
+            className="rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:bg-background hover:text-foreground"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
