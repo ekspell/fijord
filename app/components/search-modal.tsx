@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { MOCK_MEETING_RECORDS, MOCK_MEETING_DETAILS, MOCK_SIGNALS } from "@/lib/mock-data";
+import { MOCK_MEETING_RECORDS, MOCK_MEETING_DETAILS } from "@/lib/mock-data";
 import { MOCK_EPICS } from "@/lib/mock-epics";
 import type { Epic } from "@/lib/mock-epics";
 import type { ProblemsResult } from "@/lib/types";
@@ -87,14 +87,14 @@ function buildSearchIndex(deletedMeetings: Set<string>) {
   const meetings = MOCK_MEETING_RECORDS.filter((m) => !deletedMeetings.has(m.id));
   const details = MOCK_MEETING_DETAILS;
   const epics = MOCK_EPICS;
-  const signals = MOCK_SIGNALS;
 
-  return { meetings, details, epics, signals };
+  return { meetings, details, epics };
 }
 
 function searchDemo(query: string, deletedMeetings: Set<string>, maxPerCategory = 4): SearchResult[] {
   const q = query.toLowerCase().trim();
-  const { meetings, details, epics, signals } = buildSearchIndex(deletedMeetings);
+  const { meetings, details, epics } = buildSearchIndex(deletedMeetings);
+  const signals: import("@/lib/mock-data").Signal[] = []; // demo mode has no signals
   const results: SearchResult[] = [];
 
   // Meetings
@@ -211,6 +211,7 @@ function searchUserData(
   roadmap: RoadmapTicket[],
   result: ProblemsResult | null,
   userEpics: Epic[],
+  signals: import("@/lib/mock-data").Signal[],
   maxPerCategory = 4,
 ): SearchResult[] {
   const q = query.toLowerCase().trim();
@@ -258,6 +259,21 @@ function searchUserData(
         if (prob) snippet = `Problem: ${prob.title}`;
       }
       results.push({ id: "current-meeting", type: "meeting", title: result.meetingTitle, snippet, href: "/meeting/new" });
+    }
+  }
+
+  // Signals
+  let signalCount = 0;
+  for (const s of signals) {
+    if (signalCount >= maxPerCategory) break;
+    const titleMatch = s.title.toLowerCase().includes(q);
+    const tagMatch = s.tags?.some((t) => t.toLowerCase().includes(q));
+    if (titleMatch || tagMatch) {
+      const snippet = tagMatch && !titleMatch
+        ? `Tags: ${s.tags.join(", ")}`
+        : `${s.meetingCount} meetings \u00B7 ${s.quoteCount} quotes`;
+      results.push({ id: s.id, type: "signal", title: s.title, snippet, href: `/signals/${s.id}` });
+      signalCount++;
     }
   }
 
@@ -329,14 +345,14 @@ function searchUserData(
 function search(
   query: string,
   deletedMeetings: Set<string>,
-  opts: { demoMode: boolean; roadmap: RoadmapTicket[]; result: ProblemsResult | null; userEpics: Epic[] },
+  opts: { demoMode: boolean; roadmap: RoadmapTicket[]; result: ProblemsResult | null; userEpics: Epic[]; detectedSignals: import("@/lib/mock-data").Signal[] },
   maxPerCategory = 4,
 ): SearchResult[] {
   if (!query.trim()) return [];
   if (opts.demoMode) {
     return searchDemo(query, deletedMeetings, maxPerCategory);
   }
-  return searchUserData(query, opts.roadmap, opts.result, opts.userEpics, maxPerCategory);
+  return searchUserData(query, opts.roadmap, opts.result, opts.userEpics, opts.detectedSignals, maxPerCategory);
 }
 
 export default function SearchModal({
@@ -349,14 +365,14 @@ export default function SearchModal({
   deletedMeetings: Set<string>;
 }) {
   const router = useRouter();
-  const { roadmap, result, userEpics, demoMode } = useNav();
+  const { roadmap, result, userEpics, demoMode, detectedSignals } = useNav();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const resultListRef = useRef<HTMLDivElement>(null);
 
   const results = useMemo(
-    () => search(query, deletedMeetings, { demoMode, roadmap, result, userEpics }),
+    () => search(query, deletedMeetings, { demoMode, roadmap, result, userEpics, detectedSignals }),
     [query, deletedMeetings, demoMode, roadmap, result, userEpics],
   );
 

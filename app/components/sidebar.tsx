@@ -4,13 +4,12 @@ import { useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
-import { MOCK_SIGNALS } from "@/lib/mock-data";
 import { PAYWALL_ENABLED } from "@/lib/config";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { showToast, demoMode, toggleDemoMode, roadmap, openSearch } = useNav();
+  const { showToast, demoMode, toggleDemoMode, roadmap, openSearch, detectedSignals } = useNav();
   const { user, logout, trialDaysLeft, isPro, tierInfo } = useAuth();
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -39,7 +38,7 @@ export default function Sidebar() {
   const isEvidenceActive = pathname === "/artifacts";
   const isStagingActive = pathname === "/staging";
 
-  const signals = demoMode ? [] : MOCK_SIGNALS;
+  const signals = demoMode ? [] : detectedSignals;
 
   // Dynamic counts from data
   const signalCount = signals.length;

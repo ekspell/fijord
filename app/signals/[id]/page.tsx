@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useNav } from "@/app/nav-context";
-import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
+import { SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Quote } from "@/lib/mock-data";
 import CreateEpicModal from "@/app/components/create-epic-modal";
 
@@ -161,13 +161,13 @@ export default function SignalDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const { showToast, convertSignal, isSignalConverted, convertedSignals } = useNav();
+  const { showToast, convertSignal, isSignalConverted, convertedSignals, detectedSignals } = useNav();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [tags, setTags] = useState<string[] | null>(null);
   const [addingTag, setAddingTag] = useState(false);
   const [newTag, setNewTag] = useState("");
 
-  const signal = MOCK_SIGNALS.find((s) => s.id === id);
+  const signal = detectedSignals.find((s) => s.id === id);
 
   if (!signal) {
     return (

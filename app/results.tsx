@@ -243,7 +243,7 @@ function TicketCard({
 }
 
 export default function Results() {
-  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds, triggerFeedback, saveMeeting } = useNav();
+  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds, triggerFeedback, saveMeeting, detectSignals } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
@@ -617,7 +617,7 @@ export default function Results() {
 
     addToRoadmap(newTickets);
 
-    // Persist this meeting to history
+    // Persist this meeting to history (with problems for signal detection)
     if (data) {
       saveMeeting({
         id: `meeting-${Date.now()}`,
@@ -627,6 +627,11 @@ export default function Results() {
         problemCount: data.problems.length,
         ticketCount: selectedList.length,
         savedAt: new Date().toISOString(),
+        problems: data.problems.map((p) => ({
+          title: p.title,
+          description: p.description,
+          quotes: p.quotes.slice(0, 3).map((q) => ({ text: q.text, speaker: q.speaker })),
+        })),
       });
     }
 
@@ -638,6 +643,9 @@ export default function Results() {
     setSelectedTickets(new Set());
     setActiveTab("Staging");
     trackInteraction();
+
+    // Trigger signal detection in background (don't await — fire and forget)
+    detectSignals().catch(() => {});
   };
 
   const handleTicketUpdate = (updates: Partial<TicketDetail>) => {

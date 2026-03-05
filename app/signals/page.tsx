@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
-import { MOCK_SIGNALS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
+import { SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 import UpgradeModal from "@/app/components/upgrade-modal";
 import { PAYWALL_ENABLED } from "@/lib/config";
@@ -203,12 +203,18 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
 
 export default function SignalsPage() {
   const router = useRouter();
-  const { demoMode, isSignalConverted, convertedSignals } = useNav();
+  const { demoMode, isSignalConverted, convertedSignals, detectedSignals, detectSignals, signalsLoading } = useNav();
   const { isPro } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showConverted, setShowConverted] = useState(false);
   const [visibleCount, setVisibleCount] = useState(7);
-  const allSignals = demoMode ? [] : MOCK_SIGNALS;
+
+  // Refresh signal detection when visiting the page
+  useEffect(() => {
+    if (!demoMode) detectSignals().catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const allSignals = demoMode ? [] : detectedSignals;
   const convertedCount = allSignals.filter((s) => isSignalConverted(s.id)).length;
   const filteredSignals = showConverted
     ? allSignals
@@ -309,7 +315,15 @@ export default function SignalsPage() {
       )}
 
       {/* Signal cards */}
-      {rankedSignals.length === 0 && allSignals.length === 0 ? (
+      {signalsLoading && allSignals.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+          <div className="mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-border border-t-accent" />
+          <p className="text-[15px] font-semibold text-foreground">Detecting patterns...</p>
+          <p className="mt-1.5 text-[13px] text-muted">
+            Analyzing problems across your meetings for recurring themes.
+          </p>
+        </div>
+      ) : rankedSignals.length === 0 && allSignals.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-background">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9C978E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -318,7 +332,7 @@ export default function SignalsPage() {
           </div>
           <p className="text-[15px] font-semibold text-foreground">No signals detected yet</p>
           <p className="mt-1.5 text-[13px] text-muted">
-            Process a few meetings and Fijord will find patterns across your conversations.
+            Process at least two meetings and Fijord will find patterns across your conversations.
           </p>
           <button
             onClick={() => router.push("/meeting/new?from=signals")}

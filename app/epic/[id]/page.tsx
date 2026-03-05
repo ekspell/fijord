@@ -14,7 +14,6 @@ import {
 } from "@/lib/mock-epics";
 import type { EpicTicket, EpicBrief, ExperienceStep } from "@/lib/mock-epics";
 import {
-  MOCK_SIGNALS,
   MOCK_MEETING_RECORDS,
   MOCK_MEETING_DETAILS,
 } from "@/lib/mock-data";
@@ -25,9 +24,10 @@ const TABS = ["Discovery", "Scope", "Roadmap", "Brief"] as const;
 
 function DiscoveryTab({ epicId }: { epicId: string }) {
   const router = useRouter();
+  const { detectedSignals } = useNav();
 
   // Find signals linked to this epic
-  const linkedSignals = MOCK_SIGNALS.filter((s) => s.epicId === epicId);
+  const linkedSignals = detectedSignals.filter((s) => s.epicId === epicId);
 
   // Find meetings linked to this epic
   const linkedMeetings = MOCK_MEETING_RECORDS.filter((m) =>

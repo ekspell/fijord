@@ -40,8 +40,15 @@ const BRIEF_KEY = "fjord-brief";
 const USER_EPICS_KEY = "fjord-user-epics";
 const DELETED_MEETINGS_KEY = "fjord-deleted-meetings";
 const SAVED_MEETINGS_KEY = "fjord-saved-meetings";
+const DETECTED_SIGNALS_KEY = "fjord-signals";
 
 export type ConvertedSignalInfo = { epicId: string; epicTitle: string };
+
+export type SavedMeetingProblem = {
+  title: string;
+  description: string;
+  quotes: { text: string; speaker: string }[];
+};
 
 export type SavedMeeting = {
   id: string;
@@ -51,6 +58,7 @@ export type SavedMeeting = {
   problemCount: number;
   ticketCount: number;
   savedAt: string;
+  problems?: SavedMeetingProblem[];
 };
 
 function loadSavedMeetings(): SavedMeeting[] {
@@ -66,6 +74,21 @@ function loadSavedMeetings(): SavedMeeting[] {
 function persistSavedMeetings(meetings: SavedMeeting[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(SAVED_MEETINGS_KEY, JSON.stringify(meetings));
+}
+
+function loadDetectedSignals(): import("@/lib/mock-data").Signal[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(DETECTED_SIGNALS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistDetectedSignals(signals: import("@/lib/mock-data").Signal[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DETECTED_SIGNALS_KEY, JSON.stringify(signals));
 }
 
 function loadConvertedSignals(): Record<string, ConvertedSignalInfo> {
@@ -224,6 +247,9 @@ type NavContextType = {
   addEpic: (epic: Epic) => void;
   savedMeetings: SavedMeeting[];
   saveMeeting: (meeting: SavedMeeting) => void;
+  detectedSignals: import("@/lib/mock-data").Signal[];
+  detectSignals: () => Promise<void>;
+  signalsLoading: boolean;
   deletedMeetings: Set<string>;
   deleteMeeting: (id: string) => void;
   clearSession: () => void;
@@ -275,6 +301,9 @@ const NavContext = createContext<NavContextType>({
   addEpic: () => {},
   savedMeetings: [],
   saveMeeting: () => {},
+  detectedSignals: [],
+  detectSignals: async () => {},
+  signalsLoading: false,
   deletedMeetings: new Set(),
   deleteMeeting: () => {},
   clearSession: () => {},
@@ -298,6 +327,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [brief, setBriefState] = useState<EpicBrief | null>(null);
   const [userEpics, setUserEpics] = useState<Epic[]>([]);
   const [savedMeetings, setSavedMeetings] = useState<SavedMeeting[]>([]);
+  const [detectedSignals, setDetectedSignals] = useState<import("@/lib/mock-data").Signal[]>([]);
+  const [signalsLoading, setSignalsLoading] = useState(false);
   const [deletedMeetings, setDeletedMeetings] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -324,6 +355,50 @@ export function NavProvider({ children }: { children: ReactNode }) {
       persistSavedMeetings(next);
       return next;
     });
+  }, []);
+
+  const detectSignals = useCallback(async () => {
+    // Read latest saved meetings from state via a ref-like approach
+    const currentMeetings = loadSavedMeetings();
+    if (currentMeetings.length < 2) return;
+
+    // Only send meetings that have problems data
+    const meetingsWithProblems = currentMeetings.filter((m) => m.problems && m.problems.length > 0);
+    if (meetingsWithProblems.length < 2) return;
+
+    setSignalsLoading(true);
+    try {
+      const payload = meetingsWithProblems.map((m) => ({
+        id: m.id,
+        title: m.title,
+        date: m.date,
+        problems: (m.problems || []).map((p) => ({
+          meetingId: m.id,
+          meetingTitle: m.title,
+          meetingDate: m.date,
+          problemTitle: p.title,
+          problemDescription: p.description,
+          quotes: p.quotes,
+        })),
+      }));
+
+      const res = await fetch("/api/detect-signals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ meetings: payload }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const signals = data.signals || [];
+        setDetectedSignals(signals);
+        persistDetectedSignals(signals);
+      }
+    } catch (err) {
+      console.error("Signal detection failed:", err);
+    } finally {
+      setSignalsLoading(false);
+    }
   }, []);
 
   const deleteMeeting = useCallback((id: string) => {
@@ -462,6 +537,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedDeletedMeetings.size > 0) setDeletedMeetings(savedDeletedMeetings);
     const savedMeetingsList = loadSavedMeetings();
     if (savedMeetingsList.length > 0) setSavedMeetings(savedMeetingsList);
+    const savedSignals = loadDetectedSignals();
+    if (savedSignals.length > 0) setDetectedSignals(savedSignals);
 
     // Restore session data
     try {
@@ -584,6 +661,9 @@ export function NavProvider({ children }: { children: ReactNode }) {
         addEpic,
         savedMeetings,
         saveMeeting,
+        detectedSignals,
+        detectSignals,
+        signalsLoading,
         deletedMeetings,
         deleteMeeting,
         clearSession,

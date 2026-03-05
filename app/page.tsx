@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
-import { MOCK_SIGNALS, MOCK_MEETING_RECORDS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
+import { MOCK_MEETING_RECORDS, SIGNAL_STATUS_STYLES } from "@/lib/mock-data";
 import type { Signal } from "@/lib/mock-data";
 import type { Epic } from "@/lib/mock-epics";
 import Landing from "@/app/landing";
@@ -294,7 +294,7 @@ function SectionHeader({
 /* ─── Home Dashboard ─── */
 
 export default function Home() {
-  const { demoMode, isSignalConverted, result, solutions, deletedMeetings, deleteMeeting, savedMeetings, clearSession, showToast, setActiveTab } = useNav();
+  const { demoMode, isSignalConverted, result, solutions, deletedMeetings, deleteMeeting, savedMeetings, detectedSignals, clearSession, showToast, setActiveTab } = useNav();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -316,7 +316,7 @@ export default function Home() {
   if (!user) return <Landing onEnter={() => router.push("/signup")} />;
   const greeting = getGreeting();
   const userName = user?.name?.split(" ")[0] ?? "Kate";
-  const signals = demoMode ? [] : MOCK_SIGNALS.filter((s) => !isSignalConverted(s.id));
+  const signals = demoMode ? [] : detectedSignals.filter((s) => !isSignalConverted(s.id));
   const epics = demoMode ? [] : MOCK_EPICS;
   const mockMeetings = demoMode ? [] : MOCK_MEETING_RECORDS.filter((m) => !deletedMeetings.has(m.id));
   const hasProcessed = !!(result && solutions.length > 0);

@@ -9,7 +9,6 @@ import { PAYWALL_ENABLED } from "@/lib/config";
 import {
   MOCK_MEETING_RECORDS,
   MOCK_MEETING_DETAILS,
-  MOCK_SIGNALS,
 } from "@/lib/mock-data";
 import { MOCK_EPICS, STATUS_STYLES } from "@/lib/mock-epics";
 import type { MeetingProblem, TranscriptLine } from "@/lib/mock-data";
@@ -309,7 +308,7 @@ export default function MeetingDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const { showToast, deleteMeeting, deletedMeetings } = useNav();
+  const { showToast, deleteMeeting, deletedMeetings, detectedSignals } = useNav();
   const { isPro } = useAuth();
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Discovery");
   const [showTranscript, setShowTranscript] = useState(false);
@@ -357,7 +356,7 @@ export default function MeetingDetailPage() {
   );
 
   // Find signals this meeting contributes to
-  const contributingSignals = MOCK_SIGNALS.filter(
+  const contributingSignals = detectedSignals.filter(
     (signal) =>
       signal.quotes?.some((q) => q.meetingId === id)
   ).map((signal) => ({
