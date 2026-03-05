@@ -299,8 +299,32 @@ export default function SignalDetailPage() {
               >
                 {status.label}
               </span>
+              {!converted && signal.readyForEpic && signal.status !== "project" && (
+                <span
+                  className="shrink-0 flex items-center gap-1.5 rounded-md font-medium"
+                  style={{
+                    fontSize: 12,
+                    padding: "4px 10px",
+                    background: "#E8F0E8",
+                    color: "#3D5A3D",
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                  Ready for epic
+                </span>
+              )}
             </div>
           </div>
+
+          {/* Description */}
+          {signal.description && (
+            <p className="mt-2 text-muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
+              {signal.description}
+            </p>
+          )}
 
           {/* CTA: Create Epic (not already project/converted) */}
           {!converted && signal.status !== "project" && (
@@ -392,9 +416,21 @@ export default function SignalDetailPage() {
         </div>
         <div className="flex items-center gap-2" style={{ fontSize: 14 }}>
           <span className="font-medium text-foreground">
+            {signal.peopleCount}
+          </span>
+          <span className="text-muted">people</span>
+        </div>
+        <div className="flex items-center gap-2" style={{ fontSize: 14 }}>
+          <span className="font-medium text-foreground">
             {signal.quoteCount}
           </span>
           <span className="text-muted">quotes</span>
+        </div>
+        <div className="flex items-center gap-2" style={{ fontSize: 14 }}>
+          <span className="font-medium text-foreground">
+            {signal.confidence}%
+          </span>
+          <span className="text-muted">confidence</span>
         </div>
         {signal.firstDetected && (
           <div className="flex items-center gap-2" style={{ fontSize: 14 }}>
@@ -544,7 +580,7 @@ export default function SignalDetailPage() {
       {showCreateModal && (
         <CreateEpicModal
           defaultTitle={signal.title}
-          defaultDescription={`Signal detected across ${signal.meetingCount} meetings with ${signal.quoteCount} supporting quotes (${signal.strength}% strength). Tags: ${signal.tags.join(", ")}.`}
+          defaultDescription={signal.description ? `${signal.description}\n\nDetected across ${signal.meetingCount} meetings from ${signal.peopleCount} people with ${signal.quoteCount} quotes (${signal.confidence}% confidence). Tags: ${signal.tags.join(", ")}.` : `Signal detected across ${signal.meetingCount} meetings from ${signal.peopleCount} people with ${signal.quoteCount} supporting quotes (${signal.confidence}% confidence). Tags: ${signal.tags.join(", ")}.`}
           onClose={() => setShowCreateModal(false)}
           onCreated={(epicId, epicTitle) => {
             convertSignal(signal.id, epicId, epicTitle);

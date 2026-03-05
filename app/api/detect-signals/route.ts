@@ -17,7 +17,7 @@ const SYSTEM_PROMPT = `You are Fijord, a product management AI that detects recu
 You receive problems extracted from multiple meetings. Your job:
 1. Find RECURRING PATTERNS — the same pain point, theme, or need mentioned across 2+ meetings
 2. Cluster related problems together into signals
-3. Assess signal strength based on frequency and severity
+3. Assess signal strength, confidence, and unique people count
 
 Rules:
 - A signal must appear in at least 2 meetings. Problems from a single meeting are NOT signals.
@@ -25,7 +25,9 @@ Rules:
 - Merge near-duplicates (e.g. "search is broken" and "search returns bad results" = one signal)
 - Pick the most representative quotes from each meeting for that signal
 - Strength = (meetings with this signal / total meetings) * 100, clamped to 20-95
-- Assign severity: "severe" if blocking/revenue-impacting, "moderate" if significant friction, "minor" if nice-to-have
+- Assign severity based on pain language: "severe" if blocking/revenue-impacting, "moderate" if significant friction, "minor" if nice-to-have
+- confidence = your certainty (0-100) that this is a genuine recurring pattern, not a coincidence. Consider: how similar are the problems? How specific are the quotes? Would a PM agree this is a pattern?
+- peopleCount = number of UNIQUE speakers/people who mentioned this problem (count distinct speaker names across all linked quotes)
 - Tags should be 2-4 short keywords describing the problem space
 - Typically 1-5 signals. Don't force patterns that don't exist.
 - If no patterns span multiple meetings, return an empty signals array.
@@ -40,6 +42,8 @@ Output valid JSON only, no other text:
       "description": "string — 1-2 sentence description of the recurring pattern",
       "severity": "severe | moderate | minor",
       "meetingCount": number,
+      "peopleCount": number,
+      "confidence": number,
       "tags": ["string", "string"],
       "linkedProblems": [
         {
@@ -132,6 +136,16 @@ export async function POST(request: NextRequest) {
       const meetingCount = s.meetingCount || (s.linkedProblems || []).length;
       const strength = Math.min(95, Math.max(20, Math.round((meetingCount / totalMeetings) * 100)));
 
+      // Count unique speakers from quotes
+      const uniqueSpeakers = new Set(quotes.map((q: any) => q.speaker?.toLowerCase().trim()).filter(Boolean));
+      const peopleCount = s.peopleCount || uniqueSpeakers.size || meetingCount;
+
+      // AI confidence, clamped to 30-100
+      const confidence = Math.min(100, Math.max(30, s.confidence || 50));
+
+      // Epic readiness: peopleCount >= 3 AND confidence >= 80
+      const readyForEpic = peopleCount >= 3 && confidence >= 80;
+
       return {
         id: s.id || `signal-${i}`,
         title: s.title,
@@ -140,6 +154,9 @@ export async function POST(request: NextRequest) {
         totalMeetings,
         quoteCount: quotes.length,
         strength,
+        peopleCount,
+        confidence,
+        readyForEpic,
         tags: s.tags || [],
         status: strength >= 60 ? "stable" : "new",
         color: SIGNAL_COLORS[i % SIGNAL_COLORS.length],
@@ -148,14 +165,14 @@ export async function POST(request: NextRequest) {
         timeline: [
           {
             label: "Signal detected",
-            description: `Pattern found across ${meetingCount} meetings`,
+            description: `Pattern found across ${meetingCount} meetings from ${peopleCount} people`,
             date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
           },
         ],
       };
     });
 
-    return NextResponse.json({ signals });
+    return NextResponse.json({ signals, detectedAt: Date.now() });
   } catch (error) {
     console.error("Signal detection error:", error);
     return NextResponse.json({ signals: [] });

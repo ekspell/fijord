@@ -41,6 +41,8 @@ const USER_EPICS_KEY = "fjord-user-epics";
 const DELETED_MEETINGS_KEY = "fjord-deleted-meetings";
 const SAVED_MEETINGS_KEY = "fjord-saved-meetings";
 const DETECTED_SIGNALS_KEY = "fjord-signals";
+const SIGNALS_DETECTED_AT_KEY = "fjord-signals-detected-at";
+const SIGNALS_STALE_MS = 5 * 60 * 1000; // 5 minutes
 
 export type ConvertedSignalInfo = { epicId: string; epicTitle: string };
 
@@ -249,6 +251,7 @@ type NavContextType = {
   saveMeeting: (meeting: SavedMeeting) => void;
   detectedSignals: import("@/lib/mock-data").Signal[];
   detectSignals: () => Promise<void>;
+  detectSignalsIfStale: () => Promise<void>;
   signalsLoading: boolean;
   deletedMeetings: Set<string>;
   deleteMeeting: (id: string) => void;
@@ -303,6 +306,7 @@ const NavContext = createContext<NavContextType>({
   saveMeeting: () => {},
   detectedSignals: [],
   detectSignals: async () => {},
+  detectSignalsIfStale: async () => {},
   signalsLoading: false,
   deletedMeetings: new Set(),
   deleteMeeting: () => {},
@@ -329,6 +333,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [savedMeetings, setSavedMeetings] = useState<SavedMeeting[]>([]);
   const [detectedSignals, setDetectedSignals] = useState<import("@/lib/mock-data").Signal[]>([]);
   const [signalsLoading, setSignalsLoading] = useState(false);
+  const [signalsDetectedAt, setSignalsDetectedAt] = useState<number>(0);
   const [deletedMeetings, setDeletedMeetings] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -393,6 +398,11 @@ export function NavProvider({ children }: { children: ReactNode }) {
         const signals = data.signals || [];
         setDetectedSignals(signals);
         persistDetectedSignals(signals);
+        const now = Date.now();
+        setSignalsDetectedAt(now);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(SIGNALS_DETECTED_AT_KEY, String(now));
+        }
       }
     } catch (err) {
       console.error("Signal detection failed:", err);
@@ -400,6 +410,13 @@ export function NavProvider({ children }: { children: ReactNode }) {
       setSignalsLoading(false);
     }
   }, []);
+
+  const detectSignalsIfStale = useCallback(async () => {
+    const elapsed = Date.now() - signalsDetectedAt;
+    if (elapsed > SIGNALS_STALE_MS) {
+      await detectSignals();
+    }
+  }, [signalsDetectedAt, detectSignals]);
 
   const deleteMeeting = useCallback((id: string) => {
     setDeletedMeetings((prev) => {
@@ -539,6 +556,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedMeetingsList.length > 0) setSavedMeetings(savedMeetingsList);
     const savedSignals = loadDetectedSignals();
     if (savedSignals.length > 0) setDetectedSignals(savedSignals);
+    const savedDetectedAt = localStorage.getItem(SIGNALS_DETECTED_AT_KEY);
+    if (savedDetectedAt) setSignalsDetectedAt(Number(savedDetectedAt));
 
     // Restore session data
     try {
@@ -663,6 +682,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         saveMeeting,
         detectedSignals,
         detectSignals,
+        detectSignalsIfStale,
         signalsLoading,
         deletedMeetings,
         deleteMeeting,

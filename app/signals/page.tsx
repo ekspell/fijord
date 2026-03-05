@@ -18,6 +18,7 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
   const showSuggestion =
     !converted && signal.status === "stable" && signal.strength >= 50;
   const sev = SEVERITY_DISPLAY[detectSignalSeverity(signal)];
+  const showReadyBadge = !converted && signal.readyForEpic && signal.status !== "project";
 
   return (
     <div
@@ -65,6 +66,23 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
             <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: sev.dot }} />
             {sev.label}
           </span>
+          {showReadyBadge && (
+            <span
+              className="shrink-0 flex items-center gap-1 rounded-md font-medium"
+              style={{
+                fontSize: 11,
+                padding: "2px 8px",
+                background: "#E8F0E8",
+                color: "#3D5A3D",
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              Ready for epic
+            </span>
+          )}
         </div>
         {signal.recentDelta && (
           <span className="shrink-0 text-muted" style={{ fontSize: 13 }}>
@@ -72,6 +90,13 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
           </span>
         )}
       </div>
+
+      {/* Description */}
+      {signal.description && (
+        <p className="mb-3 text-muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
+          {signal.description}
+        </p>
+      )}
 
       {/* Metrics + tags row */}
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -106,6 +131,23 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
             strokeLinejoin="round"
             className="shrink-0"
           >
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          {signal.peopleCount} {signal.peopleCount === 1 ? "person" : "people"}
+        </div>
+        <div className="flex items-center gap-1.5 text-muted" style={{ fontSize: 13 }}>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="shrink-0"
+          >
             <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
           </svg>
           {signal.quoteCount} quotes
@@ -123,14 +165,15 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
         </div>
       </div>
 
-      {/* Signal strength */}
+      {/* Signal strength + confidence */}
       <div className="mb-4">
         <div className="mb-1 flex items-center justify-between">
           <span className="text-muted" style={{ fontSize: 12 }}>
             Signal strength
           </span>
-          <span className="text-muted" style={{ fontSize: 12 }}>
-            {signal.strength}%
+          <span className="flex items-center gap-3 text-muted" style={{ fontSize: 12 }}>
+            <span>{signal.confidence}% confidence</span>
+            <span>{signal.strength}% strength</span>
           </span>
         </div>
         <div
@@ -203,15 +246,15 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
 
 export default function SignalsPage() {
   const router = useRouter();
-  const { demoMode, isSignalConverted, convertedSignals, detectedSignals, detectSignals, signalsLoading } = useNav();
+  const { demoMode, isSignalConverted, convertedSignals, detectedSignals, detectSignalsIfStale, signalsLoading } = useNav();
   const { isPro } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showConverted, setShowConverted] = useState(false);
   const [visibleCount, setVisibleCount] = useState(7);
 
-  // Refresh signal detection when visiting the page
+  // Refresh signal detection when visiting the page (if data is stale >5 min)
   useEffect(() => {
-    if (!demoMode) detectSignals().catch(() => {});
+    if (!demoMode) detectSignalsIfStale().catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allSignals = demoMode ? [] : detectedSignals;

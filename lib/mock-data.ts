@@ -16,10 +16,14 @@ export type TimelineEvent = {
 export type Signal = {
   id: string;
   title: string;
+  description?: string;
   meetingCount: number;
   totalMeetings: number;
   quoteCount: number;
   strength: number; // 0-100
+  peopleCount: number; // unique speakers who mentioned this pattern
+  confidence: number; // 0-100, AI certainty this is a real pattern
+  readyForEpic: boolean; // true if peopleCount >= 3 AND confidence >= 80
   tags: string[];
   status: "new" | "stable" | "project" | "converted";
   color: string; // dot + progress bar color
@@ -45,10 +49,14 @@ export const MOCK_SIGNALS: Signal[] = [
   {
     id: "onboarding-confusion-signal",
     title: "Onboarding confusion",
+    description: "Users consistently struggle with the initial onboarding flow, encountering blank screens, confusing role labels, and unclear next steps.",
     meetingCount: 5,
     totalMeetings: 6,
     quoteCount: 14,
     strength: 83,
+    peopleCount: 4,
+    confidence: 92,
+    readyForEpic: true,
     tags: ["roles", "empty-state", "invite-flow"],
     status: "project",
     color: "#3D5A3D",
@@ -190,10 +198,14 @@ export const MOCK_SIGNALS: Signal[] = [
   {
     id: "ai-output-trust-signal",
     title: "AI output trust",
+    description: "Multiple users express distrust in AI-generated outputs due to lack of explainability and confidence indicators.",
     meetingCount: 3,
     totalMeetings: 6,
     quoteCount: 7,
     strength: 50,
+    peopleCount: 2,
+    confidence: 68,
+    readyForEpic: false,
     tags: ["confidence-score", "explainability"],
     status: "project",
     color: "#3B82F6",
@@ -279,10 +291,14 @@ export const MOCK_SIGNALS: Signal[] = [
   {
     id: "pricing-tier-confusion",
     title: "Pricing tier confusion",
+    description: "Prospects and customers consistently struggle to understand pricing tiers, with the comparison page causing confusion and drop-offs.",
     meetingCount: 3,
     totalMeetings: 6,
     quoteCount: 5,
     strength: 50,
+    peopleCount: 3,
+    confidence: 85,
+    readyForEpic: true,
     tags: ["pricing", "plan-comparison"],
     status: "stable",
     color: "#D97706",
@@ -345,10 +361,14 @@ export const MOCK_SIGNALS: Signal[] = [
   {
     id: "mobile-experience-gaps",
     title: "Mobile experience gaps",
+    description: "Users report poor mobile experiences, but the pattern is still emerging with limited evidence.",
     meetingCount: 2,
     totalMeetings: 6,
     quoteCount: 3,
     strength: 33,
+    peopleCount: 2,
+    confidence: 45,
+    readyForEpic: false,
     tags: ["mobile", "responsive"],
     status: "new",
     color: "#3B82F6",

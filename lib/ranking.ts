@@ -100,11 +100,16 @@ export function detectSignalSeverity(signal: Signal): Severity {
 
 export function rankSignals(signals: Signal[]): Signal[] {
   return [...signals].sort((a, b) => {
+    // Epic-ready signals always sort first
+    if (a.readyForEpic !== b.readyForEpic) return a.readyForEpic ? -1 : 1;
     const sevDiff =
       severityScore(detectSignalSeverity(b)) -
       severityScore(detectSignalSeverity(a));
     if (sevDiff !== 0) return sevDiff;
-    return b.strength - a.strength; // secondary: signal strength
+    // Then by confidence, then strength
+    const confDiff = (b.confidence || 0) - (a.confidence || 0);
+    if (confDiff !== 0) return confDiff;
+    return b.strength - a.strength;
   });
 }
 
