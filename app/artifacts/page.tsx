@@ -8,7 +8,7 @@ import { MOCK_EPICS } from "@/lib/mock-epics";
 
 export default function EvidencePage() {
   const router = useRouter();
-  const { demoMode, result, solutions, deletedMeetings, deleteMeeting, clearSession, showToast } = useNav();
+  const { demoMode, result, solutions, deletedMeetings, deleteMeeting, savedMeetings, clearSession, showToast } = useNav();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -38,8 +38,23 @@ export default function EvidencePage() {
     ticketCount: solutions.reduce((s, sol) => s + sol.workItems.length, 0),
   } : null;
 
+  const historicalMeetings = savedMeetings
+    .filter((m) => !deletedMeetings.has(m.id))
+    .map((m) => ({
+      id: m.id,
+      title: m.title,
+      participant: m.participants,
+      date: m.date,
+      time: "",
+      color: "#3D5A3D",
+      epicIds: [] as string[],
+      problemCount: m.problemCount,
+      ticketCount: m.ticketCount,
+    }));
+
   const meetings = [
     ...(processedMeeting ? [processedMeeting] : []),
+    ...historicalMeetings,
     ...mockMeetings,
   ];
 

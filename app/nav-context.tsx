@@ -39,8 +39,34 @@ const STAGING_OVERRIDES_KEY = "fjord-staging-overrides";
 const BRIEF_KEY = "fjord-brief";
 const USER_EPICS_KEY = "fjord-user-epics";
 const DELETED_MEETINGS_KEY = "fjord-deleted-meetings";
+const SAVED_MEETINGS_KEY = "fjord-saved-meetings";
 
 export type ConvertedSignalInfo = { epicId: string; epicTitle: string };
+
+export type SavedMeeting = {
+  id: string;
+  title: string;
+  participants: string;
+  date: string;
+  problemCount: number;
+  ticketCount: number;
+  savedAt: string;
+};
+
+function loadSavedMeetings(): SavedMeeting[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(SAVED_MEETINGS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedMeetings(meetings: SavedMeeting[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SAVED_MEETINGS_KEY, JSON.stringify(meetings));
+}
 
 function loadConvertedSignals(): Record<string, ConvertedSignalInfo> {
   if (typeof window === "undefined") return {};
@@ -170,6 +196,7 @@ type NavContextType = {
   setRoadmap: (items: RoadmapTicket[]) => void;
   addToRoadmap: (items: RoadmapTicket[]) => void;
   updateRoadmapTicket: (id: string, updates: Partial<RoadmapTicket>) => void;
+  removeFromRoadmap: (id: string) => void;
   toast: { msg: string; action?: { label: string; onClick: () => void } } | null;
   showToast: (msg: string, action?: { label: string; onClick: () => void }) => void;
   linearApiKey: string;
@@ -195,6 +222,8 @@ type NavContextType = {
   setBrief: (b: EpicBrief | null) => void;
   userEpics: Epic[];
   addEpic: (epic: Epic) => void;
+  savedMeetings: SavedMeeting[];
+  saveMeeting: (meeting: SavedMeeting) => void;
   deletedMeetings: Set<string>;
   deleteMeeting: (id: string) => void;
   clearSession: () => void;
@@ -218,6 +247,7 @@ const NavContext = createContext<NavContextType>({
   setRoadmap: () => {},
   addToRoadmap: () => {},
   updateRoadmapTicket: () => {},
+  removeFromRoadmap: () => {},
   toast: null,
   showToast: () => {},
   linearApiKey: "",
@@ -243,6 +273,8 @@ const NavContext = createContext<NavContextType>({
   setBrief: () => {},
   userEpics: [],
   addEpic: () => {},
+  savedMeetings: [],
+  saveMeeting: () => {},
   deletedMeetings: new Set(),
   deleteMeeting: () => {},
   clearSession: () => {},
@@ -265,6 +297,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [stagingOverrides, setStagingOverrides] = useState<Record<string, RoadmapLane>>({});
   const [brief, setBriefState] = useState<EpicBrief | null>(null);
   const [userEpics, setUserEpics] = useState<Epic[]>([]);
+  const [savedMeetings, setSavedMeetings] = useState<SavedMeeting[]>([]);
   const [deletedMeetings, setDeletedMeetings] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -283,11 +316,27 @@ export function NavProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const saveMeeting = useCallback((meeting: SavedMeeting) => {
+    setSavedMeetings((prev) => {
+      // Don't duplicate — update if same id exists
+      const filtered = prev.filter((m) => m.id !== meeting.id);
+      const next = [meeting, ...filtered];
+      persistSavedMeetings(next);
+      return next;
+    });
+  }, []);
+
   const deleteMeeting = useCallback((id: string) => {
     setDeletedMeetings((prev) => {
       const next = new Set(prev);
       next.add(id);
       persistDeletedMeetings(next);
+      return next;
+    });
+    // Also remove from saved meetings
+    setSavedMeetings((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      persistSavedMeetings(next);
       return next;
     });
   }, []);
@@ -411,6 +460,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (savedUserEpics.length > 0) setUserEpics(savedUserEpics);
     const savedDeletedMeetings = loadDeletedMeetings();
     if (savedDeletedMeetings.size > 0) setDeletedMeetings(savedDeletedMeetings);
+    const savedMeetingsList = loadSavedMeetings();
+    if (savedMeetingsList.length > 0) setSavedMeetings(savedMeetingsList);
 
     // Restore session data
     try {
@@ -480,6 +531,14 @@ export function NavProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const removeFromRoadmap = useCallback((id: string) => {
+    setRoadmapState((prev) => {
+      const filtered = prev.filter((t) => t.id !== id);
+      persistRoadmap(filtered);
+      return filtered;
+    });
+  }, []);
+
   return (
     <NavContext.Provider
       value={{
@@ -497,6 +556,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         setRoadmap,
         addToRoadmap,
         updateRoadmapTicket,
+        removeFromRoadmap,
         toast,
         showToast,
         linearApiKey,
@@ -522,6 +582,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
         setBrief,
         userEpics,
         addEpic,
+        savedMeetings,
+        saveMeeting,
         deletedMeetings,
         deleteMeeting,
         clearSession,

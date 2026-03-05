@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useRef, useState, useMemo } from "react";
+import { Suspense, useRef, useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useNav, RoadmapTicket } from "@/app/nav-context";
 import {
@@ -53,13 +53,28 @@ function StagingCard({
   ticket,
   onDragStart,
   onClick,
+  onDelete,
 }: {
   ticket: StagingTicket;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
+  onDelete: (id: string) => void;
 }) {
   const ps = PRIORITY_STYLES[ticket.priority];
   const isFromMeeting = ticket.epicId === "meeting-staging";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
 
   return (
     <div
@@ -68,14 +83,50 @@ function StagingCard({
       onClick={onClick}
       className="group/card relative mb-3 cursor-grab rounded-xl border border-border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] active:cursor-grabbing active:shadow-lg"
     >
-      <div className="mb-2 flex items-center gap-2">
-        <span className="text-[11px] font-semibold text-muted">{ticket.id}</span>
-        <span
-          className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
-          style={{ backgroundColor: ps.bg, color: ps.text }}
-        >
-          {ps.label}
-        </span>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-muted">{ticket.id}</span>
+          <span
+            className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+            style={{ backgroundColor: ps.bg, color: ps.text }}
+          >
+            {ps.label}
+          </span>
+        </div>
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((prev) => !prev);
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-black/5 group-hover/card:opacity-100"
+            aria-label="Ticket actions"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="3" r="1.25" fill="#9C978E" />
+              <circle cx="8" cy="8" r="1.25" fill="#9C978E" />
+              <circle cx="8" cy="13" r="1.25" fill="#9C978E" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-7 z-50 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onDelete(ticket.id);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <h3 className="text-sm font-medium leading-snug text-foreground">
         {ticket.title}
@@ -166,7 +217,7 @@ function StagingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const { demoMode, roadmap, stagingOverrides, setStagingLane, updateRoadmapTicket } = useNav();
+  const { demoMode, roadmap, stagingOverrides, setStagingLane, updateRoadmapTicket, removeFromRoadmap, showToast } = useNav();
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<StagingTicket | null>(null);
   const draggedId = useRef<string | null>(null);
@@ -238,6 +289,11 @@ function StagingContent() {
     setDragOverCol(null);
     draggedId.current = null;
   };
+
+  const handleDelete = useCallback((id: string) => {
+    removeFromRoadmap(id);
+    showToast("Ticket removed from staging");
+  }, [removeFromRoadmap, showToast]);
 
   // Ticket detail view
   if (selectedTicket) {
@@ -381,6 +437,7 @@ function StagingContent() {
                 ticket={ticket}
                 onDragStart={handleDragStart}
                 onClick={() => setSelectedTicket(ticket)}
+                onDelete={handleDelete}
               />
             ))}
             {col.tickets.length === 0 && (

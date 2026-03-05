@@ -121,11 +121,18 @@ function Discovery() {
     firefliesApiKey,
     setFirefliesApiKey,
     demoMode,
+    clearSession,
   } = useNav();
 
-  // Reset to input form when navigating to this page fresh (no processed result)
+  // When arriving from another page (e.g. home), start a fresh session
+  // When navigating back without `from`, preserve the existing result
   useEffect(() => {
-    if (!result) setActiveTab("Discovery");
+    if (from) {
+      clearSession();
+      setActiveTab("Discovery");
+    } else if (!result) {
+      setActiveTab("Discovery");
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [steps, setSteps] = useState<Step[]>([

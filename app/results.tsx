@@ -243,7 +243,7 @@ function TicketCard({
 }
 
 export default function Results() {
-  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds, triggerFeedback } = useNav();
+  const { result: data, solutions, transcript, processingTime, setActiveTab, addToRoadmap, showToast, linearApiKey, setLinearApiKey, jiraCreds, setJiraCreds, triggerFeedback, saveMeeting } = useNav();
   const [ticketContext, setTicketContext] = useState<TicketContext | null>(null);
   const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
@@ -259,7 +259,12 @@ export default function Results() {
   const [showJiraConnect, setShowJiraConnect] = useState(false);
   const [showJiraSend, setShowJiraSend] = useState(false);
   const [preparingJira, setPreparingJira] = useState<{ done: number; total: number } | null>(null);
-  const [preparingStaging, setPreparingStaging] = useState<{ done: number; total: number } | null>(null);
+  const [preparingStaging, setPreparingStaging] = useState<{
+    phase: "generating" | "saving" | "done";
+    done: number;
+    total: number;
+    ticketNames: string[];
+  } | null>(null);
   const [shareUrls, setShareUrls] = useState<Map<string, string>>(new Map());
   const [visibleCount, setVisibleCount] = useState(7);
   const interactionCountRef = useRef(0);
@@ -545,7 +550,7 @@ export default function Results() {
     const missing = selectedList.filter((t) => !generatedDetails.has(t.item.id));
 
     if (missing.length > 0) {
-      setPreparingStaging({ done: 0, total: missing.length });
+      setPreparingStaging({ phase: "generating", done: 0, total: missing.length, ticketNames: [] });
 
       let done = 0;
       for (let i = 0; i < missing.length; i += 3) {
@@ -567,18 +572,26 @@ export default function Results() {
           })
         );
 
+        const newNames: string[] = [];
         results.forEach((r) => {
           if (r.status === "fulfilled") {
             setGeneratedDetails((prev) => new Map(prev).set(r.value.id, r.value));
+            newNames.push(r.value.title || r.value.id);
           }
         });
 
         done += batch.length;
-        setPreparingStaging({ done, total: missing.length });
+        setPreparingStaging((prev) => ({
+          phase: "generating",
+          done,
+          total: missing.length,
+          ticketNames: [...(prev?.ticketNames || []), ...newNames],
+        }));
       }
-
-      setPreparingStaging(null);
     }
+
+    // Show saving phase briefly
+    setPreparingStaging({ phase: "saving", done: selectedList.length, total: selectedList.length, ticketNames: [] });
 
     // Build roadmap tickets with complete details
     const newTickets: RoadmapTicket[] = [];
@@ -603,6 +616,25 @@ export default function Results() {
     });
 
     addToRoadmap(newTickets);
+
+    // Persist this meeting to history
+    if (data) {
+      saveMeeting({
+        id: `meeting-${Date.now()}`,
+        title: data.meetingTitle,
+        participants: data.participants,
+        date: data.date,
+        problemCount: data.problems.length,
+        ticketCount: selectedList.length,
+        savedAt: new Date().toISOString(),
+      });
+    }
+
+    // Show done state briefly before navigating
+    setPreparingStaging({ phase: "done", done: selectedList.length, total: selectedList.length, ticketNames: [] });
+    await new Promise((r) => setTimeout(r, 800));
+
+    setPreparingStaging(null);
     setSelectedTickets(new Set());
     setActiveTab("Staging");
     trackInteraction();
@@ -750,19 +782,19 @@ export default function Results() {
               </span>
               <button
                 onClick={() => {
-                  const visibleIds = allTickets
+                  const targetIds = allTicketsUnsorted
                     .filter((t) => !filterProblemId || t.problemId === filterProblemId)
                     .map((t) => t.item.id);
-                  const allSelected = visibleIds.every((id) => selectedTickets.has(id));
+                  const allSelected = targetIds.every((id) => selectedTickets.has(id));
                   if (allSelected) {
                     setSelectedTickets(new Set());
                   } else {
-                    setSelectedTickets(new Set(visibleIds));
+                    setSelectedTickets(new Set(targetIds));
                   }
                 }}
                 className="text-[11px] font-medium text-accent transition-colors hover:text-accent/80"
               >
-                {allTickets
+                {allTicketsUnsorted
                   .filter((t) => !filterProblemId || t.problemId === filterProblemId)
                   .every((t) => selectedTickets.has(t.item.id))
                   ? "Deselect all"
@@ -799,6 +831,60 @@ export default function Results() {
           </div>
         </div>
       </div>
+
+      {/* Staging progress panel */}
+      {preparingStaging && (
+        <div className="mb-3 overflow-hidden rounded-xl border border-accent/20 bg-accent/5">
+          <div className="px-5 py-4">
+            <div className="mb-3 flex items-center gap-3">
+              {preparingStaging.phase === "done" ? (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-white">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="h-7 w-7 animate-spin rounded-full border-[2.5px] border-accent/20 border-t-accent" />
+              )}
+              <div>
+                <p className="text-[13px] font-semibold text-foreground">
+                  {preparingStaging.phase === "generating"
+                    ? `Writing ticket details\u2026 ${preparingStaging.done} of ${preparingStaging.total}`
+                    : preparingStaging.phase === "saving"
+                      ? "Saving to staging\u2026"
+                      : "Saved to staging!"}
+                </p>
+                <p className="text-[12px] text-muted">
+                  {preparingStaging.phase === "generating"
+                    ? "Generating acceptance criteria and descriptions for each ticket"
+                    : preparingStaging.phase === "saving"
+                      ? `Moving ${preparingStaging.total} ticket${preparingStaging.total !== 1 ? "s" : ""} to your board`
+                      : `${preparingStaging.total} ticket${preparingStaging.total !== 1 ? "s" : ""} ready on your staging board`}
+                </p>
+              </div>
+            </div>
+            {preparingStaging.phase === "generating" && preparingStaging.total > 0 && (
+              <div className="ml-10">
+                <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-accent/10">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
+                    style={{ width: `${(preparingStaging.done / preparingStaging.total) * 100}%` }}
+                  />
+                </div>
+                {preparingStaging.ticketNames.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {preparingStaging.ticketNames.slice(-3).map((name, i) => (
+                      <span key={i} className="rounded-md bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+                        {name.length > 40 ? name.slice(0, 40) + "\u2026" : name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Bottom action bar */}
       <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
@@ -868,7 +954,7 @@ export default function Results() {
               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             )}
             {preparingStaging
-              ? `Preparing ${preparingStaging.done}/${preparingStaging.total}...`
+              ? preparingStaging.phase === "done" ? "Done!" : `Saving\u2026`
               : "Save to staging \u2192"}
           </button>
         </div>

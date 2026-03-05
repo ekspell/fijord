@@ -294,7 +294,7 @@ function SectionHeader({
 /* ─── Home Dashboard ─── */
 
 export default function Home() {
-  const { demoMode, isSignalConverted, result, solutions, deletedMeetings, deleteMeeting, clearSession, showToast, setActiveTab } = useNav();
+  const { demoMode, isSignalConverted, result, solutions, deletedMeetings, deleteMeeting, savedMeetings, clearSession, showToast, setActiveTab } = useNav();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -320,6 +320,7 @@ export default function Home() {
   const epics = demoMode ? [] : MOCK_EPICS;
   const mockMeetings = demoMode ? [] : MOCK_MEETING_RECORDS.filter((m) => !deletedMeetings.has(m.id));
   const hasProcessed = !!(result && solutions.length > 0);
+  const historicalMeetings = savedMeetings.filter((m) => !deletedMeetings.has(m.id));
 
   return (
     <div className="mx-auto" style={{ maxWidth: 1000, paddingTop: 36 }}>
@@ -343,7 +344,7 @@ export default function Home() {
       <QuickActions />
 
       {/* Recent meetings */}
-      {(hasProcessed || mockMeetings.length > 0) && (
+      {(hasProcessed || historicalMeetings.length > 0 || mockMeetings.length > 0) && (
         <section className="mb-10">
           <SectionHeader title="Recent meetings" href="/artifacts" />
           <div className="flex flex-col gap-3">
@@ -411,6 +412,70 @@ export default function Home() {
                 </div>
               </div>
             )}
+            {/* Saved meetings from previous sessions */}
+            {historicalMeetings.slice(0, 4).map((meeting) => (
+              <div
+                key={meeting.id}
+                className="group cursor-pointer rounded-xl border border-border bg-card transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+                style={{ padding: 16 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
+                    style={{ background: "#3D5A3D" }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium text-foreground" style={{ fontSize: 14 }}>
+                      {meeting.title}
+                    </div>
+                    <div className="flex items-center gap-3 text-muted" style={{ fontSize: 13 }}>
+                      <span>{meeting.date}</span>
+                      <span>{meeting.problemCount} problems</span>
+                      <span>{meeting.ticketCount} tickets</span>
+                    </div>
+                  </div>
+                  <div className="relative shrink-0" ref={openMenuId === meeting.id ? menuRef : undefined}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === meeting.id ? null : meeting.id);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted/0 transition-colors hover:bg-background hover:text-muted group-hover:text-muted"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="12" cy="19" r="2" />
+                      </svg>
+                    </button>
+                    {openMenuId === meeting.id && (
+                      <div
+                        className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-lg border border-border bg-card py-1 shadow-lg"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => {
+                            setOpenMenuId(null);
+                            setConfirmDeleteId(meeting.id);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-600 transition-colors hover:bg-red-50"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                          </svg>
+                          Delete meeting
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
             {/* Mock meetings */}
             {mockMeetings.slice(0, 4).map((meeting) => (
               <div
