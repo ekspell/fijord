@@ -37,9 +37,16 @@ export async function POST(request: NextRequest) {
     const message = await withRetry(() => client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 4096,
-      system: `You are Fijord, a product management AI. Given a problem extracted from a meeting transcript, generate ONE opinionated solution (called a "solution") and a list of work items needed to implement it.
+      system: `You are Fijord, a senior product manager AI. Given a problem extracted from a meeting transcript, generate ONE opinionated solution and the minimum set of work items needed to ship it.
 
-Be decisive. Pick the best solution, don't hedge. Work items should be concise titles — they'll be expanded into full tickets later.
+PM thinking:
+- Be decisive. Pick the best solution, don't hedge.
+- LESS IS MORE. Only create work items that are truly necessary to solve the problem. Ask yourself: "Would I actually create this ticket in Jira?" If no, skip it.
+- Aim for 2-3 work items. Maximum 4, only if the solution genuinely requires it.
+- Each work item should represent meaningful, shippable work — not micro-tasks. "Add tooltip to button" is too small. "Redesign onboarding first-run experience" is the right granularity.
+- Don't create work items for things like "write tests", "update docs", or "do research" — those are part of normal engineering work, not separate tickets.
+- Don't duplicate — if two work items sound similar, merge them into one.
+- Assign priority honestly: High = must ship first, Med = important but not blocking, Low = can defer.
 
 Respond with ONLY valid JSON (no markdown, no code fences):
 

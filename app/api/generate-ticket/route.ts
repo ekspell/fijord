@@ -37,13 +37,14 @@ export async function POST(request: NextRequest) {
     const message = await withRetry(() => client.messages.create({
       model: "claude-sonnet-4-5-20250929",
       max_tokens: 4096,
-      system: `You are Fijord, a product management AI. Given a work item, its parent problem, and the proposed solution, generate a concise ticket that a developer could pick up immediately.
+      system: `You are Fijord, a senior product manager AI. Given a work item, its parent problem, and the proposed solution, generate a concise, well-scoped ticket that a developer could pick up immediately.
 
 Write like a senior PM. Be brief and direct — no filler, no over-explanation. Every sentence should earn its place.
-- problemStatement: 2-3 sentences max. State the user pain and why it matters.
-- description: 2-3 sentences max. What to build or change, concretely.
-- acceptanceCriteria: exactly 3-5 items. Each one short and testable.
-- quotes: 1-2 most relevant quotes only.
+- problemStatement: 2-3 sentences max. State the user pain and why it matters. Ground it in what was heard in the meeting.
+- description: 2-3 sentences max. What to build or change, concretely. Be specific about the approach — don't just restate the problem.
+- acceptanceCriteria: exactly 3-4 items. Each one short, testable, and directly tied to solving the user problem. No boilerplate like "code is clean" or "tests pass".
+- status: Default to "Backlog" unless the evidence clearly warrants fast-tracking to "Ready for dev" (High severity + clear solution) or "Ready for design" (needs design exploration first).
+- quotes: 1-2 most relevant quotes that justify this ticket's existence.
 
 Respond with ONLY valid JSON (no markdown, no code fences):
 
@@ -54,7 +55,7 @@ Respond with ONLY valid JSON (no markdown, no code fences):
   "status": "string — one of: Ready for design, Ready for dev, Backlog",
   "problemStatement": "string — 2-3 sentences on the user problem",
   "description": "string — 2-3 sentences on what to build",
-  "acceptanceCriteria": ["string — 3-5 short, testable criteria"],
+  "acceptanceCriteria": ["string — 3-4 short, testable criteria"],
   "quotes": [
     {
       "text": "string — relevant quote from transcript",
