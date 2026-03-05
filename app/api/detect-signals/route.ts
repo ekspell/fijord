@@ -84,8 +84,11 @@ export async function POST(request: NextRequest) {
     const { meetings } = await request.json() as { meetings: { id: string; title: string; date: string; problems: MeetingProblem[] }[] };
 
     if (!meetings || !Array.isArray(meetings) || meetings.length < 2) {
+      console.log(`[detect-signals] Skipped: only ${meetings?.length ?? 0} meetings provided (need 2+)`);
       return NextResponse.json({ signals: [] });
     }
+
+    console.log(`[detect-signals] Analyzing ${meetings.length} meetings with ${meetings.reduce((s, m) => s + m.problems.length, 0)} total problems`);
 
     // Build a compact representation of all problems across meetings
     const totalMeetings = meetings.length;
@@ -117,7 +120,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ signals: [] });
     }
 
+    console.log(`[detect-signals] Raw AI response (first 500 chars):`, content.text.slice(0, 500));
     const result = JSON.parse(extractJSON(content.text));
+    console.log(`[detect-signals] Parsed ${(result.signals || []).length} signals`);
 
     // Post-process: add computed fields
     const SIGNAL_COLORS = ["#3D5A3D", "#3B82F6", "#8B5CF6", "#D97706", "#DC2626", "#059669", "#6366F1"];
@@ -174,7 +179,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ signals, detectedAt: Date.now() });
   } catch (error) {
-    console.error("Signal detection error:", error);
+    console.error("[detect-signals] Error:", error);
     return NextResponse.json({ signals: [] });
   }
 }

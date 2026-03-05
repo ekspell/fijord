@@ -363,13 +363,18 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const detectSignals = useCallback(async () => {
-    // Read latest saved meetings from state via a ref-like approach
     const currentMeetings = loadSavedMeetings();
-    if (currentMeetings.length < 2) return;
+    console.log(`[signals] Saved meetings: ${currentMeetings.length}, with problems: ${currentMeetings.filter((m) => m.problems && m.problems.length > 0).length}`);
+    if (currentMeetings.length < 2) {
+      console.log("[signals] Skipped: need 2+ saved meetings");
+      return;
+    }
 
-    // Only send meetings that have problems data
     const meetingsWithProblems = currentMeetings.filter((m) => m.problems && m.problems.length > 0);
-    if (meetingsWithProblems.length < 2) return;
+    if (meetingsWithProblems.length < 2) {
+      console.log("[signals] Skipped: need 2+ meetings with problems data");
+      return;
+    }
 
     setSignalsLoading(true);
     try {
@@ -387,6 +392,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         })),
       }));
 
+      console.log(`[signals] Sending ${payload.length} meetings to detect-signals API`);
       const res = await fetch("/api/detect-signals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -396,6 +402,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         const signals = data.signals || [];
+        console.log(`[signals] Detected ${signals.length} signals`);
         setDetectedSignals(signals);
         persistDetectedSignals(signals);
         const now = Date.now();
@@ -403,9 +410,12 @@ export function NavProvider({ children }: { children: ReactNode }) {
         if (typeof window !== "undefined") {
           localStorage.setItem(SIGNALS_DETECTED_AT_KEY, String(now));
         }
+      } else {
+        const errorText = await res.text();
+        console.error(`[signals] API error ${res.status}:`, errorText);
       }
     } catch (err) {
-      console.error("Signal detection failed:", err);
+      console.error("[signals] Detection failed:", err);
     } finally {
       setSignalsLoading(false);
     }
