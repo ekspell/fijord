@@ -35,16 +35,40 @@ const COLUMN_META: { key: ColumnKey; label: string; dotColor: string; emptyHint:
   { key: "later", label: "Done", dotColor: "#9C978E", emptyHint: "Shipped work \u2014 nice \uD83C\uDF89" },
 ];
 
-function ColHeader({ label, dotColor, count }: { label: string; dotColor: string; count: number }) {
+function ColHeader({
+  label,
+  dotColor,
+  count,
+  allChecked,
+  someChecked,
+  onToggleAll,
+}: {
+  label: string;
+  dotColor: string;
+  count: number;
+  allChecked: boolean;
+  someChecked: boolean;
+  onToggleAll: () => void;
+}) {
   return (
     <div className="mb-3 flex items-center justify-between px-1 py-3">
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} />
         <span className="text-sm font-semibold text-foreground">{label}</span>
       </div>
-      <span className="text-xs text-muted">
-        {count} {count === 1 ? "ticket" : "tickets"}
-      </span>
+      <div className="flex items-center gap-2">
+        {count > 0 && (
+          <button
+            onClick={onToggleAll}
+            className="text-[11px] font-medium text-muted transition-colors hover:text-accent"
+          >
+            {allChecked ? "Deselect all" : "Select all"}
+          </button>
+        )}
+        <span className="text-xs text-muted">
+          {count} {count === 1 ? "ticket" : "tickets"}
+        </span>
+      </div>
     </div>
   );
 }
@@ -476,7 +500,26 @@ function StagingContent() {
             }`}
             style={{ minHeight: 400 }}
           >
-            <ColHeader label={col.label} dotColor={col.dotColor} count={col.tickets.length} />
+            <ColHeader
+              label={col.label}
+              dotColor={col.dotColor}
+              count={col.tickets.length}
+              allChecked={col.tickets.length > 0 && col.tickets.every((t) => checkedIds.has(t.id))}
+              someChecked={col.tickets.some((t) => checkedIds.has(t.id))}
+              onToggleAll={() => {
+                const colIds = col.tickets.map((t) => t.id);
+                const allSelected = colIds.every((id) => checkedIds.has(id));
+                setCheckedIds((prev) => {
+                  const next = new Set(prev);
+                  if (allSelected) {
+                    colIds.forEach((id) => next.delete(id));
+                  } else {
+                    colIds.forEach((id) => next.add(id));
+                  }
+                  return next;
+                });
+              }}
+            />
             {col.tickets.map((ticket) => (
               <StagingCard
                 key={ticket.id}
@@ -510,8 +553,21 @@ function StagingContent() {
       {selectMode && (
         <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-border bg-card px-5 py-3 shadow-lg">
           <span className="text-[13px] text-muted">
-            <strong className="text-foreground">{checkedIds.size}</strong> selected
+            <strong className="text-foreground">{checkedIds.size}</strong> of {allTickets.length} selected
           </span>
+          <div className="h-4 w-px bg-border" />
+          <button
+            onClick={() => {
+              if (checkedIds.size === allTickets.length) {
+                setCheckedIds(new Set());
+              } else {
+                setCheckedIds(new Set(allTickets.map((t) => t.id)));
+              }
+            }}
+            className="rounded-lg px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-background"
+          >
+            {checkedIds.size === allTickets.length ? "Deselect all" : "Select all"}
+          </button>
           <div className="h-4 w-px bg-border" />
           <button
             onClick={handleBulkDelete}
