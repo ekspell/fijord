@@ -174,7 +174,7 @@ function StagingCard({
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                 </svg>
-                Remove
+                Delete
               </button>
             </div>
           )}
@@ -273,6 +273,7 @@ function StagingContent() {
   const [dragOverCol, setDragOverCol] = useState<ColumnKey | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<StagingTicket | null>(null);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState<{ ids: string[] } | null>(null);
   const draggedId = useRef<string | null>(null);
   const selectMode = checkedIds.size > 0;
 
@@ -345,9 +346,8 @@ function StagingContent() {
   };
 
   const handleDelete = useCallback((id: string) => {
-    removeFromRoadmap(id);
-    showToast("Ticket removed from staging");
-  }, [removeFromRoadmap, showToast]);
+    setConfirmDelete({ ids: [id] });
+  }, []);
 
   const handleCheck = useCallback((id: string) => {
     setCheckedIds((prev) => {
@@ -359,11 +359,21 @@ function StagingContent() {
   }, []);
 
   const handleBulkDelete = useCallback(() => {
-    const count = checkedIds.size;
-    checkedIds.forEach((id) => removeFromRoadmap(id));
-    setCheckedIds(new Set());
-    showToast(`${count} ticket${count !== 1 ? "s" : ""} removed from staging`);
-  }, [checkedIds, removeFromRoadmap, showToast]);
+    setConfirmDelete({ ids: Array.from(checkedIds) });
+  }, [checkedIds]);
+
+  const confirmDeleteAction = useCallback(() => {
+    if (!confirmDelete) return;
+    const count = confirmDelete.ids.length;
+    confirmDelete.ids.forEach((id) => removeFromRoadmap(id));
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      confirmDelete.ids.forEach((id) => next.delete(id));
+      return next;
+    });
+    setConfirmDelete(null);
+    showToast(`${count} ticket${count !== 1 ? "s" : ""} deleted`);
+  }, [confirmDelete, removeFromRoadmap, showToast]);
 
   // Ticket detail view
   if (selectedTicket) {
@@ -577,7 +587,7 @@ function StagingContent() {
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
-            Remove
+            Delete
           </button>
           <button
             onClick={() => setCheckedIds(new Set())}
@@ -585,6 +595,34 @@ function StagingContent() {
           >
             Cancel
           </button>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl">
+            <h3 className="mb-2 text-[15px] font-semibold text-foreground">
+              Delete {confirmDelete.ids.length === 1 ? "ticket" : `${confirmDelete.ids.length} tickets`}?
+            </h3>
+            <p className="mb-5 text-[13px] text-muted">
+              This can&apos;t be undone. {confirmDelete.ids.length === 1 ? "This ticket" : "These tickets"} will be permanently removed from staging.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="rounded-lg px-4 py-2 text-[13px] font-medium text-muted transition-colors hover:bg-background hover:text-foreground"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteAction}
+                className="rounded-lg bg-red-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
