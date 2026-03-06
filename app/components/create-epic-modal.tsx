@@ -155,8 +155,8 @@ export default function CreateEpicModal({
           </div>
         </div>
 
-        {/* Assign meetings — show mock in demo, real saved meetings otherwise */}
-        {(() => {
+        {/* Assign meetings — only show when creating from scratch (not from signal) */}
+        {!signalMetrics && (() => {
           const meetings = demoMode
             ? MOCK_MEETING_RECORDS.slice(0, 8).map((m) => ({ id: m.id, title: m.title, date: m.date }))
             : savedMeetings.map((m) => ({ id: m.id, title: m.title, date: m.date }));
