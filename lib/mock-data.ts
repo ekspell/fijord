@@ -30,6 +30,7 @@ export type Signal = {
   recentDelta?: string; // e.g. "+2 this week"
   epicId?: string; // linked epic id if status === "project"
   firstDetected?: string; // e.g. "Jan 15, 2026"
+  linkedProblemTitles?: string[]; // problem titles from source meetings, for matching roadmap tickets
   quotes?: Quote[];
   timeline?: TimelineEvent[];
 };

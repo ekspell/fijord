@@ -151,6 +151,9 @@ export async function POST(request: NextRequest) {
       // Epic readiness: peopleCount >= 3 AND confidence >= 80
       const readyForEpic = peopleCount >= 3 && confidence >= 80;
 
+      // Extract linked problem titles for matching with roadmap tickets
+      const linkedProblemTitles = (s.linkedProblems || []).map((lp: any) => lp.problemTitle).filter(Boolean);
+
       return {
         id: s.id || `signal-${i}`,
         title: s.title,
@@ -166,6 +169,7 @@ export async function POST(request: NextRequest) {
         status: strength >= 60 ? "stable" : "new",
         color: SIGNAL_COLORS[i % SIGNAL_COLORS.length],
         firstDetected: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        linkedProblemTitles,
         quotes,
         timeline: [
           {

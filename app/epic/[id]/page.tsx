@@ -1190,7 +1190,15 @@ export default function EpicDetailPage() {
   let effectiveMetrics = epic.metrics;
 
   if ((epic.tickets ?? []).length === 0 && linkedSignals.length > 0) {
-    // Gather meeting IDs from signal quotes
+    // Gather problem titles directly from signals' linkedProblemTitles
+    const problemTitles = new Set<string>();
+    for (const signal of linkedSignals) {
+      for (const title of signal.linkedProblemTitles ?? []) {
+        problemTitles.add(title.toLowerCase().trim());
+      }
+    }
+
+    // Gather meeting IDs from signal quotes (for meeting count + fallback matching)
     const signalMeetingIds = new Set<string>();
     for (const signal of linkedSignals) {
       for (const quote of signal.quotes ?? []) {
@@ -1198,12 +1206,28 @@ export default function EpicDetailPage() {
       }
     }
 
-    // Gather problem titles from those meetings
-    const problemTitles = new Set<string>();
-    for (const meeting of savedMeetings) {
-      if (signalMeetingIds.has(meeting.id)) {
-        for (const problem of meeting.problems ?? []) {
-          problemTitles.add(problem.title.toLowerCase().trim());
+    // Fallback: if linkedProblemTitles is empty (older signals before this field existed)
+    if (problemTitles.size === 0) {
+      // Try matching via saved meeting problems
+      for (const meeting of savedMeetings) {
+        if (signalMeetingIds.has(meeting.id)) {
+          for (const problem of meeting.problems ?? []) {
+            problemTitles.add(problem.title.toLowerCase().trim());
+          }
+        }
+      }
+      // If still empty, match by quote text: find roadmap tickets whose quotes overlap with signal quotes
+      if (problemTitles.size === 0) {
+        const signalQuoteTexts = new Set(
+          linkedSignals.flatMap((s) => (s.quotes ?? []).map((q) => q.text.toLowerCase().trim()))
+        );
+        for (const ticket of roadmap) {
+          const hasOverlap = (ticket.problemQuotes ?? []).some((pq) =>
+            signalQuoteTexts.has(pq.text.toLowerCase().trim())
+          );
+          if (hasOverlap) {
+            problemTitles.add(ticket.problemTitle.toLowerCase().trim());
+          }
         }
       }
     }
