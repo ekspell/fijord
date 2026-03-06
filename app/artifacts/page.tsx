@@ -23,7 +23,7 @@ export default function EvidencePage() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [openMenuId]);
-  const mockMeetings = demoMode ? [] : MOCK_MEETING_RECORDS.filter((m) => !deletedMeetings.has(m.id));
+  const mockMeetings = demoMode ? MOCK_MEETING_RECORDS.filter((m) => !deletedMeetings.has(m.id)) : [];
 
   // Build a card for the current session's processed meeting
   const processedMeeting = result && solutions.length > 0 ? {

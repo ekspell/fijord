@@ -317,8 +317,8 @@ export default function Home() {
   const greeting = getGreeting();
   const userName = user?.name?.split(" ")[0] ?? "Kate";
   const signals = demoMode ? [] : detectedSignals.filter((s) => !isSignalConverted(s.id));
-  const epics = demoMode ? [] : MOCK_EPICS;
-  const mockMeetings = demoMode ? [] : MOCK_MEETING_RECORDS.filter((m) => !deletedMeetings.has(m.id));
+  const epics = demoMode ? MOCK_EPICS : [];
+  const mockMeetings = demoMode ? MOCK_MEETING_RECORDS.filter((m) => !deletedMeetings.has(m.id)) : [];
   const hasProcessed = !!(result && solutions.length > 0);
   const historicalMeetings = savedMeetings.filter((m) => !deletedMeetings.has(m.id));
 

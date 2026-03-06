@@ -141,7 +141,7 @@ export default function EpicsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("All");
-  const allEpics = demoMode ? [...userEpics] : [...MOCK_EPICS, ...userEpics];
+  const allEpics = demoMode ? [...MOCK_EPICS, ...userEpics] : [...userEpics];
 
   const statusFilter = TAB_TO_STATUS[activeTab];
   const epics = statusFilter

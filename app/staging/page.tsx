@@ -277,7 +277,7 @@ function StagingContent() {
   const draggedId = useRef<string | null>(null);
   const selectMode = checkedIds.size > 0;
 
-  const epics = demoMode ? [] : MOCK_EPICS;
+  const epics = demoMode ? MOCK_EPICS : [];
 
   // Flatten all tickets across all epics + roadmap, applying lane overrides
   const allTickets = useMemo(() => {

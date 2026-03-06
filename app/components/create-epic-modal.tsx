@@ -150,7 +150,7 @@ export default function CreateEpicModal({
         </div>
 
         {/* Assign meetings — only show when meetings exist */}
-        {!demoMode && MOCK_MEETING_RECORDS.length > 0 && (
+        {demoMode && MOCK_MEETING_RECORDS.length > 0 && (
           <div className="mb-6">
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Assign meetings <span className="font-normal text-muted">(optional)</span>
