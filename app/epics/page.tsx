@@ -9,9 +9,73 @@ import type { Epic } from "@/lib/mock-epics";
 import CreateEpicModal from "@/app/components/create-epic-modal";
 import UpgradeModal from "@/app/components/upgrade-modal";
 
+function useEpicMetrics(epic: Epic) {
+  const { detectedSignals, convertedSignals, savedMeetings, roadmap } = useNav();
+
+  // For epics with built-in tickets, use static metrics
+  if ((epic.tickets ?? []).length > 0) return epic.metrics;
+
+  // Find linked signals
+  const linkedSignals = detectedSignals.filter(
+    (s) => s.epicId === epic.id || convertedSignals[s.id]?.epicId === epic.id
+  );
+  if (linkedSignals.length === 0) return epic.metrics;
+
+  // Gather problem titles from signals
+  const problemTitles = new Set<string>();
+  for (const signal of linkedSignals) {
+    for (const title of signal.linkedProblemTitles ?? []) {
+      problemTitles.add(title.toLowerCase().trim());
+    }
+  }
+
+  // Gather meeting IDs from signal quotes
+  const signalMeetingIds = new Set<string>();
+  for (const signal of linkedSignals) {
+    for (const quote of signal.quotes ?? []) {
+      signalMeetingIds.add(quote.meetingId);
+    }
+  }
+
+  // Fallback: derive problem titles from saved meetings
+  if (problemTitles.size === 0) {
+    for (const meeting of savedMeetings) {
+      if (signalMeetingIds.has(meeting.id)) {
+        for (const problem of meeting.problems ?? []) {
+          problemTitles.add(problem.title.toLowerCase().trim());
+        }
+      }
+    }
+    // Quote-text fallback
+    if (problemTitles.size === 0) {
+      const signalQuoteTexts = new Set(
+        linkedSignals.flatMap((s) => (s.quotes ?? []).map((q) => q.text.toLowerCase().trim()))
+      );
+      for (const ticket of roadmap) {
+        const hasOverlap = (ticket.problemQuotes ?? []).some((pq) =>
+          signalQuoteTexts.has(pq.text.toLowerCase().trim())
+        );
+        if (hasOverlap) {
+          problemTitles.add(ticket.problemTitle.toLowerCase().trim());
+        }
+      }
+    }
+  }
+
+  const ticketCount = roadmap.filter((t) => problemTitles.has(t.problemTitle.toLowerCase().trim())).length;
+  const totalQuotes = linkedSignals.reduce((sum, s) => sum + (s.quoteCount || 0), 0);
+
+  return {
+    tickets: ticketCount,
+    meetings: signalMeetingIds.size || epic.metrics.meetings,
+    quotes: totalQuotes || epic.metrics.quotes,
+  };
+}
+
 function EpicCard({ epic }: { epic: Epic }) {
   const router = useRouter();
   const status = STATUS_STYLES[epic.status];
+  const metrics = useEpicMetrics(epic);
   const progressPercent =
     epic.progress.total > 0
       ? Math.round((epic.progress.shipped / epic.progress.total) * 100)
@@ -68,19 +132,19 @@ function EpicCard({ epic }: { epic: Epic }) {
       <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1">
         <div className="flex items-center gap-1.5 text-muted" style={{ fontSize: 13 }}>
           <span className="font-medium text-foreground">
-            {epic.metrics.tickets}
+            {metrics.tickets}
           </span>{" "}
           tickets
         </div>
         <div className="flex items-center gap-1.5 text-muted" style={{ fontSize: 13 }}>
           <span className="font-medium text-foreground">
-            {epic.metrics.meetings}
+            {metrics.meetings}
           </span>{" "}
           meetings
         </div>
         <div className="flex items-center gap-1.5 text-muted" style={{ fontSize: 13 }}>
           <span className="font-medium text-foreground">
-            {epic.metrics.quotes}
+            {metrics.quotes}
           </span>{" "}
           quotes
         </div>
@@ -98,7 +162,9 @@ function EpicCard({ epic }: { epic: Epic }) {
           />
         </div>
         <div className="text-muted" style={{ fontSize: 12 }}>
-          {epic.progressLabel}
+          {metrics.tickets > 0 && epic.progressLabel === "No tickets yet"
+            ? `${metrics.tickets} ticket${metrics.tickets !== 1 ? "s" : ""} from staging`
+            : epic.progressLabel}
         </div>
       </div>
 
