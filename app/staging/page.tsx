@@ -81,6 +81,7 @@ function StagingCard({
   checked,
   onCheck,
   selectMode,
+  sourceRoadmap,
 }: {
   ticket: StagingTicket;
   onDragStart: (e: React.DragEvent, id: string) => void;
@@ -89,11 +90,15 @@ function StagingCard({
   checked: boolean;
   onCheck: (id: string) => void;
   selectMode: boolean;
+  sourceRoadmap?: RoadmapTicket;
 }) {
   const ps = PRIORITY_STYLES[ticket.priority];
   const isFromMeeting = ticket.epicId === "meeting-staging";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const hasDetails = !!(sourceRoadmap?.description || ticket.description || sourceRoadmap?.acceptanceCriteria?.length || ticket.acceptanceCriteria?.length || sourceRoadmap?.problemQuotes?.length);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -108,110 +113,181 @@ function StagingCard({
 
   return (
     <div
-      draggable={!selectMode}
+      draggable={!selectMode && !expanded}
       onDragStart={(e) => !selectMode && onDragStart(e, ticket.id)}
-      onClick={selectMode ? () => onCheck(ticket.id) : onClick}
-      className={`group/card relative mb-3 rounded-xl border bg-card p-4 transition-all hover:border-border/80 hover:bg-[#F9F8F6] ${
+      className={`group/card relative mb-3 rounded-xl border bg-card transition-all hover:border-border/80 hover:bg-[#F9F8F6] ${
         checked
           ? "border-accent/40 bg-accent/5 ring-1 ring-accent/20"
           : "border-border"
-      } ${selectMode ? "cursor-pointer" : "cursor-grab active:cursor-grabbing active:shadow-lg"}`}
+      }`}
     >
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {/* Checkbox — visible on hover or when in select mode */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCheck(ticket.id);
-            }}
-            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all ${
-              checked
-                ? "border-accent bg-accent"
-                : "border-border/60 bg-white group-hover/card:border-muted"
-            } ${selectMode ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"}`}
-          >
-            {checked && (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M5 13l4 4L19 7" />
-              </svg>
-            )}
-          </button>
-          <span className="text-[11px] font-semibold text-muted">{ticket.id}</span>
-          <span
-            className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
-            style={{ backgroundColor: ps.bg, color: ps.text }}
-          >
-            {ps.label}
-          </span>
-        </div>
-        <div ref={menuRef} className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen((prev) => !prev);
-            }}
-            className="flex h-6 w-6 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-black/5 group-hover/card:opacity-100"
-            aria-label="Ticket actions"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-              <circle cx="8" cy="3" r="1.25" fill="#9C978E" />
-              <circle cx="8" cy="8" r="1.25" fill="#9C978E" />
-              <circle cx="8" cy="13" r="1.25" fill="#9C978E" />
-            </svg>
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-7 z-50 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+      <div
+        onClick={selectMode ? () => onCheck(ticket.id) : onClick}
+        className={`p-4 ${selectMode ? "cursor-pointer" : "cursor-pointer"}`}
+      >
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* Caret — toggles inline expansion */}
+            {hasDetails && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setMenuOpen(false);
-                  onDelete(ticket.id);
+                  setExpanded((prev) => !prev);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-red-600 hover:bg-red-50 transition-colors"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded transition-colors hover:bg-black/5"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#9C978E"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="transition-transform"
+                  style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+                >
+                  <polyline points="9 18 15 12 9 6" />
                 </svg>
-                Delete
               </button>
+            )}
+            {/* Checkbox — visible on hover or when in select mode */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCheck(ticket.id);
+              }}
+              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all ${
+                checked
+                  ? "border-accent bg-accent"
+                  : "border-border/60 bg-white group-hover/card:border-muted"
+              } ${selectMode ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"}`}
+            >
+              {checked && (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+            <span className="text-[11px] font-semibold text-muted">{ticket.id}</span>
+            <span
+              className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+              style={{ backgroundColor: ps.bg, color: ps.text }}
+            >
+              {ps.label}
+            </span>
+          </div>
+          <div ref={menuRef} className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((prev) => !prev);
+              }}
+              className="flex h-6 w-6 items-center justify-center rounded-md opacity-0 transition-opacity hover:bg-black/5 group-hover/card:opacity-100"
+              aria-label="Ticket actions"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="3" r="1.25" fill="#9C978E" />
+                <circle cx="8" cy="8" r="1.25" fill="#9C978E" />
+                <circle cx="8" cy="13" r="1.25" fill="#9C978E" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-7 z-50 min-w-[140px] rounded-lg border border-border bg-card py-1 shadow-lg">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    onDelete(ticket.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[13px] text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <h3 className="text-sm font-medium leading-snug text-foreground">
+          {ticket.title}
+        </h3>
+        {isFromMeeting ? (
+          <div className="mt-2 flex items-center gap-1.5">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ticket.problemColor || "#3D5A3D" }} />
+            <span className="text-[11px] font-medium" style={{ color: ticket.problemColor || "#3D5A3D" }}>
+              {ticket.epicTitle}
+            </span>
+          </div>
+        ) : (
+          <div className="mt-2 flex items-center gap-2">
+            <span
+              className="rounded-full text-[10px] font-medium"
+              style={{
+                padding: "2px 8px",
+                background: STATUS_STYLES[ticket.epicStatus].bg,
+                color: STATUS_STYLES[ticket.epicStatus].text,
+              }}
+            >
+              {ticket.epicTitle}
+            </span>
+            <span
+              className="rounded text-[10px] font-medium"
+              style={{
+                padding: "1px 5px",
+                background: TICKET_STATUS_STYLES[ticket.status].bg,
+                color: TICKET_STATUS_STYLES[ticket.status].text,
+              }}
+            >
+              {TICKET_STATUS_STYLES[ticket.status].label}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Expanded inline details */}
+      {expanded && hasDetails && (
+        <div className="border-t border-border bg-background px-4 pb-4 pt-3" style={{ borderRadius: "0 0 12px 12px" }}>
+          {(sourceRoadmap?.description || ticket.description) && (
+            <div style={{ marginBottom: 10 }}>
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Description</div>
+              <p className="text-[13px] leading-relaxed text-muted">
+                {sourceRoadmap?.description || ticket.description}
+              </p>
             </div>
           )}
-        </div>
-      </div>
-      <h3 className="text-sm font-medium leading-snug text-foreground">
-        {ticket.title}
-      </h3>
-      {isFromMeeting ? (
-        <div className="mt-2 flex items-center gap-1.5">
-          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: ticket.problemColor || "#3D5A3D" }} />
-          <span className="text-[11px] font-medium" style={{ color: ticket.problemColor || "#3D5A3D" }}>
-            {ticket.epicTitle}
-          </span>
-        </div>
-      ) : (
-        <div className="mt-2 flex items-center gap-2">
-          <span
-            className="rounded-full text-[10px] font-medium"
-            style={{
-              padding: "2px 8px",
-              background: STATUS_STYLES[ticket.epicStatus].bg,
-              color: STATUS_STYLES[ticket.epicStatus].text,
-            }}
-          >
-            {ticket.epicTitle}
-          </span>
-          <span
-            className="rounded text-[10px] font-medium"
-            style={{
-              padding: "1px 5px",
-              background: TICKET_STATUS_STYLES[ticket.status].bg,
-              color: TICKET_STATUS_STYLES[ticket.status].text,
-            }}
-          >
-            {TICKET_STATUS_STYLES[ticket.status].label}
-          </span>
+          {(sourceRoadmap?.acceptanceCriteria ?? ticket.acceptanceCriteria ?? []).length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Acceptance criteria</div>
+              <div className="flex flex-col gap-1">
+                {(sourceRoadmap?.acceptanceCriteria ?? ticket.acceptanceCriteria ?? []).map((ac, i) => (
+                  <div key={i} className="flex items-start gap-1.5 text-[12px] text-muted">
+                    <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted/50" />
+                    {ac}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(sourceRoadmap?.problemQuotes ?? []).length > 0 && (
+            <div>
+              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Evidence</div>
+              {(sourceRoadmap?.problemQuotes ?? []).slice(0, 2).map((q, i) => (
+                <div
+                  key={i}
+                  className="text-[12px] leading-relaxed text-muted"
+                  style={{ paddingLeft: 10, borderLeft: `2px solid ${sourceRoadmap?.problemColor || "#3D5A3D"}`, marginBottom: i < 1 ? 6 : 0 }}
+                >
+                  &ldquo;{q.text}&rdquo;
+                  {q.speaker && <span className="ml-1 text-[11px]">— {q.speaker}</span>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -540,6 +616,7 @@ function StagingContent() {
                 checked={checkedIds.has(ticket.id)}
                 onCheck={handleCheck}
                 selectMode={selectMode}
+                sourceRoadmap={roadmap.find((r) => r.id === ticket.id)}
               />
             ))}
             {col.tickets.length === 0 && (
