@@ -401,8 +401,20 @@ export function NavProvider({ children }: { children: ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
-        const signals = data.signals || [];
-        console.log(`[signals] Detected ${signals.length} signals`);
+        const newSignals = data.signals || [];
+        console.log(`[signals] Detected ${newSignals.length} signals`);
+
+        // Stabilize IDs: if an existing signal matches by title, keep its ID
+        const existingSignals = loadDetectedSignals();
+        const existingByTitle = new Map(existingSignals.map((s) => [s.title.toLowerCase().trim(), s]));
+        const signals = newSignals.map((s: import("@/lib/mock-data").Signal) => {
+          const existing = existingByTitle.get(s.title.toLowerCase().trim());
+          if (existing) {
+            return { ...s, id: existing.id, firstDetected: existing.firstDetected || s.firstDetected };
+          }
+          return s;
+        });
+
         setDetectedSignals(signals);
         persistDetectedSignals(signals);
         const now = Date.now();
