@@ -1150,7 +1150,7 @@ export default function EpicDetailPage() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const { isPro } = useAuth();
-  const { stagingOverrides, userEpics, demoMode } = useNav();
+  const { stagingOverrides, userEpics, demoMode, roadmap, detectedSignals, convertedSignals, savedMeetings } = useNav();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("Discovery");
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -1180,14 +1180,68 @@ export default function EpicDetailPage() {
   }
 
   const status = STATUS_STYLES[epic.status];
+
+  // For user-created epics from signals, derive tickets from roadmap (staging)
+  const linkedSignals = detectedSignals.filter(
+    (s) => s.epicId === id || convertedSignals[s.id]?.epicId === id
+  );
+
+  let tickets: EpicTicket[];
+  let effectiveMetrics = epic.metrics;
+
+  if ((epic.tickets ?? []).length === 0 && linkedSignals.length > 0) {
+    // Gather meeting IDs from signal quotes
+    const signalMeetingIds = new Set<string>();
+    for (const signal of linkedSignals) {
+      for (const quote of signal.quotes ?? []) {
+        signalMeetingIds.add(quote.meetingId);
+      }
+    }
+
+    // Gather problem titles from those meetings
+    const problemTitles = new Set<string>();
+    for (const meeting of savedMeetings) {
+      if (signalMeetingIds.has(meeting.id)) {
+        for (const problem of meeting.problems ?? []) {
+          problemTitles.add(problem.title.toLowerCase().trim());
+        }
+      }
+    }
+
+    // Find roadmap tickets matching those problem titles
+    const derivedTickets: EpicTicket[] = roadmap
+      .filter((t) => problemTitles.has(t.problemTitle.toLowerCase().trim()))
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        priority: (t.priority === "High" || t.priority === "high" ? "high" : t.priority === "Low" || t.priority === "low" ? "low" : "medium") as EpicTicket["priority"],
+        status: (t.status?.toLowerCase().includes("dev") || t.status?.toLowerCase().includes("progress") ? "in-progress" : t.status?.toLowerCase().includes("design") ? "planned" : "backlog") as EpicTicket["status"],
+        lane: stagingOverrides[t.id] ?? t.column,
+        description: t.description,
+        acceptanceCriteria: t.acceptanceCriteria,
+        sourceQuote: t.problemQuotes?.[0]?.text,
+      }));
+
+    tickets = derivedTickets;
+
+    // Gather quote count from linked signals
+    const totalQuotes = linkedSignals.reduce((sum, s) => sum + (s.quoteCount || 0), 0);
+    effectiveMetrics = {
+      tickets: derivedTickets.length,
+      meetings: signalMeetingIds.size,
+      quotes: totalQuotes,
+    };
+  } else {
+    tickets = (epic.tickets ?? []).map((t) => ({
+      ...t,
+      lane: stagingOverrides[t.id] ?? t.lane,
+    }));
+  }
+
   const progressPercent =
     epic.progress.total > 0
       ? Math.round((epic.progress.shipped / epic.progress.total) * 100)
       : 0;
-  const tickets = (epic.tickets ?? []).map((t) => ({
-    ...t,
-    lane: stagingOverrides[t.id] ?? t.lane,
-  }));
 
   return (
     <div className="mx-auto" style={{ maxWidth: 1000 }}>
@@ -1268,7 +1322,7 @@ export default function EpicDetailPage() {
           style={{ fontSize: 13 }}
         >
           <span className="font-medium text-foreground">
-            {epic.metrics.tickets}
+            {effectiveMetrics.tickets}
           </span>{" "}
           tickets
         </div>
@@ -1277,7 +1331,7 @@ export default function EpicDetailPage() {
           style={{ fontSize: 13 }}
         >
           <span className="font-medium text-foreground">
-            {epic.metrics.meetings}
+            {effectiveMetrics.meetings}
           </span>{" "}
           meetings
         </div>
@@ -1286,7 +1340,7 @@ export default function EpicDetailPage() {
           style={{ fontSize: 13 }}
         >
           <span className="font-medium text-foreground">
-            {epic.metrics.quotes}
+            {effectiveMetrics.quotes}
           </span>{" "}
           quotes
         </div>
@@ -1307,7 +1361,9 @@ export default function EpicDetailPage() {
           />
         </div>
         <div className="text-muted" style={{ fontSize: 12 }}>
-          {epic.progressLabel}
+          {tickets.length > 0 && epic.progressLabel === "No tickets yet"
+            ? `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""} from staging`
+            : epic.progressLabel}
         </div>
       </div>
 
