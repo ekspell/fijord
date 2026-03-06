@@ -24,15 +24,26 @@ const TABS = ["Discovery", "Scope", "Roadmap", "Brief"] as const;
 
 function DiscoveryTab({ epicId }: { epicId: string }) {
   const router = useRouter();
-  const { detectedSignals } = useNav();
+  const { detectedSignals, convertedSignals, savedMeetings, demoMode } = useNav();
 
-  // Find signals linked to this epic
-  const linkedSignals = detectedSignals.filter((s) => s.epicId === epicId);
+  // Find signals linked to this epic — check both epicId field and convertedSignals mapping
+  const linkedSignals = detectedSignals.filter(
+    (s) => s.epicId === epicId || convertedSignals[s.id]?.epicId === epicId
+  );
 
   // Find meetings linked to this epic
-  const linkedMeetings = MOCK_MEETING_RECORDS.filter((m) =>
-    m.epicIds.includes(epicId)
-  );
+  const linkedMeetings = demoMode
+    ? MOCK_MEETING_RECORDS.filter((m) => m.epicIds.includes(epicId))
+    : [];
+
+  // For real users, gather unique meeting IDs from signal quotes
+  const signalMeetingIds = new Set<string>();
+  for (const signal of linkedSignals) {
+    for (const quote of signal.quotes ?? []) {
+      signalMeetingIds.add(quote.meetingId);
+    }
+  }
+  const realLinkedMeetings = savedMeetings.filter((m) => signalMeetingIds.has(m.id));
 
   // Gather all quotes from linked signals for this epic's meetings
   const meetingQuotes: Record<
@@ -96,95 +107,98 @@ function DiscoveryTab({ epicId }: { epicId: string }) {
       >
         Meeting evidence
       </h3>
-      {linkedMeetings.length === 0 ? (
-        <div
-          className="rounded-lg border border-border px-6 py-10 text-center text-sm text-muted"
-        >
-          No meetings linked to this epic yet. Process a transcript to get started.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {linkedMeetings.map((meeting) => {
-            const detail = MOCK_MEETING_DETAILS[meeting.id];
-            const quotes = meetingQuotes[meeting.id] ?? [];
+      {(() => {
+        // In demo mode show mock meetings, otherwise show real meetings from signal quotes
+        const meetingsToShow = demoMode
+          ? linkedMeetings.map((m) => ({ id: m.id, title: MOCK_MEETING_DETAILS[m.id]?.title ?? m.title, date: m.date }))
+          : realLinkedMeetings.map((m) => ({ id: m.id, title: m.title, date: m.date }));
+
+        if (meetingsToShow.length === 0 && linkedSignals.length === 0) {
+          return (
+            <div className="rounded-lg border border-border px-6 py-10 text-center text-sm text-muted">
+              No meetings linked to this epic yet. Process a transcript to get started.
+            </div>
+          );
+        }
+
+        if (meetingsToShow.length === 0) {
+          // We have signals but no meetings to show — display quotes directly from signals
+          const allQuotes = linkedSignals.flatMap((s) => s.quotes ?? []);
+          if (allQuotes.length === 0) {
             return (
-              <div
-                key={meeting.id}
-                className="rounded-lg border border-border"
-              >
-                <button
-                  onClick={() => router.push(`/meeting/${meeting.id}?from=epics`)}
-                  className="flex w-full items-center gap-2.5 border-b border-border px-4 py-3 text-left transition-colors hover:bg-accent-green-light"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="shrink-0 text-muted"
-                  >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                  <span className="flex-1 font-medium" style={{ fontSize: 13 }}>
-                    {detail?.title ?? meeting.title}
-                  </span>
-                  <span className="text-muted" style={{ fontSize: 12 }}>
-                    {meeting.date}
-                  </span>
-                  {quotes.length > 0 && (
-                    <span
-                      className="rounded text-muted"
-                      style={{
-                        fontSize: 12,
-                        padding: "2px 8px",
-                        background: "#FAF9F6",
-                      }}
-                    >
-                      {quotes.length} {quotes.length === 1 ? "quote" : "quotes"}
-                    </span>
-                  )}
-                </button>
-                {quotes.length > 0 && (
-                  <div className="bg-card" style={{ padding: "12px 16px" }}>
-                    {quotes.slice(0, 3).map((q, i) => (
-                      <div
-                        key={i}
-                        className="leading-relaxed text-muted"
-                        style={{
-                          fontSize: 13,
-                          paddingLeft: 12,
-                          borderLeft: "3px solid #3D5A3D",
-                          marginBottom: i < Math.min(quotes.length, 3) - 1 ? 10 : 0,
-                        }}
-                      >
-                        &ldquo;{q.text}&rdquo;
-                        <div style={{ fontSize: 11, marginTop: 2 }}>
-                          {q.speaker} · {q.timestamp}
-                        </div>
-                      </div>
-                    ))}
-                    {quotes.length > 3 && (
-                      <div
-                        className="text-muted"
-                        style={{ fontSize: 12, marginTop: 8 }}
-                      >
-                        + {quotes.length - 3} more quotes
-                      </div>
-                    )}
-                  </div>
-                )}
+              <div className="rounded-lg border border-border px-6 py-10 text-center text-sm text-muted">
+                Signal linked but no quote evidence found yet.
               </div>
             );
-          })}
-        </div>
-      )}
+          }
+          return (
+            <div className="rounded-lg border border-border bg-card" style={{ padding: "12px 16px" }}>
+              {allQuotes.slice(0, 6).map((q, i) => (
+                <div
+                  key={i}
+                  className="leading-relaxed text-muted"
+                  style={{
+                    fontSize: 13,
+                    paddingLeft: 12,
+                    borderLeft: "3px solid #3D5A3D",
+                    marginBottom: i < Math.min(allQuotes.length, 6) - 1 ? 10 : 0,
+                  }}
+                >
+                  &ldquo;{q.text}&rdquo;
+                  <div style={{ fontSize: 11, marginTop: 2 }}>
+                    {q.speaker}{q.meetingTitle ? ` · ${q.meetingTitle}` : ""}
+                  </div>
+                </div>
+              ))}
+              {allQuotes.length > 6 && (
+                <div className="text-muted" style={{ fontSize: 12, marginTop: 8 }}>
+                  + {allQuotes.length - 6} more quotes
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex flex-col gap-4">
+            {meetingsToShow.map((meeting) => {
+              const quotes = meetingQuotes[meeting.id] ?? [];
+              return (
+                <div key={meeting.id} className="rounded-lg border border-border">
+                  <div className="flex w-full items-center gap-2.5 border-b border-border px-4 py-3">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                      <line x1="16" y1="2" x2="16" y2="6" />
+                      <line x1="8" y1="2" x2="8" y2="6" />
+                      <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    <span className="flex-1 font-medium" style={{ fontSize: 13 }}>{meeting.title}</span>
+                    <span className="text-muted" style={{ fontSize: 12 }}>{meeting.date}</span>
+                    {quotes.length > 0 && (
+                      <span className="rounded text-muted" style={{ fontSize: 12, padding: "2px 8px", background: "#FAF9F6" }}>
+                        {quotes.length} {quotes.length === 1 ? "quote" : "quotes"}
+                      </span>
+                    )}
+                  </div>
+                  {quotes.length > 0 && (
+                    <div className="bg-card" style={{ padding: "12px 16px" }}>
+                      {quotes.slice(0, 3).map((q, i) => (
+                        <div key={i} className="leading-relaxed text-muted" style={{ fontSize: 13, paddingLeft: 12, borderLeft: "3px solid #3D5A3D", marginBottom: i < Math.min(quotes.length, 3) - 1 ? 10 : 0 }}>
+                          &ldquo;{q.text}&rdquo;
+                          <div style={{ fontSize: 11, marginTop: 2 }}>{q.speaker} · {q.timestamp}</div>
+                        </div>
+                      ))}
+                      {quotes.length > 3 && (
+                        <div className="text-muted" style={{ fontSize: 12, marginTop: 8 }}>+ {quotes.length - 3} more quotes</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1136,12 +1150,14 @@ export default function EpicDetailPage() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const { isPro } = useAuth();
-  const { stagingOverrides, userEpics } = useNav();
+  const { stagingOverrides, userEpics, demoMode } = useNav();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("Discovery");
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const epic = MOCK_EPICS.find((e) => e.id === id) ?? userEpics.find((e) => e.id === id);
+  const epic = demoMode
+    ? MOCK_EPICS.find((e) => e.id === id) ?? userEpics.find((e) => e.id === id)
+    : userEpics.find((e) => e.id === id) ?? MOCK_EPICS.find((e) => e.id === id);
 
   if (!epic) {
     return (

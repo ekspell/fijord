@@ -15,11 +15,13 @@ const STATUS_OPTIONS: { value: EpicStatus; label: string }[] = [
 export default function CreateEpicModal({
   defaultTitle,
   defaultDescription,
+  signalMetrics,
   onClose,
   onCreated,
 }: {
   defaultTitle?: string;
   defaultDescription?: string;
+  signalMetrics?: { meetings: number; quotes: number };
   onClose: () => void;
   onCreated?: (epicId: string, epicTitle: string) => void;
 }) {
@@ -62,7 +64,11 @@ export default function CreateEpicModal({
       title: title.trim(),
       description: description.trim(),
       status,
-      metrics: { tickets: 0, meetings: selectedMeetings.length, quotes: 0 },
+      metrics: {
+        tickets: 0,
+        meetings: signalMetrics?.meetings ?? selectedMeetings.length,
+        quotes: signalMetrics?.quotes ?? 0,
+      },
       progress: { shipped: 0, total: 0 },
       progressLabel: "No tickets yet",
       owner: { name: owner.trim() || "Me", initials },
