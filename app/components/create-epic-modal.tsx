@@ -24,7 +24,7 @@ export default function CreateEpicModal({
   onCreated?: (epicId: string, epicTitle: string) => void;
 }) {
   const router = useRouter();
-  const { showToast, demoMode, addEpic } = useNav();
+  const { showToast, demoMode, addEpic, savedMeetings } = useNav();
   const [title, setTitle] = useState(defaultTitle ?? "");
   const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<EpicStatus>("on-track");
@@ -149,33 +149,37 @@ export default function CreateEpicModal({
           </div>
         </div>
 
-        {/* Assign meetings — only show when meetings exist */}
-        {demoMode && MOCK_MEETING_RECORDS.length > 0 && (
-          <div className="mb-6">
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Assign meetings <span className="font-normal text-muted">(optional)</span>
-            </label>
-            <div
-              className="flex max-h-36 flex-col gap-1 overflow-y-auto rounded-lg border border-border bg-background p-2"
-            >
-              {MOCK_MEETING_RECORDS.slice(0, 8).map((m) => (
-                <label
-                  key={m.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent-green-light"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMeetings.includes(m.id)}
-                    onChange={() => toggleMeeting(m.id)}
-                    className="accent-[#3D5A3D]"
-                  />
-                  <span className="text-sm text-foreground">{m.title}</span>
-                  <span className="ml-auto text-xs text-muted">{m.date}</span>
-                </label>
-              ))}
+        {/* Assign meetings — show mock in demo, real saved meetings otherwise */}
+        {(() => {
+          const meetings = demoMode
+            ? MOCK_MEETING_RECORDS.slice(0, 8).map((m) => ({ id: m.id, title: m.title, date: m.date }))
+            : savedMeetings.map((m) => ({ id: m.id, title: m.title, date: m.date }));
+          if (meetings.length === 0) return null;
+          return (
+            <div className="mb-6">
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Assign meetings <span className="font-normal text-muted">(optional)</span>
+              </label>
+              <div className="flex max-h-36 flex-col gap-1 overflow-y-auto rounded-lg border border-border bg-background p-2">
+                {meetings.map((m) => (
+                  <label
+                    key={m.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent-green-light"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedMeetings.includes(m.id)}
+                      onChange={() => toggleMeeting(m.id)}
+                      className="accent-[#3D5A3D]"
+                    />
+                    <span className="text-sm text-foreground">{m.title}</span>
+                    <span className="ml-auto text-xs text-muted">{m.date}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
