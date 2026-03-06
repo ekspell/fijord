@@ -325,7 +325,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [roadmap, setRoadmapState] = useState<RoadmapTicket[]>([]);
   const [showLanding, setShowLanding] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [demoMode, setDemoMode] = useState(true);
+  const [demoMode, setDemoMode] = useState(false);
   const [convertedSignals, setConvertedSignals] = useState<Record<string, ConvertedSignalInfo>>({});
   const [stagingOverrides, setStagingOverrides] = useState<Record<string, RoadmapLane>>({});
   const [brief, setBriefState] = useState<EpicBrief | null>(null);
