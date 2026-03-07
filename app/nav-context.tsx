@@ -253,6 +253,7 @@ type NavContextType = {
   savedMeetings: SavedMeeting[];
   saveMeeting: (meeting: SavedMeeting) => void;
   detectedSignals: import("@/lib/mock-data").Signal[];
+  removeSignal: (signalId: string) => void;
   detectSignals: () => Promise<void>;
   detectSignalsIfStale: () => Promise<void>;
   signalsLoading: boolean;
@@ -310,6 +311,7 @@ const NavContext = createContext<NavContextType>({
   savedMeetings: [],
   saveMeeting: () => {},
   detectedSignals: [],
+  removeSignal: () => {},
   detectSignals: async () => {},
   detectSignalsIfStale: async () => {},
   signalsLoading: false,
@@ -363,6 +365,14 @@ export function NavProvider({ children }: { children: ReactNode }) {
       const filtered = prev.filter((m) => m.id !== meeting.id);
       const next = [meeting, ...filtered];
       persistSavedMeetings(next);
+      return next;
+    });
+  }, []);
+
+  const removeSignal = useCallback((signalId: string) => {
+    setDetectedSignals((prev) => {
+      const next = prev.filter((s) => s.id !== signalId);
+      persistDetectedSignals(next);
       return next;
     });
   }, []);
@@ -750,6 +760,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         savedMeetings,
         saveMeeting,
         detectedSignals,
+        removeSignal,
         detectSignals,
         detectSignalsIfStale,
         signalsLoading,

@@ -161,8 +161,9 @@ export default function SignalDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
-  const { showToast, convertSignal, isSignalConverted, convertedSignals, detectedSignals } = useNav();
+  const { showToast, convertSignal, isSignalConverted, convertedSignals, detectedSignals, removeSignal } = useNav();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [tags, setTags] = useState<string[] | null>(null);
   const [addingTag, setAddingTag] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -326,36 +327,49 @@ export default function SignalDetailPage() {
             </p>
           )}
 
-          {/* CTA: Create Epic (not already project/converted) */}
-          {!converted && signal.status !== "project" && (
+          <div className="flex shrink-0 items-center gap-2">
+            {/* CTA: Create Epic (not already project/converted) */}
+            {!converted && signal.status !== "project" && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
+                style={{ background: "#3D5A3D" }}
+              >
+                Create Epic from Signal
+              </button>
+            )}
+            {/* CTA: Open existing epic (mock "project" status) */}
+            {!converted && signal.status === "project" && signal.epicId && (
+              <button
+                onClick={() => router.push(`/epic/${signal.epicId}?from=signals`)}
+                className="flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
+                style={{ background: "#3D5A3D" }}
+              >
+                Open epic →
+              </button>
+            )}
+            {/* CTA: Open converted epic */}
+            {converted && conversionInfo && (
+              <button
+                onClick={() => router.push(`/epic/${conversionInfo.epicId}?from=signals`)}
+                className="flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
+                style={{ background: "#3D5A3D" }}
+              >
+                Open epic →
+              </button>
+            )}
+            {/* Delete */}
             <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
-              style={{ background: "#3D5A3D" }}
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-red-50 hover:text-red-600"
+              title="Delete signal"
             >
-              Create Epic from Signal
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
             </button>
-          )}
-          {/* CTA: Open existing epic (mock "project" status) */}
-          {!converted && signal.status === "project" && signal.epicId && (
-            <button
-              onClick={() => router.push(`/epic/${signal.epicId}?from=signals`)}
-              className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
-              style={{ background: "#3D5A3D" }}
-            >
-              Open epic →
-            </button>
-          )}
-          {/* CTA: Open converted epic */}
-          {converted && conversionInfo && (
-            <button
-              onClick={() => router.push(`/epic/${conversionInfo.epicId}?from=signals`)}
-              className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-medium text-white transition-colors hover:opacity-90"
-              style={{ background: "#3D5A3D" }}
-            >
-              Open epic →
-            </button>
-          )}
+          </div>
         </div>
 
         {/* Strength bar */}
@@ -574,6 +588,46 @@ export default function SignalDetailPage() {
             ))}
           </div>
         </>
+      )}
+
+      {/* Delete confirmation */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-2 text-lg font-medium text-foreground">
+              Delete signal?
+            </h2>
+            <p className="mb-6 text-sm text-muted">
+              This will remove <strong>{signal.title}</strong> from your detected signals. It may be re-detected in future analyses.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-background"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  removeSignal(signal.id);
+                  setShowDeleteConfirm(false);
+                  showToast("Signal deleted");
+                  router.push("/signals");
+                }}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                style={{ background: "#DC2626" }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Create Epic Modal */}

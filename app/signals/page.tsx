@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useNav } from "@/app/nav-context";
 import { useAuth } from "@/app/auth-context";
@@ -10,7 +10,7 @@ import UpgradeModal from "@/app/components/upgrade-modal";
 import { PAYWALL_ENABLED } from "@/lib/config";
 import { rankSignals, detectSignalSeverity, SEVERITY_DISPLAY } from "@/lib/ranking";
 
-function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; converted?: boolean; conversionEpicId?: string }) {
+function SignalCard({ signal, converted, conversionEpicId, onDelete }: { signal: Signal; converted?: boolean; conversionEpicId?: string; onDelete: (id: string) => void }) {
   const router = useRouter();
   const effectiveStatus = converted ? "converted" as const : signal.status;
   const status = SIGNAL_STATUS_STYLES[effectiveStatus];
@@ -19,11 +19,24 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
     !converted && signal.status === "stable" && signal.strength >= 50;
   const sev = SEVERITY_DISPLAY[detectSignalSeverity(signal)];
   const showReadyBadge = !converted && signal.readyForEpic && signal.status !== "project";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
 
   return (
     <div
       onClick={() => router.push(`/signals/${signal.id}?from=signals`)}
-      className="cursor-pointer rounded-xl border border-border bg-card p-6 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
+      className="group cursor-pointer rounded-xl border border-border bg-card p-6 transition-all hover:border-border-hover hover:shadow-[0_4px_12px_rgba(0,0,0,0.04)]"
     >
       {/* Header row */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-y-2">
@@ -84,11 +97,48 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
             </span>
           )}
         </div>
-        {signal.recentDelta && (
-          <span className="shrink-0 text-muted" style={{ fontSize: 13 }}>
-            {signal.recentDelta}
-          </span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {signal.recentDelta && (
+            <span className="text-muted" style={{ fontSize: 13 }}>
+              {signal.recentDelta}
+            </span>
+          )}
+          <div ref={menuRef} className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((prev) => !prev);
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-muted/0 transition-colors hover:bg-background hover:text-muted group-hover:text-muted"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="12" cy="19" r="2" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 top-full z-20 mt-1 min-w-[160px] rounded-lg border border-border bg-card py-1 shadow-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete(signal.id);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                  </svg>
+                  Delete signal
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Description */}
@@ -246,11 +296,12 @@ function SignalCard({ signal, converted, conversionEpicId }: { signal: Signal; c
 
 export default function SignalsPage() {
   const router = useRouter();
-  const { demoMode, isSignalConverted, convertedSignals, detectedSignals, detectSignalsIfStale, signalsLoading } = useNav();
+  const { demoMode, isSignalConverted, convertedSignals, detectedSignals, detectSignalsIfStale, signalsLoading, removeSignal, showToast } = useNav();
   const { isPro } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showConverted, setShowConverted] = useState(false);
   const [visibleCount, setVisibleCount] = useState(7);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Refresh signal detection when visiting the page (if data is stale >5 min)
   useEffect(() => {
@@ -402,6 +453,7 @@ export default function SignalsPage() {
                 signal={signal}
                 converted={isSignalConverted(signal.id)}
                 conversionEpicId={convertedSignals[signal.id]?.epicId}
+                onDelete={setConfirmDeleteId}
               />
             ))}
           </div>
@@ -420,6 +472,48 @@ export default function SignalsPage() {
           )}
         </>
       )}
+
+      {/* Delete confirmation */}
+      {confirmDeleteId && (() => {
+        const signalToDelete = detectedSignals.find((s) => s.id === confirmDeleteId);
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            onClick={() => setConfirmDeleteId(null)}
+          >
+            <div
+              className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="mb-2 text-lg font-medium text-foreground">
+                Delete signal?
+              </h2>
+              <p className="mb-6 text-sm text-muted">
+                This will remove <strong>{signalToDelete?.title}</strong> from your detected signals. It may be re-detected in future analyses.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-background"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    removeSignal(confirmDeleteId);
+                    setConfirmDeleteId(null);
+                    showToast("Signal deleted");
+                  }}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                  style={{ background: "#DC2626" }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
