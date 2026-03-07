@@ -249,6 +249,7 @@ type NavContextType = {
   setBrief: (b: EpicBrief | null) => void;
   userEpics: Epic[];
   addEpic: (epic: Epic) => void;
+  removeEpic: (epicId: string) => void;
   savedMeetings: SavedMeeting[];
   saveMeeting: (meeting: SavedMeeting) => void;
   detectedSignals: import("@/lib/mock-data").Signal[];
@@ -305,6 +306,7 @@ const NavContext = createContext<NavContextType>({
   setBrief: () => {},
   userEpics: [],
   addEpic: () => {},
+  removeEpic: () => {},
   savedMeetings: [],
   saveMeeting: () => {},
   detectedSignals: [],
@@ -473,6 +475,29 @@ export function NavProvider({ children }: { children: ReactNode }) {
     setUserEpics((prev) => {
       const next = [...prev, epic];
       persistUserEpics(next);
+      return next;
+    });
+  }, []);
+
+  const removeEpic = useCallback((epicId: string) => {
+    setUserEpics((prev) => {
+      const next = prev.filter((e) => e.id !== epicId);
+      persistUserEpics(next);
+      return next;
+    });
+    // Unassign roadmap tickets linked to this epic
+    setRoadmapState((prev) => {
+      const updated = prev.map((t) => t.epicId === epicId ? { ...t, epicId: undefined } : t);
+      persistRoadmap(updated);
+      return updated;
+    });
+    // Remove from convertedSignals
+    setConvertedSignals((prev) => {
+      const next: Record<string, ConvertedSignalInfo> = {};
+      for (const [signalId, info] of Object.entries(prev)) {
+        if (info.epicId !== epicId) next[signalId] = info;
+      }
+      persistConvertedSignals(next);
       return next;
     });
   }, []);
@@ -721,6 +746,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         setBrief,
         userEpics,
         addEpic,
+        removeEpic,
         savedMeetings,
         saveMeeting,
         detectedSignals,

@@ -1150,10 +1150,11 @@ export default function EpicDetailPage() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const { isPro } = useAuth();
-  const { stagingOverrides, userEpics, demoMode, roadmap, detectedSignals, convertedSignals, savedMeetings } = useNav();
+  const { stagingOverrides, userEpics, demoMode, roadmap, detectedSignals, convertedSignals, savedMeetings, removeEpic, showToast } = useNav();
   const [activeTab, setActiveTab] =
     useState<(typeof TABS)[number]>("Discovery");
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const epic = demoMode
     ? MOCK_EPICS.find((e) => e.id === id) ?? userEpics.find((e) => e.id === id)
@@ -1299,6 +1300,18 @@ export default function EpicDetailPage() {
           />
           {status.label}
         </div>
+        {userEpics.some((e) => e.id === id) && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-red-50 hover:text-red-600"
+            title="Delete epic"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+            </svg>
+          </button>
+        )}
       </div>
       <p className="mb-2 text-muted" style={{ fontSize: 15 }}>
         {epic.description}
@@ -1406,6 +1419,46 @@ export default function EpicDetailPage() {
         )}
       </div>
       {showUpgrade && <UpgradeModal feature="Briefs" onClose={() => setShowUpgrade(false)} />}
+
+      {/* Delete confirmation */}
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-2 text-lg font-medium text-foreground">
+              Delete epic?
+            </h2>
+            <p className="mb-6 text-sm text-muted">
+              This will permanently delete <strong>{epic.title}</strong> and unlink its tickets. The tickets will remain in staging. This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-background"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  removeEpic(id);
+                  setShowDeleteConfirm(false);
+                  showToast("Epic deleted");
+                  router.push("/epics");
+                }}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                style={{ background: "#DC2626" }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
