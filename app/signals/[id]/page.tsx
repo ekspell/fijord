@@ -582,6 +582,7 @@ export default function SignalDetailPage() {
           defaultTitle={signal.title}
           defaultDescription={signal.description ? `${signal.description}\n\nDetected across ${signal.meetingCount} meetings from ${signal.peopleCount} people with ${signal.quoteCount} quotes (${signal.confidence}% confidence). Tags: ${signal.tags.join(", ")}.` : `Signal detected across ${signal.meetingCount} meetings from ${signal.peopleCount} people with ${signal.quoteCount} supporting quotes (${signal.confidence}% confidence). Tags: ${signal.tags.join(", ")}.`}
           signalMetrics={{ meetings: signal.meetingCount, quotes: signal.quoteCount }}
+          linkedProblemTitles={signal.linkedProblemTitles}
           onClose={() => setShowCreateModal(false)}
           onCreated={(epicId, epicTitle) => {
             convertSignal(signal.id, epicId, epicTitle);

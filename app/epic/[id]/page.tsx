@@ -1181,7 +1181,7 @@ export default function EpicDetailPage() {
 
   const status = STATUS_STYLES[epic.status];
 
-  // For user-created epics from signals, derive tickets from roadmap (staging)
+  // For user-created epics, find roadmap tickets assigned to this epic
   const linkedSignals = detectedSignals.filter(
     (s) => s.epicId === id || convertedSignals[s.id]?.epicId === id
   );
@@ -1189,52 +1189,11 @@ export default function EpicDetailPage() {
   let tickets: EpicTicket[];
   let effectiveMetrics = epic.metrics;
 
-  if ((epic.tickets ?? []).length === 0 && linkedSignals.length > 0) {
-    // Gather problem titles directly from signals' linkedProblemTitles
-    const problemTitles = new Set<string>();
-    for (const signal of linkedSignals) {
-      for (const title of signal.linkedProblemTitles ?? []) {
-        problemTitles.add(title.toLowerCase().trim());
-      }
-    }
+  // Find roadmap tickets directly assigned to this epic
+  const epicRoadmapTickets = roadmap.filter((t) => t.epicId === id);
 
-    // Gather meeting IDs from signal quotes (for meeting count + fallback matching)
-    const signalMeetingIds = new Set<string>();
-    for (const signal of linkedSignals) {
-      for (const quote of signal.quotes ?? []) {
-        signalMeetingIds.add(quote.meetingId);
-      }
-    }
-
-    // Fallback: if linkedProblemTitles is empty (older signals before this field existed)
-    if (problemTitles.size === 0) {
-      // Try matching via saved meeting problems
-      for (const meeting of savedMeetings) {
-        if (signalMeetingIds.has(meeting.id)) {
-          for (const problem of meeting.problems ?? []) {
-            problemTitles.add(problem.title.toLowerCase().trim());
-          }
-        }
-      }
-      // If still empty, match by quote text: find roadmap tickets whose quotes overlap with signal quotes
-      if (problemTitles.size === 0) {
-        const signalQuoteTexts = new Set(
-          linkedSignals.flatMap((s) => (s.quotes ?? []).map((q) => q.text.toLowerCase().trim()))
-        );
-        for (const ticket of roadmap) {
-          const hasOverlap = (ticket.problemQuotes ?? []).some((pq) =>
-            signalQuoteTexts.has(pq.text.toLowerCase().trim())
-          );
-          if (hasOverlap) {
-            problemTitles.add(ticket.problemTitle.toLowerCase().trim());
-          }
-        }
-      }
-    }
-
-    // Find roadmap tickets matching those problem titles
-    const derivedTickets: EpicTicket[] = roadmap
-      .filter((t) => problemTitles.has(t.problemTitle.toLowerCase().trim()))
+  if ((epic.tickets ?? []).length === 0 && epicRoadmapTickets.length > 0) {
+    const derivedTickets: EpicTicket[] = epicRoadmapTickets
       .map((t) => ({
         id: t.id,
         title: t.title,
@@ -1248,12 +1207,18 @@ export default function EpicDetailPage() {
 
     tickets = derivedTickets;
 
-    // Gather quote count from linked signals
+    // Gather meeting IDs from signal quotes for meeting count
+    const signalMeetingIds = new Set<string>();
+    for (const signal of linkedSignals) {
+      for (const quote of signal.quotes ?? []) {
+        signalMeetingIds.add(quote.meetingId);
+      }
+    }
     const totalQuotes = linkedSignals.reduce((sum, s) => sum + (s.quoteCount || 0), 0);
     effectiveMetrics = {
       tickets: derivedTickets.length,
-      meetings: signalMeetingIds.size,
-      quotes: totalQuotes,
+      meetings: signalMeetingIds.size || epic.metrics.meetings,
+      quotes: totalQuotes || epic.metrics.quotes,
     };
   } else {
     tickets = (epic.tickets ?? []).map((t) => ({

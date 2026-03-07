@@ -16,17 +16,19 @@ export default function CreateEpicModal({
   defaultTitle,
   defaultDescription,
   signalMetrics,
+  linkedProblemTitles,
   onClose,
   onCreated,
 }: {
   defaultTitle?: string;
   defaultDescription?: string;
   signalMetrics?: { meetings: number; quotes: number };
+  linkedProblemTitles?: string[];
   onClose: () => void;
   onCreated?: (epicId: string, epicTitle: string) => void;
 }) {
   const router = useRouter();
-  const { showToast, demoMode, addEpic, savedMeetings } = useNav();
+  const { showToast, demoMode, addEpic, savedMeetings, assignEpicToTickets, roadmap } = useNav();
   const [title, setTitle] = useState(defaultTitle ?? "");
   const [description, setDescription] = useState(defaultDescription ?? "");
   const [status, setStatus] = useState<EpicStatus>("on-track");
@@ -59,25 +61,31 @@ export default function CreateEpicModal({
       ? owner.trim().split(/\s+/).map((w) => w[0]?.toUpperCase() ?? "").join("").slice(0, 2)
       : "ME";
 
+    // If creating from a signal, find and assign matching roadmap tickets
+    let ticketCount = 0;
+    if (linkedProblemTitles && linkedProblemTitles.length > 0) {
+      ticketCount = assignEpicToTickets(slug, linkedProblemTitles);
+    }
+
     const newEpic: Epic = {
       id: slug,
       title: title.trim(),
       description: description.trim(),
       status,
       metrics: {
-        tickets: 0,
+        tickets: ticketCount,
         meetings: signalMetrics?.meetings ?? selectedMeetings.length,
         quotes: signalMetrics?.quotes ?? 0,
       },
-      progress: { shipped: 0, total: 0 },
-      progressLabel: "No tickets yet",
+      progress: { shipped: 0, total: ticketCount },
+      progressLabel: ticketCount > 0 ? `${ticketCount} ticket${ticketCount !== 1 ? "s" : ""} from staging` : "No tickets yet",
       owner: { name: owner.trim() || "Me", initials },
       dateLabel: `Started ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
     };
 
     addEpic(newEpic);
     onClose();
-    showToast(`Epic "${title}" created`);
+    showToast(`Epic "${title}" created${ticketCount > 0 ? ` with ${ticketCount} ticket${ticketCount !== 1 ? "s" : ""}` : ""}`);
     onCreated?.(slug, title);
     router.push(`/epic/${slug}`);
   }

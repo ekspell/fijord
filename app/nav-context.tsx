@@ -24,6 +24,7 @@ export type RoadmapTicket = {
   checkedAC?: number[];
   quotes?: Quote[];
   editedAt?: string;
+  epicId?: string;
 };
 
 const DEMO_MODE_KEY = "fjord-demo-mode";
@@ -222,6 +223,7 @@ type NavContextType = {
   addToRoadmap: (items: RoadmapTicket[]) => void;
   updateRoadmapTicket: (id: string, updates: Partial<RoadmapTicket>) => void;
   removeFromRoadmap: (id: string) => void;
+  assignEpicToTickets: (epicId: string, problemTitles: string[]) => number;
   toast: { msg: string; action?: { label: string; onClick: () => void } } | null;
   showToast: (msg: string, action?: { label: string; onClick: () => void }) => void;
   linearApiKey: string;
@@ -277,6 +279,7 @@ const NavContext = createContext<NavContextType>({
   addToRoadmap: () => {},
   updateRoadmapTicket: () => {},
   removeFromRoadmap: () => {},
+  assignEpicToTickets: () => 0,
   toast: null,
   showToast: () => {},
   linearApiKey: "",
@@ -657,6 +660,23 @@ export function NavProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const assignEpicToTickets = useCallback((epicId: string, problemTitles: string[]): number => {
+    const titleSet = new Set(problemTitles.map((t) => t.toLowerCase().trim()));
+    let count = 0;
+    setRoadmapState((prev) => {
+      const updated = prev.map((t) => {
+        if (titleSet.has(t.problemTitle.toLowerCase().trim()) && !t.epicId) {
+          count++;
+          return { ...t, epicId };
+        }
+        return t;
+      });
+      persistRoadmap(updated);
+      return updated;
+    });
+    return count;
+  }, []);
+
   return (
     <NavContext.Provider
       value={{
@@ -675,6 +695,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
         addToRoadmap,
         updateRoadmapTicket,
         removeFromRoadmap,
+        assignEpicToTickets,
         toast,
         showToast,
         linearApiKey,
